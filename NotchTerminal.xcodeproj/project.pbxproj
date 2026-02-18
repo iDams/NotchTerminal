@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A97FDD022F452B9A000CB036 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = A97FDD012F452B9A000CB036 /* SwiftTerm */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotchTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -17,6 +21,17 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A97FDD032F452B9A000CB036 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A97FDD022F452B9A000CB036 /* SwiftTerm in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		A97FDC982F452B9A000CB036 = {
@@ -42,6 +57,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A97FDCA62F452B9A000CB036 /* Build configuration list for PBXNativeTarget "NotchTerminal" */;
 			buildPhases = (
+				A97FDD032F452B9A000CB036 /* Frameworks */,
 				A97FDC9D2F452B9A000CB036 /* Sources */,
 			);
 			buildRules = (
@@ -53,6 +69,7 @@
 			);
 			name = NotchTerminal;
 			packageProductDependencies = (
+				A97FDD012F452B9A000CB036 /* SwiftTerm */,
 			);
 			productName = NotchTerminal;
 			productReference = A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */;
@@ -81,6 +98,9 @@
 			);
 			mainGroup = A97FDC982F452B9A000CB036;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A97FDD002F452B9A000CB036 /* XCLocalSwiftPackageReference "vendor/SwiftTerm" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A97FDCA02F452B9A000CB036 /* Products */;
 			projectDirPath = "";
@@ -190,6 +210,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A97FDD002F452B9A000CB036 /* XCLocalSwiftPackageReference "vendor/SwiftTerm" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = vendor/SwiftTerm;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A97FDD012F452B9A000CB036 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A97FDD002F452B9A000CB036 /* XCLocalSwiftPackageReference "vendor/SwiftTerm" */;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A97FDC992F452B9A000CB036 /* Project object */;
 }

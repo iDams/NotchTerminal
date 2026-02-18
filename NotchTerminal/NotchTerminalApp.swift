@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import QuartzCore
 import MetalKit
+import Combine
 
 @main
 struct NotchTerminalApp: App {
@@ -35,12 +36,16 @@ final class NotchOverlayController {
     private var panelsByDisplay: [CGDirectDisplayID: NSPanel] = [:]
     private var hostsByDisplay: [CGDirectDisplayID: NSHostingView<AnyView>] = [:]
     private var modelsByDisplay: [CGDirectDisplayID: NotchViewModel] = [:]
-    private let blackWindowController = MetalBlackWindowController()
+    private let blackWindowController = MetalBlackWindowsManager()
     private var timer: Timer?
     private var observers: [NSObjectProtocol] = []
     private var lastCursorLocation: CGPoint?
+    private var cancellables = Set<AnyCancellable>()
 
     func start() {
+        blackWindowController.onMinimizedItemsChanged = { [weak self] items in
+            self?.applyMinimizedItems(items)
+        }
         rebuildPanels()
         startMouseTracking()
         registerObservers()
@@ -95,11 +100,25 @@ final class NotchOverlayController {
                 let panel = makePanel(model: model, displayID: displayID)
                 panelsByDisplay[displayID] = panel
                 hostsByDisplay[displayID] = panel.contentView as? NSHostingView<AnyView>
+
+                model.$contentWidth
+                    .removeDuplicates()
+                    .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
+                    .sink { [weak self] _ in
+                        self?.layoutPanels(animated: true, displays: [displayID])
+                    }
+                    .store(in: &cancellables)
             } else {
                 hostsByDisplay[displayID]?.rootView = AnyView(
                     NotchCapsuleView(
                         openBlackWindow: { [weak self] in
-                            self?.toggleBlackWindow(for: displayID)
+                            self?.openBlackWindow(for: displayID)
+                        },
+                        reorganizeBlackWindows: { [weak self] in
+                            self?.reorganizeBlackWindows(for: displayID)
+                        },
+                        restoreBlackWindow: { [weak self] windowID in
+                            self?.blackWindowController.restoreWindow(id: windowID)
                         }
                     )
                         .environmentObject(model)
@@ -128,7 +147,13 @@ final class NotchOverlayController {
             rootView: AnyView(
                 NotchCapsuleView(
                     openBlackWindow: { [weak self] in
-                        self?.toggleBlackWindow(for: displayID)
+                        self?.openBlackWindow(for: displayID)
+                    },
+                    reorganizeBlackWindows: { [weak self] in
+                        self?.reorganizeBlackWindows(for: displayID)
+                    },
+                    restoreBlackWindow: { [weak self] windowID in
+                        self?.blackWindowController.restoreWindow(id: windowID)
                     }
                 )
                     .environmentObject(model)
@@ -172,7 +197,7 @@ final class NotchOverlayController {
                   let model = modelsByDisplay[displayID] else { continue }
 
             if let displays, !displays.contains(displayID) { continue }
-            let frame = frameForPanel(on: screen, hasNotch: model.hasPhysicalNotch, isExpanded: model.isExpanded)
+            let frame = frameForPanel(on: screen, hasNotch: model.hasPhysicalNotch, isExpanded: model.isExpanded, contentWidth: model.contentWidth)
             panel.ignoresMouseEvents = !model.isExpanded
 
             if animated {
@@ -187,7 +212,7 @@ final class NotchOverlayController {
         }
     }
 
-    private func frameForPanel(on screen: NSScreen, hasNotch: Bool, isExpanded: Bool) -> CGRect {
+    private func frameForPanel(on screen: NSScreen, hasNotch: Bool, isExpanded: Bool, contentWidth: CGFloat) -> CGRect {
         let closedSize: NSSize = {
             guard hasNotch else { return collapsedNoNotchSize }
             let raw = screen.notchSizeOrFallback(fallback: collapsedNoNotchSize)
@@ -196,7 +221,16 @@ final class NotchOverlayController {
                 height: max(22, raw.height * notchClosedHeightScale)
             )
         }()
-        let visualSize = isExpanded ? expandedSize : closedSize
+        
+        let visualSize: NSSize
+        if isExpanded {
+            let minWidth: CGFloat = 336
+            let maxWidth: CGFloat = 800
+            let targetWidth = min(max(contentWidth + 40, minWidth), maxWidth)
+            visualSize = NSSize(width: targetWidth, height: 78)
+        } else {
+            visualSize = closedSize
+        }
         let shoulderExtra: CGFloat = hasNotch ? (isExpanded ? 14 : 6) * 2 : 0
         let panelSize = NSSize(width: visualSize.width + shoulderExtra + (shadowPadding * 2), height: visualSize.height + (shadowPadding * 2))
         let topInset = hasNotch ? notchTopInset : noNotchTopInset
@@ -255,8 +289,32 @@ final class NotchOverlayController {
         return blockedWidth > 20 && min(left.height, right.height) > 0
     }
 
-    private func toggleBlackWindow(for displayID: CGDirectDisplayID) {
-        blackWindowController.toggle(anchorScreen: screen(forDisplayID: displayID))
+    private func openBlackWindow(for displayID: CGDirectDisplayID) {
+        blackWindowController.createWindow(
+            displayID: displayID,
+            anchorScreen: screen(forDisplayID: displayID),
+            notchTargetsProvider: { [weak self] in
+                guard let self else { return [] }
+                return self.panelsByDisplay.map { key, panel in
+                    MetalBlackWindowsManager.NotchTarget(displayID: key, frame: panel.frame)
+                }
+            }
+        )
+    }
+
+    private func reorganizeBlackWindows(for displayID: CGDirectDisplayID) {
+        blackWindowController.reorganizeVisibleWindows(
+            on: displayID,
+            screen: screen(forDisplayID: displayID)
+        )
+    }
+
+    private func applyMinimizedItems(_ items: [MinimizedWindowItem]) {
+        for (displayID, model) in modelsByDisplay {
+            model.minimizedItems = items
+                .filter { $0.displayID == displayID }
+                .sorted { $0.number < $1.number }
+        }
     }
 
     private func screen(forDisplayID targetDisplayID: CGDirectDisplayID) -> NSScreen? {
@@ -266,6 +324,8 @@ final class NotchOverlayController {
 
 final class NotchViewModel: ObservableObject {
     @Published var isExpanded = false
+    @Published var minimizedItems: [MinimizedWindowItem] = []
+    @Published var contentWidth: CGFloat = 0
     var hasPhysicalNotch = false
 }
 
@@ -348,35 +408,182 @@ struct NotchShape: Shape {
 struct NotchCapsuleView: View {
     @EnvironmentObject private var model: NotchViewModel
     let openBlackWindow: () -> Void
+    let reorganizeBlackWindows: () -> Void
+    let restoreBlackWindow: (UUID) -> Void
+    @State private var hoveredMinimizedItemID: UUID?
+    @State private var pendingHoverItemID: UUID?
+    @State private var hoverActivationWorkItem: DispatchWorkItem?
 
-    init(openBlackWindow: @escaping () -> Void = {}) {
+    init(
+        openBlackWindow: @escaping () -> Void = {},
+        reorganizeBlackWindows: @escaping () -> Void = {},
+        restoreBlackWindow: @escaping (UUID) -> Void = { _ in }
+    ) {
         self.openBlackWindow = openBlackWindow
+        self.reorganizeBlackWindows = reorganizeBlackWindows
+        self.restoreBlackWindow = restoreBlackWindow
     }
 
     var body: some View {
         ZStack {
             Rectangle()
                 .fill(.black)
-                .mask(notchBackgroundMaskGroup)
-                .shadow(color: .black.opacity(0.12), radius: 3, y: 1.5)
 
             if model.isExpanded {
                 VStack {
                     Spacer(minLength: 0)
-                    Button(action: openBlackWindow) {
-                        Label("Open", systemImage: "macwindow")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(.white.opacity(0.14), in: Capsule())
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Button(action: openBlackWindow) {
+                                Label("New", systemImage: "plus")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(.white.opacity(0.14), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+
+                            Button(action: reorganizeBlackWindows) {
+                                Label("Reorg", systemImage: "square.grid.2x2")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(.white.opacity(0.14), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+
+                            ForEach(model.minimizedItems) { item in
+                                Button(action: {
+                                    hoveredMinimizedItemID = nil
+                                    pendingHoverItemID = nil
+                                    hoverActivationWorkItem?.cancel()
+                                    hoverActivationWorkItem = nil
+                                    restoreBlackWindow(item.id)
+                                }) {
+                                    HStack(spacing: 4) {
+                                        if let icon = item.icon {
+                                            Image(nsImage: icon)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 10, height: 10)
+                                        } else {
+                                            Image(systemName: "app.fill")
+                                                .font(.system(size: 10, weight: .bold))
+                                        }
+                                        Text("\(item.number)")
+                                            .font(.system(size: 11, weight: .semibold))
+                                    }
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .background(.white.opacity(0.12), in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .onHover { hovering in
+                                    if hovering {
+                                        pendingHoverItemID = item.id
+                                        hoverActivationWorkItem?.cancel()
+                                        let workItem = DispatchWorkItem {
+                                            if pendingHoverItemID == item.id {
+                                                hoveredMinimizedItemID = item.id
+                                            }
+                                        }
+                                        hoverActivationWorkItem = workItem
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: workItem)
+                                    } else if hoveredMinimizedItemID == item.id {
+                                        hoveredMinimizedItemID = nil
+                                        pendingHoverItemID = nil
+                                        hoverActivationWorkItem?.cancel()
+                                        hoverActivationWorkItem = nil
+                                    } else if pendingHoverItemID == item.id {
+                                        pendingHoverItemID = nil
+                                        hoverActivationWorkItem?.cancel()
+                                        hoverActivationWorkItem = nil
+                                    }
+                                }
+                                .popover(
+                                    isPresented: Binding(
+                                        get: { hoveredMinimizedItemID == item.id },
+                                        set: { showing in
+                                            hoveredMinimizedItemID = showing ? item.id : nil
+                                            if !showing {
+                                                pendingHoverItemID = nil
+                                                hoverActivationWorkItem?.cancel()
+                                                hoverActivationWorkItem = nil
+                                            }
+                                        }
+                                    ),
+                                    attachmentAnchor: .rect(.bounds),
+                                    arrowEdge: .bottom
+                                ) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack(spacing: 6) {
+                                            if let icon = item.icon {
+                                                Image(nsImage: icon)
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(width: 12, height: 12)
+                                            } else {
+                                                Image(systemName: "app.fill")
+                                                    .font(.system(size: 11, weight: .semibold))
+                                            }
+                                            Text(item.title)
+                                                .font(.system(size: 11, weight: .semibold))
+                                        }
+                                        if let preview = item.preview {
+                                            Image(nsImage: preview)
+                                                .resizable()
+                                                .interpolation(.high)
+                                                .scaledToFit()
+                                                .frame(width: 260, height: 150)
+                                                .clipShape(.rect(cornerRadius: 8))
+                                        } else {
+                                            Text("No preview")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .padding(8)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .background(GeometryReader { geo in
+                            Color.clear.preference(key: WidthPreferenceKey.self, value: geo.size.width)
+                        })
                     }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 10)
+                    .mask(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0),
+                                .init(color: .black, location: 0.05),
+                                .init(color: .black, location: 0.95),
+                                .init(color: .clear, location: 1)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+                    .onPreferenceChange(WidthPreferenceKey.self) { width in
+                        DispatchQueue.main.async {
+                            model.contentWidth = width
+                        }
+                    }
+                    if model.hasPhysicalNotch {
+                        Spacer().frame(height: 8)
+                    } else {
+                        Spacer(minLength: 0)
+                    }
                 }
                 .transition(.opacity)
             }
         }
+        .mask(notchBackgroundMaskGroup)
+        .shadow(color: .black.opacity(0.12), radius: 3, y: 1.5)
         .padding(shadowPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.spring(response: 0.35, dampingFraction: 0.82), value: model.isExpanded)
@@ -503,5 +710,12 @@ extension NSScreen {
         let size = notchSize
         guard size != .zero else { return fallback }
         return size
+    }
+}
+
+struct WidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

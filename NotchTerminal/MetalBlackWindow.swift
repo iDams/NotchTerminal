@@ -1,104 +1,594 @@
 import SwiftUI
 import AppKit
 import MetalKit
+import SwiftTerm
+
+final class InteractiveTerminalPanel: NSPanel {
+    var onCommandPlus: (() -> Void)?
+    var onCommandMinus: (() -> Void)?
+
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard event.modifierFlags.contains(.command) else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        switch event.charactersIgnoringModifiers {
+        case "+", "=":
+            onCommandPlus?()
+            return true
+        case "-":
+            onCommandMinus?()
+            return true
+        default:
+            return super.performKeyEquivalent(with: event)
+        }
+    }
+}
+
+struct MinimizedWindowItem: Identifiable {
+    let id: UUID
+    let number: Int
+    let displayID: CGDirectDisplayID
+    let title: String
+    let icon: NSImage?
+    let preview: NSImage?
+}
 
 @MainActor
-final class MetalBlackWindowController {
-    private var panel: NSPanel?
-    private let expandedSize = CGSize(width: 540, height: 320)
-    private let compactSize = CGSize(width: 170, height: 170)
-    private var isCompact = false
-
-    func toggle(anchorScreen: NSScreen?) {
-        if let panel, panel.isVisible {
-            panel.orderOut(nil)
-            return
-        }
-        show(anchorScreen: anchorScreen)
+final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
+    struct NotchTarget {
+        let displayID: CGDirectDisplayID
+        let frame: CGRect
     }
 
-    private func show(anchorScreen: NSScreen?) {
+    var onMinimizedItemsChanged: (([MinimizedWindowItem]) -> Void)?
+
+    private struct WindowInstance {
+        let id: UUID
+        let number: Int
+        var displayID: CGDirectDisplayID
+        let panel: NSPanel
+        let notchTargetsProvider: () -> [NotchTarget]
+        var displayTitle: String
+        var displayIcon: NSImage?
+        var isCompact: Bool
+        var isMinimized: Bool
+        var isAlwaysOnTop: Bool
+        var expandedFrame: CGRect
+        var terminalFontSize: CGFloat
+        var previewSnapshot: NSImage?
+    }
+
+    private let expandedSize = CGSize(width: 820, height: 520)
+    private let compactSize = CGSize(width: 220, height: 220)
+    private var windows: [UUID: WindowInstance] = [:]
+    private var pendingDockTargets: [UUID: NotchTarget] = [:]
+    private var nextNumber: Int = 1
+
+    func createWindow(
+        displayID: CGDirectDisplayID,
+        anchorScreen: NSScreen?,
+        notchTargetsProvider: @escaping () -> [NotchTarget]
+    ) {
         let screen = anchorScreen ?? NSScreen.main ?? NSScreen.screens.first
         guard let screen else { return }
 
-        let panel = panel ?? makePanel()
-        self.panel = panel
-        isCompact = false
+        let id = UUID()
+        let number = nextNumber
+        nextNumber += 1
 
-        updateContent(in: panel)
-        panel.setFrame(frameForInitialShow(on: screen), display: true)
-        panel.orderFrontRegardless()
+        let panel = makePanel()
+        let frame = frameForInitialShow(on: screen, size: expandedSize)
+        panel.setFrame(frame, display: true)
+
+        windows[id] = WindowInstance(
+            id: id,
+            number: number,
+            displayID: displayID,
+            panel: panel,
+            notchTargetsProvider: notchTargetsProvider,
+            displayTitle: "App \(number)",
+            displayIcon: nil,
+            isCompact: false,
+            isMinimized: false,
+            isAlwaysOnTop: false,
+            expandedFrame: frame,
+            terminalFontSize: defaultTerminalFontSize(),
+            previewSnapshot: nil
+        )
+
+        updateContent(for: id)
+        panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: false)
+        publishMinimizedItems()
     }
 
-    private func makePanel() -> NSPanel {
-        let panel = NSPanel(
-            contentRect: CGRect(origin: .zero, size: expandedSize),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.level = .statusBar
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
-        updateContent(in: panel)
-        return panel
+    func restoreWindow(id: UUID) {
+        guard var instance = windows[id] else { return }
+        guard instance.isMinimized else {
+            instance.panel.makeKeyAndOrderFront(nil)
+            windows[id] = instance
+            return
+        }
+
+        let targetFrame = instance.expandedFrame
+        if let notchFrame = notchFrame(for: instance.displayID, in: instance) {
+            let startSize = CGSize(width: 54, height: 54)
+            let startOrigin = CGPoint(
+                x: notchFrame.midX - startSize.width / 2,
+                y: notchFrame.maxY - startSize.height
+            )
+            instance.panel.setFrame(CGRect(origin: startOrigin, size: startSize), display: true)
+        }
+
+        instance.panel.makeKeyAndOrderFront(nil)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.24
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            instance.panel.animator().setFrame(targetFrame, display: true)
+        }
+
+        instance.isMinimized = false
+        windows[id] = instance
+        publishMinimizedItems()
     }
 
-    private func updateContent(in panel: NSPanel) {
-        let root = MetalBlackWindowContent(
-            isCompact: isCompact,
-            toggleCompact: { [weak self] in
-                self?.toggleCompactSize()
+    func reorganizeVisibleWindows(on displayID: CGDirectDisplayID, screen: NSScreen?) {
+        guard let screen else { return }
+
+        let visibleIDs = windows.values
+            .filter { $0.displayID == displayID && !$0.isMinimized }
+            .sorted { $0.number < $1.number }
+            .map(\.id)
+
+        guard !visibleIDs.isEmpty else { return }
+
+        let usable = screen.visibleFrame
+        let marginX: CGFloat = 20
+        let marginTop: CGFloat = 20
+        let marginBottom: CGFloat = 20
+        let vSpacing: CGFloat = 14
+        let hSpacing: CGFloat = 16
+        let columnWidth = visibleIDs
+            .compactMap { windows[$0]?.panel.frame.width }
+            .max() ?? expandedSize.width
+
+        var currentX = usable.maxX - marginX - columnWidth
+        var currentTop = usable.maxY - marginTop
+        let minY = usable.minY + marginBottom
+        let minX = usable.minX + marginX
+
+        for id in visibleIDs {
+            guard var instance = windows[id] else { continue }
+            let size = instance.panel.frame.size
+
+            if currentTop - size.height < minY {
+                currentX -= (columnWidth + hSpacing)
+                currentTop = usable.maxY - marginTop
             }
-        )
-        if let hostingView = panel.contentView as? NSHostingView<MetalBlackWindowContent> {
-            hostingView.rootView = root
-        } else {
-            panel.contentView = NSHostingView(rootView: root)
+
+            if currentX < minX {
+                // If windows exceed available columns, keep them in the leftmost column
+                // instead of pushing off-screen.
+                currentX = minX
+                currentTop = max(minY + size.height, currentTop)
+            }
+
+            let origin = CGPoint(x: currentX, y: max(minY, currentTop - size.height))
+            let targetFrame = CGRect(origin: origin, size: size)
+
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.24
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                instance.panel.animator().setFrame(targetFrame, display: true)
+            }
+
+            instance.expandedFrame = targetFrame
+            windows[id] = instance
+            currentTop = targetFrame.minY - vSpacing
         }
     }
 
-    private func toggleCompactSize() {
-        guard let panel else { return }
-        isCompact.toggle()
-        updateContent(in: panel)
+    private func toggleCompact(id: UUID) {
+        guard var instance = windows[id] else { return }
+        instance.isCompact.toggle()
 
-        let targetSize = isCompact ? compactSize : expandedSize
-        let currentFrame = panel.frame
+        let targetSize = instance.isCompact ? compactSize : expandedSize
+        let currentFrame = instance.panel.frame
         let targetOrigin = CGPoint(
             x: currentFrame.midX - targetSize.width / 2,
             y: currentFrame.maxY - targetSize.height
         )
         let targetFrame = CGRect(origin: targetOrigin, size: targetSize)
 
+        updateContent(for: id, isCompactOverride: instance.isCompact)
+
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.22
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            panel.animator().setFrame(targetFrame, display: true)
+            instance.panel.animator().setFrame(targetFrame, display: true)
+        }
+
+        instance.expandedFrame = targetFrame
+        windows[id] = instance
+    }
+
+    private func resetWindowSize(id: UUID) {
+        guard var instance = windows[id] else { return }
+        instance.isCompact = false
+
+        let current = instance.panel.frame
+        let targetFrame = CGRect(
+            x: current.minX,
+            y: current.maxY - expandedSize.height,
+            width: expandedSize.width,
+            height: expandedSize.height
+        )
+
+        updateContent(for: id, isCompactOverride: false)
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.22
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            instance.panel.animator().setFrame(targetFrame, display: true)
+        }
+
+        instance.expandedFrame = targetFrame
+        windows[id] = instance
+    }
+
+    private func maximizeWindow(id: UUID) {
+        guard var instance = windows[id] else { return }
+        guard let screen = instance.panel.screen ?? NSScreen.main else { return }
+
+        let targetFrame = screen.visibleFrame
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.22
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            instance.panel.animator().setFrame(targetFrame, display: true)
+        }
+
+        instance.isCompact = false
+        instance.expandedFrame = targetFrame
+        windows[id] = instance
+        updateContent(for: id, isCompactOverride: false)
+    }
+
+    private func toggleAlwaysOnTop(id: UUID) {
+        guard var instance = windows[id] else { return }
+        instance.isAlwaysOnTop.toggle()
+        if instance.isAlwaysOnTop {
+            instance.panel.level = .floating
+            instance.panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        } else {
+            instance.panel.level = .normal
+            instance.panel.collectionBehavior = [.managed, .fullScreenAuxiliary]
+        }
+        windows[id] = instance
+        updateContent(for: id)
+    }
+
+    private func adjustTerminalFontSize(id: UUID, delta: CGFloat) {
+        guard var instance = windows[id] else { return }
+        let minSize: CGFloat = 10
+        let maxSize: CGFloat = 28
+        let newSize = min(max(instance.terminalFontSize + delta, minSize), maxSize)
+        guard newSize != instance.terminalFontSize else { return }
+        instance.terminalFontSize = newSize
+        windows[id] = instance
+        updateContent(for: id)
+    }
+
+    private func minimizeWindow(id: UUID) {
+        guard var instance = windows[id] else { return }
+        guard !instance.isMinimized else { return }
+
+        instance.expandedFrame = instance.panel.frame
+        instance.previewSnapshot = capturePreview(from: instance.panel)
+        let preferredTarget = closestDockTarget(for: instance.panel.frame, in: instance)
+        if let preferredTarget {
+            instance.displayID = preferredTarget.displayID
+        }
+        let targetFrame: CGRect = {
+            guard let notchFrame = preferredTarget?.frame ?? notchFrame(for: instance.displayID, in: instance) else {
+                let size = CGSize(width: 54, height: 54)
+                let origin = CGPoint(x: instance.panel.frame.midX - 27, y: instance.panel.frame.maxY - size.height)
+                return CGRect(origin: origin, size: size)
+            }
+            let size = CGSize(width: 54, height: 54)
+            let origin = CGPoint(
+                x: notchFrame.midX - size.width / 2,
+                y: notchFrame.maxY - size.height
+            )
+            return CGRect(origin: origin, size: size)
+        }()
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.20
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            instance.panel.animator().setFrame(targetFrame, display: true)
+            instance.panel.animator().alphaValue = 0.0
+        } completionHandler: {
+            instance.panel.alphaValue = 1.0
+            instance.panel.orderOut(nil)
+        }
+
+        instance.isMinimized = true
+        windows[id] = instance
+        publishMinimizedItems()
+    }
+
+    private func closeWindow(id: UUID) {
+        guard let instance = windows[id] else { return }
+        instance.panel.orderOut(nil)
+        instance.panel.close()
+        windows.removeValue(forKey: id)
+        publishMinimizedItems()
+    }
+
+    private func publishMinimizedItems() {
+        let items = windows.values
+            .filter { $0.isMinimized }
+            .map {
+                MinimizedWindowItem(
+                    id: $0.id,
+                    number: $0.number,
+                    displayID: $0.displayID,
+                    title: $0.displayTitle,
+                    icon: $0.displayIcon,
+                    preview: $0.previewSnapshot
+                )
+            }
+            .sorted { $0.number < $1.number }
+        onMinimizedItemsChanged?(items)
+    }
+
+    private func makePanel() -> NSPanel {
+        let panel = InteractiveTerminalPanel(
+            contentRect: CGRect(origin: .zero, size: expandedSize),
+            styleMask: [.borderless, .resizable, .titled, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.showsResizeIndicator = true
+        panel.level = .normal
+        panel.minSize = CGSize(width: 360, height: 240)
+        panel.collectionBehavior = [.managed, .fullScreenAuxiliary]
+        panel.hidesOnDeactivate = false
+        panel.isMovableByWindowBackground = true
+        panel.delegate = self
+
+        panel.standardWindowButton(.closeButton)?.isHidden = true
+        panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        panel.standardWindowButton(.zoomButton)?.isHidden = true
+
+        return panel
+    }
+
+    private func updateContent(for id: UUID, isCompactOverride: Bool? = nil) {
+        guard let instance = windows[id] else { return }
+        let isCompact = isCompactOverride ?? instance.isCompact
+
+        let root = MetalBlackWindowContent(
+            displayTitle: instance.displayTitle,
+            displayIcon: instance.displayIcon,
+            windowNumber: instance.number,
+            isCompact: isCompact,
+            isAlwaysOnTop: instance.isAlwaysOnTop,
+            terminalFontSize: instance.terminalFontSize,
+            toggleCompact: { [weak self] in
+                self?.toggleCompact(id: id)
+            },
+            resetSize: { [weak self] in
+                self?.resetWindowSize(id: id)
+            },
+            increaseFontSize: { [weak self] in
+                self?.adjustTerminalFontSize(id: id, delta: 1)
+            },
+            decreaseFontSize: { [weak self] in
+                self?.adjustTerminalFontSize(id: id, delta: -1)
+            },
+            commandSubmitted: { [weak self] command in
+                self?.handleCommandSubmitted(id: id, command: command)
+            },
+            closeWindow: { [weak self] in
+                self?.closeWindow(id: id)
+            },
+            minimize: { [weak self] in
+                self?.minimizeWindow(id: id)
+            },
+            maximize: { [weak self] in
+                self?.maximizeWindow(id: id)
+            },
+            toggleAlwaysOnTop: { [weak self] in
+                self?.toggleAlwaysOnTop(id: id)
+            }
+        )
+
+        if let hostingView = instance.panel.contentView as? NSHostingView<MetalBlackWindowContent> {
+            hostingView.rootView = root
+        } else {
+            instance.panel.contentView = NSHostingView(rootView: root)
+        }
+
+        if let panel = instance.panel as? InteractiveTerminalPanel {
+            panel.onCommandPlus = { [weak self] in
+                self?.adjustTerminalFontSize(id: id, delta: 1)
+            }
+            panel.onCommandMinus = { [weak self] in
+                self?.adjustTerminalFontSize(id: id, delta: -1)
+            }
         }
     }
 
-    private func frameForInitialShow(on screen: NSScreen) -> CGRect {
+    private func frameForInitialShow(on screen: NSScreen, size: CGSize) -> CGRect {
         let origin = CGPoint(
-            x: screen.frame.midX - expandedSize.width / 2,
-            y: screen.frame.maxY - expandedSize.height - 120
+            x: screen.frame.midX - size.width / 2,
+            y: screen.frame.maxY - size.height - 120
         )
-        return CGRect(origin: origin, size: expandedSize)
+        return CGRect(origin: origin, size: size)
+    }
+
+    private func defaultTerminalFontSize() -> CGFloat {
+        if let raw = ProcessInfo.processInfo.environment["NOTCH_TERMINAL_FONT_SIZE"],
+           let value = Double(raw), value >= 10, value <= 28 {
+            return CGFloat(value)
+        }
+        return 13
+    }
+
+    private func windowID(for panel: NSWindow) -> UUID? {
+        windows.first(where: { $0.value.panel === panel })?.key
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        guard let panel = notification.object as? NSWindow,
+              let id = windowID(for: panel),
+              var instance = windows[id],
+              !instance.isMinimized else { return }
+
+        if !instance.isCompact {
+            instance.expandedFrame = panel.frame
+            windows[id] = instance
+        }
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let panel = notification.object as? NSWindow,
+              let rootView = panel.contentView else { return }
+        refreshTerminalView(in: rootView)
+    }
+
+    private var dragMonitor: Any?
+
+    func windowDidMove(_ notification: Notification) {
+        guard let panel = notification.object as? NSWindow,
+              let id = windowID(for: panel),
+              let instance = windows[id],
+              !instance.isMinimized else { return }
+
+        let nearTarget = closestDockTarget(for: panel.frame, in: instance)
+
+        if let nearTarget {
+            pendingDockTargets[id] = nearTarget
+        } else {
+            pendingDockTargets.removeValue(forKey: id)
+        }
+
+        // Install a one-shot mouse-up monitor to detect end of drag
+        if dragMonitor == nil {
+            dragMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+                guard let self else { return event }
+                self.handleDragEnd()
+                return event
+            }
+        }
+    }
+
+    private func handleDragEnd() {
+        // Remove the monitor immediately
+        if let monitor = dragMonitor {
+            NSEvent.removeMonitor(monitor)
+            dragMonitor = nil
+        }
+
+        // Check all pending dock targets
+        for (id, target) in pendingDockTargets {
+            guard let instance = windows[id], !instance.isMinimized else { continue }
+            let currentTarget = closestDockTarget(for: instance.panel.frame, in: instance)
+            if let currentTarget, currentTarget.displayID == target.displayID {
+                pendingDockTargets.removeValue(forKey: id)
+                minimizeWindow(id: id)
+                return
+            }
+        }
+        pendingDockTargets.removeAll()
+    }
+
+    private func refreshTerminalView(in view: NSView) {
+        if let terminalView = view as? DetectingLocalProcessTerminalView {
+            terminalView.refreshAfterResize()
+            return
+        }
+        for subview in view.subviews {
+            refreshTerminalView(in: subview)
+        }
+    }
+
+    private func capturePreview(from panel: NSPanel) -> NSImage? {
+        guard let contentView = panel.contentView else { return nil }
+        let bounds = contentView.bounds.integral
+        guard bounds.width > 8, bounds.height > 8 else { return nil }
+
+        let rep = contentView.bitmapImageRepForCachingDisplay(in: bounds)
+        guard let rep else { return nil }
+        contentView.cacheDisplay(in: bounds, to: rep)
+
+        let image = NSImage(size: bounds.size)
+        image.addRepresentation(rep)
+        return image
+    }
+
+    private func handleCommandSubmitted(id: UUID, command: String) {
+        guard var instance = windows[id] else { return }
+        let branding = CLICommandBrandingResolver.branding(for: command)
+        guard instance.displayTitle != branding.title || instance.displayIcon !== branding.icon else { return }
+        instance.displayTitle = branding.title
+        instance.displayIcon = branding.icon
+        windows[id] = instance
+        updateContent(for: id)
+    }
+
+    private func notchFrame(for displayID: CGDirectDisplayID, in instance: WindowInstance) -> CGRect? {
+        instance.notchTargetsProvider().first(where: { $0.displayID == displayID })?.frame
+    }
+
+    private func closestDockTarget(for windowFrame: CGRect, in instance: WindowInstance) -> NotchTarget? {
+        let center = CGPoint(x: windowFrame.midX, y: windowFrame.midY)
+        let targets = instance.notchTargetsProvider()
+
+        let candidate = targets
+            .map { target -> (NotchTarget, CGFloat, CGRect) in
+                let expanded = target.frame.insetBy(dx: -120, dy: -90)
+                let dx = center.x - expanded.midX
+                let dy = center.y - expanded.midY
+                let dist2 = (dx * dx) + (dy * dy)
+                return (target, dist2, expanded)
+            }
+            .filter { $0.2.contains(center) }
+            .min { $0.1 < $1.1 }
+
+        return candidate?.0
     }
 }
 
 struct MetalBlackWindowContent: View {
+    let displayTitle: String
+    let displayIcon: NSImage?
+    let windowNumber: Int
     let isCompact: Bool
+    let isAlwaysOnTop: Bool
+    let terminalFontSize: CGFloat
     let toggleCompact: () -> Void
+    let resetSize: () -> Void
+    let increaseFontSize: () -> Void
+    let decreaseFontSize: () -> Void
+    let commandSubmitted: (String) -> Void
+    let closeWindow: () -> Void
+    let minimize: () -> Void
+    let maximize: () -> Void
+    let toggleAlwaysOnTop: () -> Void
 
-    private var cornerRadius: CGFloat {
-        isCompact ? 18 : 22
-    }
+    private var cornerRadius: CGFloat { isCompact ? 18 : 22 }
 
     var body: some View {
         ZStack {
@@ -113,8 +603,43 @@ struct MetalBlackWindowContent: View {
                 .stroke(.white.opacity(0.08), lineWidth: 1)
 
             VStack {
-                HStack {
-                    Spacer()
+                HStack(spacing: 8) {
+                    Button(action: closeWindow) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20, height: 20)
+                            .background(.white.opacity(0.14), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: minimize) {
+                        Image(systemName: "minus")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20, height: 20)
+                            .background(.white.opacity(0.14), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: maximize) {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20, height: 20)
+                            .background(.white.opacity(0.14), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: resetSize) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20, height: 20)
+                            .background(.white.opacity(0.14), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+
                     Button(action: toggleCompact) {
                         Image(systemName: isCompact ? "heart.slash.fill" : "heart.fill")
                             .font(.system(size: 10, weight: .bold))
@@ -123,7 +648,46 @@ struct MetalBlackWindowContent: View {
                             .background(.white.opacity(0.14), in: Circle())
                     }
                     .buttonStyle(.plain)
+
+                    Button(action: toggleAlwaysOnTop) {
+                        Image(systemName: isAlwaysOnTop ? "pin.fill" : "pin.slash")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(isAlwaysOnTop ? .yellow : .white)
+                            .frame(width: 20, height: 20)
+                            .background((isAlwaysOnTop ? Color.yellow.opacity(0.2) : .white.opacity(0.14)), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    HStack(spacing: 6) {
+                        if let displayIcon {
+                            Image(nsImage: displayIcon)
+                                .resizable()
+                                .interpolation(.high)
+                                .scaledToFit()
+                                .frame(width: 14, height: 14)
+                        }
+                        Text(displayTitle)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
                 }
+                .padding(.bottom, 6)
+
+                SwiftTermContainerView(
+                    windowNumber: windowNumber,
+                    fontSize: terminalFontSize,
+                    commandSubmitted: commandSubmitted
+                )
+                    .padding(.top, isCompact ? 8 : 14)
+                    .padding(.horizontal, isCompact ? 6 : 10)
+                    .padding(.bottom, isCompact ? 6 : 8)
+                    .clipShape(.rect(cornerRadius: isCompact ? 12 : 16))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: isCompact ? 12 : 16, style: .continuous)
+                            .stroke(.white.opacity(0.08), lineWidth: 1)
+                    }
                 Spacer()
             }
             .padding(10)
@@ -132,6 +696,157 @@ struct MetalBlackWindowContent: View {
         .padding(2)
         .animation(.spring(response: 0.22, dampingFraction: 0.85), value: isCompact)
     }
+}
+
+final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
+    var commandSubmitted: ((String) -> Void)?
+    private var currentInputLine = ""
+    private var isInLiveResize = false
+
+    override func send(source: TerminalView, data: ArraySlice<UInt8>) {
+        super.send(source: source, data: data)
+
+        for byte in data {
+            switch byte {
+            case 10, 13: // \n or \r
+                let command = currentInputLine.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !command.isEmpty {
+                    commandSubmitted?(command)
+                }
+                currentInputLine = ""
+            case 8, 127: // backspace/delete
+                if !currentInputLine.isEmpty {
+                    currentInputLine.removeLast()
+                }
+            default:
+                if byte >= 32 && byte <= 126 {
+                    currentInputLine.append(Character(UnicodeScalar(byte)))
+                }
+            }
+        }
+    }
+
+    override func viewWillStartLiveResize() {
+        super.viewWillStartLiveResize()
+        isInLiveResize = true
+    }
+
+    override func viewDidEndLiveResize() {
+        isInLiveResize = false
+        super.viewDidEndLiveResize()
+        // After live resize ends, force a fresh terminal resize + full redraw.
+        // Call setFrameSize with the current size to trigger processSizeChange
+        // internally, then do a full screen update to clear artifacts.
+        super.setFrameSize(frame.size)
+        let terminal = getTerminal()
+        terminal.updateFullScreen()
+        needsDisplay = true
+        layer?.setNeedsDisplay()
+    }
+
+    func refreshAfterResize() {
+        let terminal = getTerminal()
+        terminal.updateFullScreen()
+        needsDisplay = true
+    }
+}
+
+struct SwiftTermContainerView: NSViewRepresentable {
+    let windowNumber: Int
+    let fontSize: CGFloat
+    let commandSubmitted: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> LocalProcessTerminalView {
+        let terminal = DetectingLocalProcessTerminalView(frame: .zero)
+        terminal.commandSubmitted = commandSubmitted
+        terminal.processDelegate = context.coordinator
+        terminal.font = preferredTerminalFont(size: fontSize)
+        terminal.nativeBackgroundColor = .black
+        context.coordinator.windowNumber = windowNumber
+        context.coordinator.tryStartProcessIfNeeded(on: terminal)
+        DispatchQueue.main.async {
+            terminal.window?.makeFirstResponder(terminal)
+        }
+        return terminal
+    }
+
+    func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
+        nsView.font = preferredTerminalFont(size: fontSize)
+        context.coordinator.windowNumber = windowNumber
+        context.coordinator.tryStartProcessIfNeeded(on: nsView)
+        if nsView.window?.firstResponder !== nsView {
+            DispatchQueue.main.async {
+                nsView.window?.makeFirstResponder(nsView)
+            }
+        }
+    }
+
+    static func dismantleNSView(_ nsView: LocalProcessTerminalView, coordinator: Coordinator) {
+        nsView.terminate()
+    }
+
+    final class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
+        var processStarted = false
+        var startRetryScheduled = false
+        var windowNumber: Int = 0
+
+        func tryStartProcessIfNeeded(on terminal: LocalProcessTerminalView) {
+            guard !processStarted else { return }
+
+            if terminal.window != nil, terminal.bounds.width > 120, terminal.bounds.height > 90 {
+                let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+                terminal.startProcess(
+                    executable: shell,
+                    args: ["-l"],
+                    currentDirectory: NSHomeDirectory()
+                )
+                processStarted = true
+                return
+            }
+
+            guard !startRetryScheduled else { return }
+            startRetryScheduled = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self, weak terminal] in
+                guard let self else { return }
+                self.startRetryScheduled = false
+                guard let terminal else { return }
+                self.tryStartProcessIfNeeded(on: terminal)
+            }
+        }
+
+        func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
+        func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
+        func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
+        func processTerminated(source: TerminalView, exitCode: Int32?) {}
+    }
+
+    private func preferredTerminalFont(size: CGFloat) -> NSFont {
+        let env = ProcessInfo.processInfo.environment
+        if let explicit = env["NOTCH_TERMINAL_FONT"], let font = NSFont(name: explicit, size: size) {
+            return font
+        }
+
+        let candidates = [
+            "MesloLGS NF",
+            "MesloLGM Nerd Font",
+            "JetBrainsMono Nerd Font",
+            "Hack Nerd Font",
+            "FiraCode Nerd Font",
+            "SauceCodePro Nerd Font",
+            "Symbols Nerd Font Mono"
+        ]
+        for name in candidates {
+            if let font = NSFont(name: name, size: size) {
+                return font
+            }
+        }
+        return .monospacedSystemFont(ofSize: size, weight: .regular)
+    }
+
 }
 
 struct BlackWindowMetalEffectView: NSViewRepresentable {
