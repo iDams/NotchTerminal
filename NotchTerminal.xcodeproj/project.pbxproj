@@ -1,0 +1,195 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXFileReference section */
+		A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotchTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A97FDCA12F452B9A000CB036 /* NotchTerminal */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = NotchTerminal;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXGroup section */
+		A97FDC982F452B9A000CB036 = {
+			isa = PBXGroup;
+			children = (
+				A97FDCA12F452B9A000CB036 /* NotchTerminal */,
+				A97FDCA02F452B9A000CB036 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A97FDCA02F452B9A000CB036 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A97FDC9E2F452B9A000CB036 /* NotchTerminal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A97FDCA62F452B9A000CB036 /* Build configuration list for PBXNativeTarget "NotchTerminal" */;
+			buildPhases = (
+				A97FDC9D2F452B9A000CB036 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A97FDCA12F452B9A000CB036 /* NotchTerminal */,
+			);
+			name = NotchTerminal;
+			packageProductDependencies = (
+			);
+			productName = NotchTerminal;
+			productReference = A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A97FDC992F452B9A000CB036 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					A97FDC9E2F452B9A000CB036 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+				};
+			};
+			buildConfigurationList = A97FDC9C2F452B9A000CB036 /* Build configuration list for PBXProject "NotchTerminal" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A97FDC982F452B9A000CB036;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A97FDCA02F452B9A000CB036 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A97FDC9E2F452B9A000CB036 /* NotchTerminal */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A97FDC9D2F452B9A000CB036 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A97FDCA42F452B9A000CB036 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A97FDCA52F452B9A000CB036 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A97FDCA72F452B9A000CB036 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = marco.NotchTerminal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "";
+			};
+			name = Debug;
+		};
+		A97FDCA82F452B9A000CB036 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = marco.NotchTerminal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A97FDC9C2F452B9A000CB036 /* Build configuration list for PBXProject "NotchTerminal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A97FDCA42F452B9A000CB036 /* Debug */,
+				A97FDCA52F452B9A000CB036 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A97FDCA62F452B9A000CB036 /* Build configuration list for PBXNativeTarget "NotchTerminal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A97FDCA72F452B9A000CB036 /* Debug */,
+				A97FDCA82F452B9A000CB036 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A97FDC992F452B9A000CB036 /* Project object */;
+}
