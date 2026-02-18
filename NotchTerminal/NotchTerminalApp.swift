@@ -35,6 +35,7 @@ final class NotchOverlayController {
     private var panelsByDisplay: [CGDirectDisplayID: NSPanel] = [:]
     private var hostsByDisplay: [CGDirectDisplayID: NSHostingView<AnyView>] = [:]
     private var modelsByDisplay: [CGDirectDisplayID: NotchViewModel] = [:]
+    private let blackWindowController = MetalBlackWindowController()
     private var timer: Timer?
     private var observers: [NSObjectProtocol] = []
     private var lastCursorLocation: CGPoint?
@@ -91,12 +92,16 @@ final class NotchOverlayController {
             modelsByDisplay[displayID] = model
 
             if panelsByDisplay[displayID] == nil {
-                let panel = makePanel(model: model)
+                let panel = makePanel(model: model, displayID: displayID)
                 panelsByDisplay[displayID] = panel
                 hostsByDisplay[displayID] = panel.contentView as? NSHostingView<AnyView>
             } else {
                 hostsByDisplay[displayID]?.rootView = AnyView(
-                    NotchCapsuleView()
+                    NotchCapsuleView(
+                        openBlackWindow: { [weak self] in
+                            self?.toggleBlackWindow(for: displayID)
+                        }
+                    )
                         .environmentObject(model)
                 )
             }
@@ -105,7 +110,7 @@ final class NotchOverlayController {
         layoutPanels(animated: false)
     }
 
-    private func makePanel(model: NotchViewModel) -> NSPanel {
+    private func makePanel(model: NotchViewModel, displayID: CGDirectDisplayID) -> NSPanel {
         let panel = NSPanel(
             contentRect: .zero,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -121,7 +126,11 @@ final class NotchOverlayController {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.contentView = NSHostingView(
             rootView: AnyView(
-                NotchCapsuleView()
+                NotchCapsuleView(
+                    openBlackWindow: { [weak self] in
+                        self?.toggleBlackWindow(for: displayID)
+                    }
+                )
                     .environmentObject(model)
             )
         )
@@ -164,10 +173,11 @@ final class NotchOverlayController {
 
             if let displays, !displays.contains(displayID) { continue }
             let frame = frameForPanel(on: screen, hasNotch: model.hasPhysicalNotch, isExpanded: model.isExpanded)
+            panel.ignoresMouseEvents = !model.isExpanded
 
             if animated {
                 NSAnimationContext.runAnimationGroup { context in
-                    context.duration = model.isExpanded ? 0.10 : 0.13
+                    context.duration = model.isExpanded ? 0.25 : 0.20
                     context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                     panel.animator().setFrame(frame, display: true)
                 }
@@ -243,6 +253,14 @@ final class NotchOverlayController {
         let right = screen.auxiliaryTopRightArea ?? .zero
         let blockedWidth = screen.frame.width - left.width - right.width
         return blockedWidth > 20 && min(left.height, right.height) > 0
+    }
+
+    private func toggleBlackWindow(for displayID: CGDirectDisplayID) {
+        blackWindowController.toggle(anchorScreen: screen(forDisplayID: displayID))
+    }
+
+    private func screen(forDisplayID targetDisplayID: CGDirectDisplayID) -> NSScreen? {
+        NSScreen.screens.first { displayID(for: $0) == targetDisplayID }
     }
 }
 
@@ -329,30 +347,46 @@ struct NotchShape: Shape {
 
 struct NotchCapsuleView: View {
     @EnvironmentObject private var model: NotchViewModel
+    let openBlackWindow: () -> Void
+
+    init(openBlackWindow: @escaping () -> Void = {}) {
+        self.openBlackWindow = openBlackWindow
+    }
 
     var body: some View {
         ZStack {
             Rectangle()
                 .fill(.black)
                 .mask(notchBackgroundMaskGroup)
-                .overlay {
-                    if model.isExpanded {
-                        NotchMetalEffectView()
-                            .mask(notchBackgroundMaskGroup)
-                            .opacity(0.72)
-                    }
-                }
                 .shadow(color: .black.opacity(0.12), radius: 3, y: 1.5)
+
+            if model.isExpanded {
+                VStack {
+                    Spacer(minLength: 0)
+                    Button(action: openBlackWindow) {
+                        Label("Open", systemImage: "macwindow")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.white.opacity(0.14), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 10)
+                }
+                .transition(.opacity)
+            }
         }
         .padding(shadowPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.spring(response: 0.20, dampingFraction: 0.82), value: model.isExpanded)
+        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: model.isExpanded)
     }
 
     private var shadowPadding: CGFloat { 16 }
 
     private var notchCornerRadius: CGFloat {
-        model.isExpanded ? 32 : 8
+        if model.isExpanded { return 32 }
+        return model.hasPhysicalNotch ? 8 : 13
     }
 
     private var shoulderRadius: CGFloat {

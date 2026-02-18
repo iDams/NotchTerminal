@@ -47,3 +47,14 @@ fragment half4 notchFragment(VertexOut in [[stage_in]], constant float &time [[b
 
     return half4(half3(color), half(0.62));
 }
+
+fragment half4 blackWindowFragment(VertexOut in [[stage_in]], constant float &time [[buffer(0)]]) {
+    float2 uv = in.uv;
+    float waveA = sin((uv.x * 8.0) + (time * 0.6));
+    float waveB = sin((uv.y * 10.0) - (time * 0.5));
+    float wave = (waveA + waveB) * 0.5;
+    float vignette = smoothstep(1.0, 0.15, distance(uv, float2(0.5, 0.5)));
+
+    float luma = 0.02 + (0.03 * vignette) + (0.01 * wave);
+    return half4(half3(luma), half(0.85));
+}
