@@ -38,7 +38,7 @@ It provides a Dynamic-Island-style top overlay, quick terminal windows, minimize
 
 ## Build and Run
 
-1. Open `/Users/marco/Documents/project/NotchTerminal/NotchTerminal.xcodeproj`
+1. Open `NotchTerminal.xcodeproj`
 2. Select the `NotchTerminal` scheme
 3. Build and Run
 
@@ -76,7 +76,7 @@ This project uses SwiftTerm for terminal emulation and local PTY process integra
 
 - Upstream: https://github.com/migueldeicaza/SwiftTerm
 - Fork used by this project: https://github.com/iDams/SwiftTerm
-- License: MIT (see `vendor/SwiftTerm/LICENSE` in this repository and upstream license files)
+- License: MIT (see upstream repository license file)
 
 ### Brand Assets
 
@@ -88,4 +88,4 @@ Some command branding icons correspond to third-party products (for example, Cla
 
 ### Notices
 
-See `/Users/marco/Documents/project/NotchTerminal/THIRD_PARTY_NOTICES.md` for attribution notes.
+See `THIRD_PARTY_NOTICES.md` for attribution notes.

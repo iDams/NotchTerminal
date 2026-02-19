@@ -1,15 +1,16 @@
 import SwiftUI
 import MetalKit
-
 struct NotchMetalEffectView: NSViewRepresentable {
+    var shader: String = "notchFragment"
+
     func makeCoordinator() -> MetalEffectRenderer {
-        MetalEffectRenderer(fragmentFunctionName: "notchFragment")
+        MetalEffectRenderer(fragmentFunctionName: shader)
     }
 
     func makeNSView(context: Context) -> MTKView {
         let view = MTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
         view.isPaused = false
-        view.enableSetNeedsDisplay = true
+        view.enableSetNeedsDisplay = false
         view.preferredFramesPerSecond = 45
         view.sampleCount = 1
         view.framebufferOnly = true

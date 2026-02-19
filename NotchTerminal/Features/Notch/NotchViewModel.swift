@@ -26,6 +26,7 @@ final class NotchViewModel: ObservableObject {
     @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
     @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
     @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
+    @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
 
     // Usage
     @AppStorage("hapticFeedback") var hapticFeedback: Bool = true

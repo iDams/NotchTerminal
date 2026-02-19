@@ -25,6 +25,7 @@ final class NotchOverlayController {
     private var lastInteractionTime: Date?
     private var eventMonitor: Any?
     private var closeWorkItem: DispatchWorkItem?
+    private var settingsWindow: NSWindow?
 
     func start() {
         blackWindowController.onMinimizedItemsChanged = { [weak self] items in
@@ -112,6 +113,9 @@ final class NotchOverlayController {
                         },
                         restoreBlackWindow: { [weak self] windowID in
                             self?.blackWindowController.restoreWindow(id: windowID)
+                        },
+                        openSettings: { [weak self] in
+                            self?.openSettings(for: displayID)
                         }
                     )
                         .environmentObject(model)
@@ -147,6 +151,9 @@ final class NotchOverlayController {
                     },
                     restoreBlackWindow: { [weak self] windowID in
                         self?.blackWindowController.restoreWindow(id: windowID)
+                    },
+                    openSettings: { [weak self] in
+                        self?.openSettings(for: displayID)
                     }
                 )
                     .environmentObject(model)
@@ -172,7 +179,7 @@ final class NotchOverlayController {
             guard let displayID = displayID(for: screen),
                   let model = modelsByDisplay[displayID] else { continue }
 
-            let activationRect = notchActivationRect(for: screen, hasNotch: model.hasPhysicalNotch)
+            let activationRect = notchActivationRect(for: screen, model: model)
             let isHovering = activationRect.contains(cursor)
             var shouldExpand = model.isExpanded
 
@@ -211,7 +218,7 @@ final class NotchOverlayController {
                         }
                         closeWorkItem = workItem
 
-                        let delay: Double = model.hasPreviewedDuringSession ? 0.8 : 0.2
+                        let delay: Double = model.hasPreviewedDuringSession ? 1.1 : 0.55
 
                         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
                     }
@@ -297,10 +304,21 @@ final class NotchOverlayController {
 
     // MARK: - Activation Geometry
 
-    private func notchActivationRect(for screen: NSScreen, hasNotch: Bool) -> CGRect {
+    private func notchActivationRect(for screen: NSScreen, model: NotchViewModel) -> CGRect {
+        let hasNotch = model.hasPhysicalNotch
+
+        if model.isExpanded {
+            // While expanded, keep a larger interaction zone so moving to previews
+            // does not immediately collapse the notch.
+            let expandedFrame = frameForPanel(on: screen, model: model)
+            return expandedFrame.insetBy(dx: -54, dy: -76)
+        }
+
         let notchRect = hardwareNotchRect(for: screen)
         if hasNotch && notchRect != .zero {
-            return notchRect.insetBy(dx: -95, dy: -60)
+            // Tight hover region to avoid accidental expansions when the cursor
+            // passes near the top edge (browser tabs/menu bar area).
+            return notchRect.insetBy(dx: -22, dy: -14)
         }
 
         let virtual = CGRect(
@@ -309,7 +327,8 @@ final class NotchOverlayController {
             width: collapsedNoNotchSize.width,
             height: collapsedNoNotchSize.height
         )
-        return virtual.insetBy(dx: -110, dy: -70)
+        // Keep fake-notch activation compact for non-notch displays.
+        return virtual.insetBy(dx: -18, dy: -12)
     }
 
     private func hardwareNotchRect(for screen: NSScreen) -> CGRect {
@@ -343,6 +362,43 @@ final class NotchOverlayController {
             on: displayID,
             screen: screen(forDisplayID: displayID)
         )
+    }
+
+    private func openSettings(for displayID: CGDirectDisplayID) {
+        let window = ensureSettingsWindow()
+        placeSettingsWindow(window, on: displayID)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: false)
+    }
+
+    private func ensureSettingsWindow() -> NSWindow {
+        if let settingsWindow { return settingsWindow }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 500),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Settings"
+        window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 500, height: 420)
+        window.maxSize = NSSize(width: 760, height: 700)
+        window.center()
+        window.contentView = NSHostingView(rootView: SettingsView())
+        settingsWindow = window
+        return window
+    }
+
+    private func placeSettingsWindow(_ settingsWindow: NSWindow, on displayID: CGDirectDisplayID) {
+        guard let targetScreen = screen(forDisplayID: displayID) else { return }
+        let visible = targetScreen.visibleFrame
+        let size = settingsWindow.frame.size
+        let origin = CGPoint(
+            x: visible.midX - size.width / 2,
+            y: visible.midY - size.height / 2
+        )
+        settingsWindow.setFrameOrigin(origin)
     }
 
     private func applyMinimizedItems(_ items: [MinimizedWindowItem]) {

@@ -866,6 +866,41 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
         terminal.updateFullScreen()
         needsDisplay = true
     }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        hasDroppableFileURLs(sender) ? .copy : []
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let droppedURLs = fileURLs(from: sender), !droppedURLs.isEmpty else { return false }
+
+        let insertion = droppedURLs
+            .map { shellQuotedPath($0.path(percentEncoded: false)) }
+            .joined(separator: " ") + " "
+
+        let bytes = Array(insertion.utf8)
+        send(source: self, data: bytes[...])
+        window?.makeFirstResponder(self)
+        return true
+    }
+
+    private func hasDroppableFileURLs(_ sender: NSDraggingInfo) -> Bool {
+        fileURLs(from: sender)?.isEmpty == false
+    }
+
+    private func fileURLs(from sender: NSDraggingInfo) -> [URL]? {
+        let pasteboard = sender.draggingPasteboard
+        let classes: [AnyClass] = [NSURL.self]
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [
+            .urlReadingFileURLsOnly: true
+        ]
+        return pasteboard.readObjects(forClasses: classes, options: options) as? [URL]
+    }
+
+    private func shellQuotedPath(_ path: String) -> String {
+        // Single-quote shell escaping compatible with zsh/bash.
+        "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
 }
 
 struct SwiftTermContainerView: NSViewRepresentable {
@@ -881,6 +916,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
     func makeNSView(context: Context) -> LocalProcessTerminalView {
         let terminal = DetectingLocalProcessTerminalView(frame: .zero)
         terminal.commandSubmitted = commandSubmitted
+        terminal.registerForDraggedTypes([.fileURL])
         terminal.processDelegate = context.coordinator
         context.coordinator.onDirectoryChanged = directoryChanged
         terminal.font = preferredTerminalFont(size: fontSize)

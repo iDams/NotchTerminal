@@ -5,6 +5,7 @@ struct NotchCapsuleView: View {
     let openBlackWindow: () -> Void
     let reorganizeBlackWindows: () -> Void
     let restoreBlackWindow: (UUID) -> Void
+    let openSettings: () -> Void
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
     @State private var hoverActivationWorkItem: DispatchWorkItem?
@@ -14,11 +15,13 @@ struct NotchCapsuleView: View {
     init(
         openBlackWindow: @escaping () -> Void = {},
         reorganizeBlackWindows: @escaping () -> Void = {},
-        restoreBlackWindow: @escaping (UUID) -> Void = { _ in }
+        restoreBlackWindow: @escaping (UUID) -> Void = { _ in },
+        openSettings: @escaping () -> Void = {}
     ) {
         self.openBlackWindow = openBlackWindow
         self.reorganizeBlackWindows = reorganizeBlackWindows
         self.restoreBlackWindow = restoreBlackWindow
+        self.openSettings = openSettings
     }
 
     var body: some View {
@@ -26,6 +29,12 @@ struct NotchCapsuleView: View {
             Rectangle()
                 .fill(Color(red: 0, green: 0, blue: 0))
                 .opacity(model.hasPhysicalNotch ? (model.isExpanded ? 1.0 : 0.0) : 1.0)
+            
+            if model.auroraBackgroundEnabled && model.isExpanded {
+                NotchMetalEffectView()
+                    .opacity(0.85) // Allow some black to bleed through
+                    .transition(.opacity)
+            }
 
             if model.isExpanded {
                 VStack {
@@ -97,32 +106,22 @@ struct NotchCapsuleView: View {
         .mask(notchBackgroundMaskGroup)
         .overlay {
             if !model.hasPhysicalNotch && model.fakeNotchGlowEnabled {
-                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.92, green: 0.72, blue: 1.00).opacity(model.isExpanded ? 0.95 : 0.78),
-                                Color(red: 0.74, green: 0.46, blue: 1.00).opacity(model.isExpanded ? 0.85 : 0.70)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: model.isExpanded ? 1.3 : 1.0
-                    )
+                // The neon shader sweeping effect
+                NotchMetalEffectView(shader: "neonBorderFragment")
+                    .mask {
+                        RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                            .stroke(lineWidth: model.isExpanded ? 1.5 : 1.0)
+                    }
                     .shadow(
-                        color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.55 : 0.40),
+                        color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.65 : 0.45),
                         radius: model.isExpanded ? 20 : 13
-                    )
-                    .shadow(
-                        color: Color(red: 0.42, green: 0.24, blue: 0.95).opacity(model.isExpanded ? 0.40 : 0.28),
-                        radius: model.isExpanded ? 40 : 24
                     )
                     .allowsHitTesting(false)
             }
         }
         .overlay(alignment: .topTrailing) {
             if showExpandedControls {
-                SettingsLink {
+                Button(action: openSettings) {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.8))

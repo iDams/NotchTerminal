@@ -9,7 +9,8 @@ NotchTerminal uses SwiftTerm for terminal emulation.
 - License: MIT License
 
 Please review the license text in the SwiftTerm repository:
-- `/Users/marco/Documents/project/NotchTerminal/vendor/SwiftTerm/LICENSE`
+- Upstream license: https://github.com/migueldeicaza/SwiftTerm/blob/main/LICENSE
+- Fork license: https://github.com/iDams/SwiftTerm/blob/main/LICENSE
 
 ## Third-Party Brand Marks
 
