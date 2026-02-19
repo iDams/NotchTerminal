@@ -360,11 +360,16 @@ final class NotchOverlayController {
             visualSize = closedSize
         }
         let shoulderExtra: CGFloat = hasNotch ? (isExpanded ? 14 : 6) * 2 : 0
-        let panelSize = NSSize(width: visualSize.width + shoulderExtra + (shadowPadding * 2), height: visualSize.height + (shadowPadding * 2))
+        
+        // Overshoot trick: extend 2px up into the bezel when expanded to hide transparency gaps
+        let topOvershoot: CGFloat = (isExpanded && hasNotch) ? 2.0 : 0.0
+        
+        let panelSize = NSSize(width: visualSize.width + shoulderExtra + (shadowPadding * 2), height: visualSize.height + topOvershoot + (shadowPadding * 2))
         let topInset = hasNotch ? notchTopInset : noNotchTopInset
 
         let visualOrigin = CGPoint(
             x: screen.frame.midX - (visualSize.width + shoulderExtra) / 2.0,
+            // Keep bottom at the same place, expand top UPWARDS by topOvershoot
             y: screen.frame.maxY - visualSize.height - topInset
         )
 
@@ -526,31 +531,36 @@ final class NotchViewModel: ObservableObject {
 struct NotchShape: Shape {
     var cornerRadius: CGFloat
     var shoulderRadius: CGFloat
+    var overshoot: CGFloat = 0
 
-    var animatableData: AnimatablePair<CGFloat, CGFloat> {
-        get { AnimatablePair(cornerRadius, shoulderRadius) }
+    var animatableData: AnimatablePair<CGFloat, AnimatablePair<CGFloat, CGFloat>> {
+        get { AnimatablePair(cornerRadius, AnimatablePair(shoulderRadius, overshoot)) }
         set {
             cornerRadius = newValue.first
-            shoulderRadius = newValue.second
+            shoulderRadius = newValue.second.first
+            overshoot = newValue.second.second
         }
     }
 
     func path(in rect: CGRect) -> Path {
         let sr = shoulderRadius
         let cr = cornerRadius
+        let topY = overshoot
 
         var path = Path()
 
-        // Top-left corner (start)
+        // Start at top-left
         path.move(to: CGPoint(x: 0, y: 0))
 
         // Top edge
         path.addLine(to: CGPoint(x: rect.width, y: 0))
+        
+        // Down to shoulder start
+        path.addLine(to: CGPoint(x: rect.width, y: topY))
 
-        // Right concave shoulder: arc from (rect.width, 0) to (rect.width - sr, sr)
-        // Center at (rect.width, sr) — concave curve bowing outward (right)
+        // Right concave shoulder: arc from (rect.width, topY) to (rect.width - sr, topY + sr)
         path.addArc(
-            center: CGPoint(x: rect.width, y: sr),
+            center: CGPoint(x: rect.width, y: topY + sr),
             radius: sr,
             startAngle: .degrees(-90),
             endAngle: .degrees(180),
@@ -582,17 +592,19 @@ struct NotchShape: Shape {
         )
 
         // Left side up to left shoulder
-        path.addLine(to: CGPoint(x: sr, y: sr))
+        path.addLine(to: CGPoint(x: sr, y: topY + sr))
 
-        // Left concave shoulder: arc from (sr, sr) to (0, 0)
-        // Center at (0, sr) — concave curve bowing outward (left)
+        // Left concave shoulder: arc from (sr, topY + sr) to (0, topY)
         path.addArc(
-            center: CGPoint(x: 0, y: sr),
+            center: CGPoint(x: 0, y: topY + sr),
             radius: sr,
             startAngle: .degrees(0),
             endAngle: .degrees(-90),
             clockwise: true
         )
+
+        // Up to top-left
+        path.addLine(to: CGPoint(x: 0, y: 0))
 
         path.closeSubpath()
         return path
@@ -624,6 +636,7 @@ struct NotchCapsuleView: View {
         ZStack {
             Rectangle()
                 .fill(Color(red: 0, green: 0, blue: 0))
+                .opacity(model.hasPhysicalNotch ? (model.isExpanded ? 1.0 : 0.0) : 1.0)
 
             if model.isExpanded {
                 VStack {
@@ -863,7 +876,11 @@ struct NotchCapsuleView: View {
     @ViewBuilder
     private var notchBackgroundMaskGroup: some View {
         if model.hasPhysicalNotch {
-            NotchShape(cornerRadius: notchCornerRadius, shoulderRadius: shoulderRadius)
+            NotchShape(
+                cornerRadius: notchCornerRadius, 
+                shoulderRadius: shoulderRadius,
+                overshoot: (model.isExpanded && model.hasPhysicalNotch) ? 2.0 : 0.0
+            )
                 .foregroundStyle(Color(red: 0, green: 0, blue: 0))
         } else {
             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
