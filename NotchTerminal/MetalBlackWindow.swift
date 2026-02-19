@@ -583,14 +583,32 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func handleDirectoryChanged(id: UUID, directory: String) {
         guard var instance = windows[id] else { return }
 
+        // Clean up the directory path
+        // OSC 7 often sends "file://hostname/path/to/dir"
+        var cleanPath = directory
+        if cleanPath.hasPrefix("file://") {
+             if let url = URL(string: cleanPath) {
+                 cleanPath = url.path
+             } else {
+                 // Fallback manual cleanup if URL parsing fails
+                 cleanPath = String(cleanPath.dropFirst(7))
+                 if let hostEnd = cleanPath.firstIndex(of: "/") {
+                     cleanPath = String(cleanPath[hostEnd...])
+                 }
+             }
+        }
+
+        // URL decode in case of spaces etc.
+        cleanPath = cleanPath.removingPercentEncoding ?? cleanPath
+
         let home = NSHomeDirectory()
         let shortPath: String
-        if directory == home || directory.isEmpty {
+        if cleanPath == home || cleanPath.isEmpty {
             shortPath = "~"
-        } else if directory.hasPrefix(home + "/") {
-            shortPath = "~/" + directory.dropFirst(home.count + 1)
+        } else if cleanPath.hasPrefix(home + "/") {
+            shortPath = "~/" + cleanPath.dropFirst(home.count + 1)
         } else {
-            shortPath = directory
+            shortPath = cleanPath
         }
 
         let newTitle = "NotchTerminal · \(shortPath)"
