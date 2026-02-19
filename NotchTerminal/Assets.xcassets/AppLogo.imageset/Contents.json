@@ -2,7 +2,7 @@
   "images" : [
     {
       "filename" : "AppLogo.png",
-      "idiom" : "universal",
+      "idiom" : "mac",
       "scale" : "1x"
     }
   ],

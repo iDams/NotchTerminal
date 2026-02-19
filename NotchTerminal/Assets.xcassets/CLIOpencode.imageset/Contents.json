@@ -2,7 +2,7 @@
   "images" : [
     {
       "filename" : "opencode.png",
-      "idiom" : "universal",
+      "idiom" : "mac",
       "scale" : "1x"
     }
   ],

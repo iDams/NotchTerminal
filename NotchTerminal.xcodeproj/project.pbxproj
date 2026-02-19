@@ -58,6 +58,7 @@
 			buildConfigurationList = A97FDCA62F452B9A000CB036 /* Build configuration list for PBXNativeTarget "NotchTerminal" */;
 			buildPhases = (
 				A97FDD032F452B9A000CB036 /* Frameworks */,
+				A97FDE112F452B9A000CB036 /* Resources */,
 				A97FDC9D2F452B9A000CB036 /* Sources */,
 			);
 			buildRules = (
@@ -111,6 +112,16 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		A97FDE112F452B9A000CB036 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		A97FDC9D2F452B9A000CB036 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -150,6 +161,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = TGU3UHC7C7;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -172,6 +184,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = TGU3UHC7C7;
 				GENERATE_INFOPLIST_FILE = YES;
