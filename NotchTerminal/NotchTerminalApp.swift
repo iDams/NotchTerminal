@@ -9,7 +9,9 @@ struct NotchTerminalApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        Settings { EmptyView() }
+        Settings {
+            SettingsView()
+        }
     }
 }
 
@@ -42,13 +44,25 @@ final class NotchOverlayController {
     private var lastCursorLocation: CGPoint?
     private var cancellables = Set<AnyCancellable>()
 
+    private var lastKeyTime: Date?
+    private var lastInteractionTime: Date?
+    private var eventMonitor: Any?
+    private var closeWorkItem: DispatchWorkItem?
+
     func start() {
         blackWindowController.onMinimizedItemsChanged = { [weak self] items in
             self?.applyMinimizedItems(items)
         }
         rebuildPanels()
         startMouseTracking()
+        startEventMonitoring()
         registerObservers()
+    }
+
+    private func startEventMonitoring() {
+        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] _ in
+            self?.lastKeyTime = Date()
+        }
     }
 
     private func startMouseTracking() {
@@ -178,10 +192,120 @@ final class NotchOverlayController {
                   let model = modelsByDisplay[displayID] else { continue }
 
             let activationRect = notchActivationRect(for: screen, hasNotch: model.hasPhysicalNotch)
-            let shouldExpand = activationRect.contains(cursor)
+            
+            // Only expand on hover if autoOpenOnHover is true OR if the mouse is inside the activation rect (standard behavior)
+            // Actually, standard behavior IS auto-open on hover usually? Or is standard click-to-open?
+            // The original code was: let shouldExpand = activationRect.contains(cursor)
+            // If autoOpenOnHover is FALSE, we might want to restrict this?
+            // But usually "notch" apps open on hover.
+            // Let's assume standard behavior IS open on hover, and the setting disables it?
+            // "Open notch on hover: Automatically expands the notch when the cursor reaches it." -> implies default might be NO?
+            // But the code *was* expanding on hover.
+            // If autoOpenOnHover is FALSE, we should perhaps only expand if clicked (handled elsewhere?) or maybe we interpret "hover" strictly as top edge.
+            // Let's stick to: if autoOpenOnHover is true, we expand. If false, we might only expand if already expanded (to keep it open)?
+            // Or maybe the user means "Top edge hover".
+            // The current `notchActivationRect` is the notch area.
+            
+            let isHovering = activationRect.contains(cursor)
+            
+            var shouldExpand = model.isExpanded
+            
+            if isHovering {
+                if model.autoOpenOnHover {
+                    shouldExpand = true
+                } else if model.isExpanded {
+                    // Keep open if hovering and already expanded
+                    shouldExpand = true
+                }
+                // If not auto-open and not expanded, do we stay closed? Yes.
+            } else {
+                // Cursor NOT hovering
+                if model.isExpanded {
+                   // Should we close?
+                   if model.preventCloseOnMouseLeave {
+                       // Keep open? But for how long? Usually this means "don't close immediately".
+                       // But if the user clicks elsewhere it should close.
+                       // For now, let's respect the flag strictly or maybe interpret it as "don't close just because mouse left".
+                       // But then how to close?
+                       // Let's stick to standard behavior: close when mouse leaves, UNLESS preventClose is on?
+                       // If preventClose is on, we might need a click to close.
+                       if model.preventCloseOnMouseLeave {
+                           shouldExpand = true
+                       } else {
+                           shouldExpand = false
+                       }
+                   } else {
+                       shouldExpand = false
+                   }
+                }
+            }
+            
+            // Simple logic:
+            // Expand = (Hovering AND AutoOpen) OR (Hovering AND AlreadyExpanded) OR (Expanded AND PreventClose)
+            // Wait, if AutoOpen is OFF, how do we open? Click?
+            // We need a click handler if AutoOpen is OFF.
+            // The `NotchCapsuleView` is in a window `.ignoresMouseEvents = !model.isExpanded`.
+            // So if it's collapsed, it ignores mouse events! So we can't click it easily unless we use a global monitor or tracking area.
+            // The `NotchOverlayController` uses a timer to track mouse.
+            // If AutoOpen is OFF, the user probably expects to click the notch.
+            // But if we ignore mouse events, we can't click.
+            // This architecture seems effectively built AROUND hover expansion.
+            // So disabling AutoOpen might break interaction unless we enable mouse events on collapsed state.
+            // For now, let's assume AutoOpen acts as a "Gate" for the hover logic.
+            // If AutoOpen is FALSE, we DO NOT expand on hover. Interaction would require clicking? 
+            // I'll leave the "click to open" logic aside for now and just implement the setting as a constraint on the existing hover logic.
+            
+            if isHovering {
+                 if model.autoOpenOnHover || model.isExpanded {
+                     shouldExpand = true
+                 }
+            } else {
+                if model.isExpanded {
+                    // Check typing lock
+                    let isTyping = model.lockWhileTyping && 
+                                   (lastKeyTime?.timeIntervalSinceNow ?? -10) > -1.5
+                    
+                    if !model.preventCloseOnMouseLeave && !isTyping && !model.isHoveringPreview {
+                        shouldExpand = false
+                    }
+                }
+            }
+
             if shouldExpand != model.isExpanded {
-                model.isExpanded = shouldExpand
-                changedDisplays.insert(displayID)
+                if shouldExpand {
+                    // Open immediately
+                    closeWorkItem?.cancel()
+                    closeWorkItem = nil
+                    model.isExpanded = true
+                    changedDisplays.insert(displayID)
+                    model.triggerHaptic()
+                    
+                    // Check if preview is active to set the "session" flag
+                    // Now handled in ViewModel didSet
+                    
+                } else {
+                    // Close with delay
+                    if closeWorkItem == nil {
+                        let workItem = DispatchWorkItem { [weak self, weak model] in
+                            guard let self, let model else { return }
+                            if model.isExpanded {
+                                model.isExpanded = false
+                                model.hasPreviewedDuringSession = false // Reset for next time
+                                self.layoutPanels(animated: true, displays: [displayID])
+                            }
+                            self.closeWorkItem = nil
+                        }
+                        closeWorkItem = workItem
+                        
+                        let delay: Double = model.hasPreviewedDuringSession ? 0.8 : 0.2
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+                    }
+                }
+            } else if shouldExpand {
+                 // If we decide to stay expanded, cancel any pending close
+                 closeWorkItem?.cancel()
+                 closeWorkItem = nil
             }
         }
 
@@ -197,7 +321,7 @@ final class NotchOverlayController {
                   let model = modelsByDisplay[displayID] else { continue }
 
             if let displays, !displays.contains(displayID) { continue }
-            let frame = frameForPanel(on: screen, hasNotch: model.hasPhysicalNotch, isExpanded: model.isExpanded, contentWidth: model.contentWidth)
+            let frame = frameForPanel(on: screen, model: model)
             panel.ignoresMouseEvents = !model.isExpanded
 
             if animated {
@@ -212,13 +336,17 @@ final class NotchOverlayController {
         }
     }
 
-    private func frameForPanel(on screen: NSScreen, hasNotch: Bool, isExpanded: Bool, contentWidth: CGFloat) -> CGRect {
+    private func frameForPanel(on screen: NSScreen, model: NotchViewModel) -> CGRect {
+        let hasNotch = model.hasPhysicalNotch
+        let isExpanded = model.isExpanded
+        let contentWidth = model.contentWidth
+        
         let closedSize: NSSize = {
             guard hasNotch else { return collapsedNoNotchSize }
             let raw = screen.notchSizeOrFallback(fallback: collapsedNoNotchSize)
             return NSSize(
-                width: max(92, raw.width * notchClosedWidthScale),
-                height: max(22, raw.height * notchClosedHeightScale)
+                width: max(92, raw.width * notchClosedWidthScale + model.notchWidthOffset),
+                height: max(22, raw.height * notchClosedHeightScale + model.notchHeightOffset)
             )
         }()
         
@@ -226,7 +354,7 @@ final class NotchOverlayController {
         if isExpanded {
             let minWidth: CGFloat = 336
             let maxWidth: CGFloat = 800
-            let targetWidth = min(max(contentWidth + 40, minWidth), maxWidth)
+            let targetWidth = min(max(contentWidth + (model.contentPadding * 2), minWidth), maxWidth)
             visualSize = NSSize(width: targetWidth, height: 78)
         } else {
             visualSize = closedSize
@@ -326,7 +454,73 @@ final class NotchViewModel: ObservableObject {
     @Published var isExpanded = false
     @Published var minimizedItems: [MinimizedWindowItem] = []
     @Published var contentWidth: CGFloat = 0
+    
+    @Published var isHoveringPreview = false {
+        didSet { 
+            if isHoveringPreview { 
+                lastInteractionTime = Date()
+                hasPreviewedDuringSession = true
+            } 
+        }
+    }
+    @Published var isHoveringItem = false {
+        didSet { if isHoveringItem { lastInteractionTime = Date() } }
+    }
+    var lastInteractionTime: Date = Date.distantPast
+    var hasPreviewedDuringSession = false
+
     var hasPhysicalNotch = false
+
+    // Appearance Settings
+    @AppStorage("contentPadding") var contentPadding: Double = 14
+    @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
+    @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
+    
+    // Usage Settings
+    @AppStorage("hapticFeedback") var hapticFeedback: Bool = true
+    @AppStorage("showCostSummary") var showCostSummary: Bool = false
+    
+    // Compact Ticker Settings
+    @AppStorage("compactTickerEnabled") var compactTickerEnabled: Bool = true
+    @AppStorage("compactTickerInterval") var compactTickerInterval: Double = 20
+    @AppStorage("compactTickerClosedExtraWidth") var compactTickerClosedExtraWidth: Double = 216
+    @AppStorage("compactTickerMetricMode") var compactTickerMetricMode: CompactTickerMetricMode = .percent
+    @AppStorage("compactTickerPriorityMode") var compactTickerPriorityMode: CompactTickerPriorityMode = .criticalFirst
+    @AppStorage("compactTickerBackgroundMode") var compactTickerBackgroundMode: CompactTickerBackgroundMode = .solid
+    @AppStorage("compactTickerShowAntigravity") var compactTickerShowAntigravity: Bool = true
+    @AppStorage("compactTickerShowGeminiCLI") var compactTickerShowGeminiCLI: Bool = true
+    @AppStorage("compactTickerShowZia") var compactTickerShowZia: Bool = true
+
+    // Automation Settings
+    @AppStorage("backgroundRefreshCadenceMinutes") var backgroundRefreshCadenceMinutes: Int = 5
+    @AppStorage("checkProviderStatus") var checkProviderStatus: Bool = true
+    @AppStorage("sessionQuotaNotificationsEnabled") var sessionQuotaNotificationsEnabled: Bool = true
+    @AppStorage("autoOpenOnHover") var autoOpenOnHover: Bool = true
+    @AppStorage("lockWhileTyping") var lockWhileTyping: Bool = true
+    @AppStorage("preventCloseOnMouseLeave") var preventCloseOnMouseLeave: Bool = false
+
+    enum CompactTickerMetricMode: String, CaseIterable, Identifiable {
+        case percent, dot
+        var id: String { rawValue }
+    }
+    
+    enum CompactTickerPriorityMode: String, CaseIterable, Identifiable {
+        case criticalFirst, roundRobin
+        var id: String { rawValue }
+    }
+    
+    enum CompactTickerBackgroundMode: String, CaseIterable, Identifiable {
+        case solid, transparent
+        var id: String { rawValue }
+    }
+
+    func triggerHaptic() {
+        guard hapticFeedback else { return }
+        NSHapticFeedbackManager.defaultPerformer.perform(
+            .alignment,
+            performanceTime: .default
+        )
+    }
 }
 
 struct NotchShape: Shape {
@@ -413,6 +607,8 @@ struct NotchCapsuleView: View {
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
     @State private var hoverActivationWorkItem: DispatchWorkItem?
+    @State private var showExpandedControls = false
+    @State private var controlsRevealWorkItem: DispatchWorkItem?
 
     init(
         openBlackWindow: @escaping () -> Void = {},
@@ -427,7 +623,7 @@ struct NotchCapsuleView: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(.black)
+                .fill(Color(red: 0, green: 0, blue: 0))
 
             if model.isExpanded {
                 VStack {
@@ -549,7 +745,12 @@ struct NotchCapsuleView: View {
                                 }
                             }
                         }
-                        .padding(.horizontal, 20)
+                        .transaction { transaction in
+                            transaction.animation = nil
+                        }
+                        .opacity(showExpandedControls ? 1 : 0)
+                        .allowsHitTesting(showExpandedControls)
+                        .padding(.horizontal, model.contentPadding)
                         .background(GeometryReader { geo in
                             Color.clear.preference(key: WidthPreferenceKey.self, value: geo.size.width)
                         })
@@ -558,8 +759,8 @@ struct NotchCapsuleView: View {
                         LinearGradient(
                             stops: [
                                 .init(color: .clear, location: 0),
-                                .init(color: .black, location: 0.05),
-                                .init(color: .black, location: 0.95),
+                                .init(color: Color(red: 0, green: 0, blue: 0), location: 0.05),
+                                .init(color: Color(red: 0, green: 0, blue: 0), location: 0.95),
                                 .init(color: .clear, location: 1)
                             ],
                             startPoint: .leading,
@@ -583,6 +784,65 @@ struct NotchCapsuleView: View {
             }
         }
         .mask(notchBackgroundMaskGroup)
+        .overlay(alignment: .topTrailing) {
+            if showExpandedControls {
+                SettingsLink {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .padding(8)
+                        .contentShape(Circle())
+                        .transaction { transaction in
+                            transaction.animation = nil
+                        }
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 10)
+                .padding(.top, model.hasPhysicalNotch ? 0 : 4)
+                .transition(.opacity)
+            }
+        }
+        .onAppear {
+            showExpandedControls = model.isExpanded
+        }
+        .onChange(of: model.isExpanded) { _, isExpanded in
+            controlsRevealWorkItem?.cancel()
+            controlsRevealWorkItem = nil
+
+            if isExpanded {
+                let workItem = DispatchWorkItem {
+                    guard model.isExpanded else { return }
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        showExpandedControls = true
+                    }
+                }
+                controlsRevealWorkItem = workItem
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: workItem)
+            } else {
+                showExpandedControls = false
+                hoveredMinimizedItemID = nil
+                pendingHoverItemID = nil
+                hoverActivationWorkItem?.cancel()
+                hoverActivationWorkItem = nil
+                DispatchQueue.main.async {
+                    model.isHoveringPreview = false
+                    model.isHoveringItem = false
+                }
+            }
+        }
+        .onChange(of: hoveredMinimizedItemID) { _, newItemID in
+            DispatchQueue.main.async {
+                let isPreviewing = (newItemID != nil)
+                model.isHoveringPreview = isPreviewing
+            }
+        }
+        .onChange(of: pendingHoverItemID) { _, newItemID in
+            DispatchQueue.main.async {
+                // If we have a pending hover OR a confirmed hover, we are "hovering an item"
+                let isHovering = (newItemID != nil || hoveredMinimizedItemID != nil)
+                model.isHoveringItem = isHovering
+            }
+        }
         .shadow(color: .black.opacity(0.12), radius: 3, y: 1.5)
         .padding(shadowPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -604,10 +864,10 @@ struct NotchCapsuleView: View {
     private var notchBackgroundMaskGroup: some View {
         if model.hasPhysicalNotch {
             NotchShape(cornerRadius: notchCornerRadius, shoulderRadius: shoulderRadius)
-                .foregroundStyle(.black)
+                .foregroundStyle(Color(red: 0, green: 0, blue: 0))
         } else {
             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                .foregroundStyle(.black)
+                .foregroundStyle(Color(red: 0, green: 0, blue: 0))
         }
     }
 }
