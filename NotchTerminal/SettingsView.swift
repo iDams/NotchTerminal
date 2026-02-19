@@ -84,6 +84,7 @@ struct AppearanceSettingsView: View {
     @AppStorage("contentPadding") var contentPadding: Double = 14
     @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
     @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
+    @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
     
     @AppStorage("compactTickerEnabled") var compactTickerEnabled: Bool = true
     @AppStorage("compactTickerInterval") var compactTickerInterval: Double = 20
@@ -157,6 +158,19 @@ struct AppearanceSettingsView: View {
                             valueFormatter: { "\(Int($0))" }
                         )
                     }
+                }
+
+                ZenithSettingsSection(contentSpacing: 12) {
+                    Text("Effects")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+
+                    ZenithPreferenceToggleRow(
+                        title: "Enable fake notch glow",
+                        subtitle: "Show the purple glow effect only on screens without a physical notch.",
+                        binding: $fakeNotchGlowEnabled
+                    )
                 }
             }
             .padding()

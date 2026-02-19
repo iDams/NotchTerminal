@@ -480,6 +480,7 @@ final class NotchViewModel: ObservableObject {
     @AppStorage("contentPadding") var contentPadding: Double = 14
     @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
     @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
+    @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
     
     // Usage Settings
     @AppStorage("hapticFeedback") var hapticFeedback: Bool = true
@@ -797,6 +798,31 @@ struct NotchCapsuleView: View {
             }
         }
         .mask(notchBackgroundMaskGroup)
+        .overlay {
+            if !model.hasPhysicalNotch && model.fakeNotchGlowEnabled {
+                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.92, green: 0.72, blue: 1.00).opacity(model.isExpanded ? 0.95 : 0.78),
+                                Color(red: 0.74, green: 0.46, blue: 1.00).opacity(model.isExpanded ? 0.85 : 0.70)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: model.isExpanded ? 1.3 : 1.0
+                    )
+                    .shadow(
+                        color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.55 : 0.40),
+                        radius: model.isExpanded ? 20 : 13
+                    )
+                    .shadow(
+                        color: Color(red: 0.42, green: 0.24, blue: 0.95).opacity(model.isExpanded ? 0.40 : 0.28),
+                        radius: model.isExpanded ? 40 : 24
+                    )
+                    .allowsHitTesting(false)
+            }
+        }
         .overlay(alignment: .topTrailing) {
             if showExpandedControls {
                 SettingsLink {
