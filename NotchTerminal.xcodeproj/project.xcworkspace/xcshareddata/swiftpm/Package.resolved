@@ -1,5 +1,5 @@
 {
-  "originHash" : "6b9aa2f3136005959fad5dcf6bba3601f6d5cbdff073a188ac1206c5d188c899",
+  "originHash" : "5b95a308fae036d3e34f411d916a2a47e2ef68c7d5c21c791ddfb872d296d4cd",
   "pins" : [
     {
       "identity" : "swift-argument-parser",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "c5d11a805e765f52ba34ec7284bd4fcd6ba68615",
         "version" : "1.7.0"
+      }
+    },
+    {
+      "identity" : "swiftterm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/iDams/SwiftTerm.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "54a50668850a3007535e75bb16e5990bb3880bc5"
       }
     }
   ],

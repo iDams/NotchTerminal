@@ -33,6 +33,7 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @AppStorage("hapticFeedback") var hapticFeedback: Bool = true
+    @AppStorage("showDockIcon") var showDockIcon: Bool = false
     @AppStorage("showCostSummary") var showCostSummary: Bool = false
     @AppStorage("backgroundRefreshCadenceMinutes") var backgroundRefreshCadenceMinutes: Int = 5
     @AppStorage("checkProviderStatus") var checkProviderStatus: Bool = true
@@ -53,6 +54,12 @@ struct GeneralSettingsView: View {
                         title: "Enable haptic feedback",
                         subtitle: "Use haptics when interactions occur in the notch.",
                         binding: $hapticFeedback
+                    )
+
+                    ZenithPreferenceToggleRow(
+                        title: "Show Dock icon",
+                        subtitle: "Display the app icon in the Dock using the configured AppIcon asset.",
+                        binding: $showDockIcon
                     )
                }
 
@@ -245,18 +252,10 @@ struct ZenithSettingsSection<Content: View>: View {
 struct AboutSettingsView: View {
     var body: some View {
         VStack(spacing: 16) {
-            // Try specific path first, then bundle
-            if let image = NSImage(contentsOfFile: "/Users/marco/Documents/project/NotchTerminal/NotchTerminal/NotchTerminal.svg") ?? 
-                           (Bundle.main.path(forResource: "NotchTerminal", ofType: "svg").map { NSImage(contentsOfFile: $0) } ?? nil) {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 128, height: 128)
-            } else {
-                Image(systemName: "terminal.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(.secondary)
-            }
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 128, height: 128)
 
             VStack(spacing: 4) {
                 Text("NotchTerminal")

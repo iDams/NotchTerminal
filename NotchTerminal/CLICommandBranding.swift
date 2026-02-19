@@ -67,14 +67,11 @@ enum CLICommandBrandingResolver {
         "cody",
     ]
 
-    private static let iconByCommand: [String: String] = [
-        "opencode": "/Users/marco/Documents/project/NotchTerminal/NotchTerminal/Resources/CLIIcons/opencode-logo-dark.svg",
-        "claude": "/Users/marco/Documents/project/NotchTerminal/NotchTerminal/Resources/CLIIcons/claude-color.svg",
-        "claude code": "/Users/marco/Documents/project/NotchTerminal/NotchTerminal/Resources/CLIIcons/claude-color.svg",
-        "claud code": "/Users/marco/Documents/project/NotchTerminal/NotchTerminal/Resources/CLIIcons/claude-color.svg",
-        "gemini": "/Users/marco/Documents/project/NotchTerminal/NotchTerminal/Resources/CLIIcons/gemini-cli.svg",
-        "gemini cli": "/Users/marco/Documents/project/NotchTerminal/NotchTerminal/Resources/CLIIcons/gemini-cli.svg",
-        "gemini-cli": "/Users/marco/Documents/project/NotchTerminal/NotchTerminal/Resources/CLIIcons/gemini-cli.svg"
+    private static let iconAssetByCommand: [String: String] = [
+        "opencode": "CLIOpencode",
+        "claude": "CLIClaude",
+        "claude code": "CLIClaude",
+        "claud code": "CLIClaude"
     ]
 
     /// Returns branding only for whitelisted AI CLI tools.
@@ -128,16 +125,9 @@ enum CLICommandBrandingResolver {
 
     private static func loadIcon(for normalizedCommand: String) -> NSImage? {
         // Try exact match first, then try first word (e.g. "gemini cli" -> "gemini")
-        let iconPath = iconByCommand[normalizedCommand] ?? iconByCommand[String(normalizedCommand.split(separator: " ").first ?? "")]
-        guard let iconPath else { return nil }
-        guard FileManager.default.fileExists(atPath: iconPath) else { return nil }
-
-        if let image = NSImage(contentsOfFile: iconPath) {
-            return image
-        }
-
-        let fallback = NSWorkspace.shared.icon(forFile: iconPath)
-        fallback.size = NSSize(width: 14, height: 14)
-        return fallback
+        let assetName = iconAssetByCommand[normalizedCommand] ?? iconAssetByCommand[String(normalizedCommand.split(separator: " ").first ?? "")]
+        guard let assetName else { return nil }
+        guard let image = NSImage(named: assetName) else { return nil }
+        return image
     }
 }

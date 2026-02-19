@@ -71,3 +71,6 @@ iOSInjectionProject/
 
 # Local vendored dependencies
 vendor/
+
+# macOS Finder metadata
+.DS_Store

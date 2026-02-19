@@ -99,7 +99,7 @@
 			mainGroup = A97FDC982F452B9A000CB036;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				A97FDD002F452B9A000CB036 /* XCLocalSwiftPackageReference "vendor/SwiftTerm" */,
+				A97FDD002F452B9A000CB036 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A97FDCA02F452B9A000CB036 /* Products */;
@@ -149,6 +149,7 @@
 		A97FDCA72F452B9A000CB036 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = TGU3UHC7C7;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -170,6 +171,7 @@
 		A97FDCA82F452B9A000CB036 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = TGU3UHC7C7;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -211,17 +213,21 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		A97FDD002F452B9A000CB036 /* XCLocalSwiftPackageReference "vendor/SwiftTerm" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = vendor/SwiftTerm;
+/* Begin XCRemoteSwiftPackageReference section */
+		A97FDD002F452B9A000CB036 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/iDams/SwiftTerm.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		A97FDD012F452B9A000CB036 /* SwiftTerm */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = A97FDD002F452B9A000CB036 /* XCLocalSwiftPackageReference "vendor/SwiftTerm" */;
+			package = A97FDD002F452B9A000CB036 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
 			productName = SwiftTerm;
 		};
 /* End XCSwiftPackageProductDependency section */
