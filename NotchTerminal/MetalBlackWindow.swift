@@ -57,6 +57,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         var isCompact: Bool
         var isMinimized: Bool
         var isAlwaysOnTop: Bool
+        var isMaximized: Bool
+        var preMaximizeFrame: CGRect?
         var expandedFrame: CGRect
         var terminalFontSize: CGFloat
         var previewSnapshot: NSImage?
@@ -90,11 +92,13 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             displayID: displayID,
             panel: panel,
             notchTargetsProvider: notchTargetsProvider,
-            displayTitle: "App \(number)",
+            displayTitle: "NotchTerminal",
             displayIcon: nil,
             isCompact: false,
             isMinimized: false,
             isAlwaysOnTop: false,
+            isMaximized: false,
+            preMaximizeFrame: nil,
             expandedFrame: frame,
             terminalFontSize: defaultTerminalFontSize(),
             previewSnapshot: nil
@@ -242,18 +246,39 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     private func maximizeWindow(id: UUID) {
         guard var instance = windows[id] else { return }
-        guard let screen = instance.panel.screen ?? NSScreen.main else { return }
 
-        let targetFrame = screen.visibleFrame
-
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            instance.panel.animator().setFrame(targetFrame, display: true)
+        if instance.isMaximized {
+            // Restore to previous size
+            let restoreFrame = instance.preMaximizeFrame ?? CGRect(
+                origin: CGPoint(
+                    x: instance.panel.frame.midX - expandedSize.width / 2,
+                    y: instance.panel.frame.midY - expandedSize.height / 2
+                ),
+                size: expandedSize
+            )
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.22
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                instance.panel.animator().setFrame(restoreFrame, display: true)
+            }
+            instance.isMaximized = false
+            instance.preMaximizeFrame = nil
+            instance.expandedFrame = restoreFrame
+        } else {
+            // Maximize
+            guard let screen = instance.panel.screen ?? NSScreen.main else { return }
+            instance.preMaximizeFrame = instance.panel.frame
+            let targetFrame = screen.visibleFrame
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.22
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                instance.panel.animator().setFrame(targetFrame, display: true)
+            }
+            instance.isMaximized = true
+            instance.expandedFrame = targetFrame
         }
 
         instance.isCompact = false
-        instance.expandedFrame = targetFrame
         windows[id] = instance
         updateContent(for: id, isCompactOverride: false)
     }
@@ -384,12 +409,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             windowNumber: instance.number,
             isCompact: isCompact,
             isAlwaysOnTop: instance.isAlwaysOnTop,
+            isMaximized: instance.isMaximized,
             terminalFontSize: instance.terminalFontSize,
             toggleCompact: { [weak self] in
                 self?.toggleCompact(id: id)
-            },
-            resetSize: { [weak self] in
-                self?.resetWindowSize(id: id)
             },
             increaseFontSize: { [weak self] in
                 self?.adjustTerminalFontSize(id: id, delta: 1)
@@ -399,6 +422,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             },
             commandSubmitted: { [weak self] command in
                 self?.handleCommandSubmitted(id: id, command: command)
+            },
+            directoryChanged: { [weak self] directory in
+                self?.handleDirectoryChanged(id: id, directory: directory)
             },
             closeWindow: { [weak self] in
                 self?.closeWindow(id: id)
@@ -484,12 +510,15 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             pendingDockTargets.removeValue(forKey: id)
         }
 
-        // Install a one-shot mouse-up monitor to detect end of drag
+        // Install a one-shot mouse-up monitor to detect end of drag.
+        // Use global monitor because the window server manages the drag loop
+        // and local monitors may not fire during window drags.
         if dragMonitor == nil {
-            dragMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
-                guard let self else { return event }
-                self.handleDragEnd()
-                return event
+            dragMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    self.handleDragEnd()
+                }
             }
         }
     }
@@ -541,9 +570,34 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func handleCommandSubmitted(id: UUID, command: String) {
         guard var instance = windows[id] else { return }
         let branding = CLICommandBrandingResolver.branding(for: command)
-        guard instance.displayTitle != branding.title || instance.displayIcon !== branding.icon else { return }
-        instance.displayTitle = branding.title
+
+        // Only update title for whitelisted AI CLI tools
+        guard let newTitle = branding.title else { return }
+        guard instance.displayTitle != newTitle || instance.displayIcon !== branding.icon else { return }
+        instance.displayTitle = newTitle
         instance.displayIcon = branding.icon
+        windows[id] = instance
+        updateContent(for: id)
+    }
+
+    private func handleDirectoryChanged(id: UUID, directory: String) {
+        guard var instance = windows[id] else { return }
+
+        let home = NSHomeDirectory()
+        let shortPath: String
+        if directory == home || directory.isEmpty {
+            shortPath = "~"
+        } else if directory.hasPrefix(home + "/") {
+            shortPath = "~/" + directory.dropFirst(home.count + 1)
+        } else {
+            shortPath = directory
+        }
+
+        let newTitle = "NotchTerminal · \(shortPath)"
+        guard instance.displayTitle != newTitle else { return }
+        // Restore default title format, clearing any AI CLI branding
+        instance.displayTitle = newTitle
+        instance.displayIcon = nil
         windows[id] = instance
         updateContent(for: id)
     }
@@ -553,18 +607,19 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func closestDockTarget(for windowFrame: CGRect, in instance: WindowInstance) -> NotchTarget? {
-        let center = CGPoint(x: windowFrame.midX, y: windowFrame.midY)
+        // Use top-center of window (where the title bar is) for proximity detection
+        let topCenter = CGPoint(x: windowFrame.midX, y: windowFrame.maxY)
         let targets = instance.notchTargetsProvider()
 
         let candidate = targets
             .map { target -> (NotchTarget, CGFloat, CGRect) in
-                let expanded = target.frame.insetBy(dx: -120, dy: -90)
-                let dx = center.x - expanded.midX
-                let dy = center.y - expanded.midY
+                let expanded = target.frame.insetBy(dx: -200, dy: -150)
+                let dx = topCenter.x - expanded.midX
+                let dy = topCenter.y - expanded.midY
                 let dist2 = (dx * dx) + (dy * dy)
                 return (target, dist2, expanded)
             }
-            .filter { $0.2.contains(center) }
+            .filter { $0.2.contains(topCenter) }
             .min { $0.1 < $1.1 }
 
         return candidate?.0
@@ -577,12 +632,13 @@ struct MetalBlackWindowContent: View {
     let windowNumber: Int
     let isCompact: Bool
     let isAlwaysOnTop: Bool
+    let isMaximized: Bool
     let terminalFontSize: CGFloat
     let toggleCompact: () -> Void
-    let resetSize: () -> Void
     let increaseFontSize: () -> Void
     let decreaseFontSize: () -> Void
     let commandSubmitted: (String) -> Void
+    let directoryChanged: (String) -> Void
     let closeWindow: () -> Void
     let minimize: () -> Void
     let maximize: () -> Void
@@ -602,83 +658,126 @@ struct MetalBlackWindowContent: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(.white.opacity(0.08), lineWidth: 1)
 
-            VStack {
-                HStack(spacing: 8) {
-                    Button(action: closeWindow) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(.white.opacity(0.14), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: minimize) {
-                        Image(systemName: "minus")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(.white.opacity(0.14), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: maximize) {
-                        Image(systemName: "arrow.up.left.and.arrow.down.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(.white.opacity(0.14), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: resetSize) {
-                        Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(.white.opacity(0.14), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: toggleCompact) {
-                        Image(systemName: isCompact ? "heart.slash.fill" : "heart.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(.white.opacity(0.14), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: toggleAlwaysOnTop) {
-                        Image(systemName: isAlwaysOnTop ? "pin.fill" : "pin.slash")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(isAlwaysOnTop ? .yellow : .white)
-                            .frame(width: 20, height: 20)
-                            .background((isAlwaysOnTop ? Color.yellow.opacity(0.2) : .white.opacity(0.14)), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
+            VStack(spacing: 0) {
+                if isCompact {
+                    // Compact mode: centered badge with minimal controls
                     HStack(spacing: 6) {
-                        if let displayIcon {
-                            Image(nsImage: displayIcon)
-                                .resizable()
-                                .interpolation(.high)
-                                .scaledToFit()
-                                .frame(width: 14, height: 14)
+                        Button(action: closeWindow) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .frame(width: 16, height: 16)
+                                .background(.white.opacity(0.1), in: Circle())
                         }
-                        Text(displayTitle)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.9))
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        // Center badge: icon or name
+                        HStack(spacing: 5) {
+                            if let displayIcon {
+                                Image(nsImage: displayIcon)
+                                    .resizable()
+                                    .interpolation(.high)
+                                    .scaledToFit()
+                                    .frame(width: 16, height: 16)
+                            }
+                            Text(displayIcon != nil ? displayTitle : "NT")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.85))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.white.opacity(0.1), in: Capsule())
+
+                        Spacer()
+
+                        Button(action: toggleCompact) {
+                            Image(systemName: "pip.exit")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .frame(width: 16, height: 16)
+                                .background(.white.opacity(0.1), in: Circle())
+                        }
+                        .buttonStyle(.plain)
                     }
+                    .padding(.bottom, 4)
+                } else {
+                    // Normal mode: full controls
+                    HStack(spacing: 8) {
+                        // Left: window controls
+                        Button(action: closeWindow) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 20, height: 20)
+                                .background(.white.opacity(0.14), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: minimize) {
+                            Image(systemName: "minus")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 20, height: 20)
+                                .background(.white.opacity(0.14), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: maximize) {
+                            Image(systemName: isMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 20, height: 20)
+                                .background(.white.opacity(0.14), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        // Center: title
+                        HStack(spacing: 6) {
+                            if let displayIcon {
+                                Image(nsImage: displayIcon)
+                                    .resizable()
+                                    .interpolation(.high)
+                                    .scaledToFit()
+                                    .frame(width: 14, height: 14)
+                            }
+                            Text(displayTitle)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.9))
+                        }
+
+                        Spacer()
+
+                        // Right: pin + compact
+                        Button(action: toggleAlwaysOnTop) {
+                            Image(systemName: isAlwaysOnTop ? "pin.fill" : "pin.slash")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(isAlwaysOnTop ? .yellow : .white)
+                                .frame(width: 20, height: 20)
+                                .background((isAlwaysOnTop ? Color.yellow.opacity(0.2) : .white.opacity(0.14)), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: toggleCompact) {
+                            Image(systemName: "pip")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 20, height: 20)
+                                .background(.white.opacity(0.14), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.bottom, 6)
                 }
-                .padding(.bottom, 6)
 
                 SwiftTermContainerView(
                     windowNumber: windowNumber,
                     fontSize: terminalFontSize,
-                    commandSubmitted: commandSubmitted
+                    commandSubmitted: commandSubmitted,
+                    directoryChanged: directoryChanged
                 )
                     .padding(.top, isCompact ? 8 : 14)
                     .padding(.horizontal, isCompact ? 6 : 10)
@@ -755,6 +854,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
     let windowNumber: Int
     let fontSize: CGFloat
     let commandSubmitted: (String) -> Void
+    let directoryChanged: (String) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -764,8 +864,12 @@ struct SwiftTermContainerView: NSViewRepresentable {
         let terminal = DetectingLocalProcessTerminalView(frame: .zero)
         terminal.commandSubmitted = commandSubmitted
         terminal.processDelegate = context.coordinator
+        context.coordinator.onDirectoryChanged = directoryChanged
         terminal.font = preferredTerminalFont(size: fontSize)
         terminal.nativeBackgroundColor = .black
+        terminal.nativeForegroundColor = .white
+        terminal.wantsLayer = true
+        terminal.layer?.backgroundColor = NSColor.black.cgColor
         context.coordinator.windowNumber = windowNumber
         context.coordinator.tryStartProcessIfNeeded(on: terminal)
         DispatchQueue.main.async {
@@ -793,6 +897,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
         var processStarted = false
         var startRetryScheduled = false
         var windowNumber: Int = 0
+        var onDirectoryChanged: ((String) -> Void)?
 
         func tryStartProcessIfNeeded(on terminal: LocalProcessTerminalView) {
             guard !processStarted else { return }
@@ -820,7 +925,11 @@ struct SwiftTermContainerView: NSViewRepresentable {
 
         func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
         func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
-        func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
+        func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {
+            if let directory {
+                onDirectoryChanged?(directory)
+            }
+        }
         func processTerminated(source: TerminalView, exitCode: Int32?) {}
     }
 

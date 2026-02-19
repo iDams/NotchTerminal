@@ -491,7 +491,7 @@ struct NotchCapsuleView: View {
                                             }
                                         }
                                         hoverActivationWorkItem = workItem
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: workItem)
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
                                     } else if hoveredMinimizedItemID == item.id {
                                         hoveredMinimizedItemID = nil
                                         pendingHoverItemID = nil
@@ -518,26 +518,26 @@ struct NotchCapsuleView: View {
                                     attachmentAnchor: .rect(.bounds),
                                     arrowEdge: .bottom
                                 ) {
-                                    VStack(alignment: .leading, spacing: 6) {
+                                    VStack(alignment: .leading, spacing: 8) {
                                         HStack(spacing: 6) {
                                             if let icon = item.icon {
                                                 Image(nsImage: icon)
                                                     .resizable()
                                                     .scaledToFit()
-                                                    .frame(width: 12, height: 12)
+                                                    .frame(width: 14, height: 14)
                                             } else {
                                                 Image(systemName: "app.fill")
-                                                    .font(.system(size: 11, weight: .semibold))
+                                                    .font(.system(size: 12, weight: .semibold))
                                             }
                                             Text(item.title)
-                                                .font(.system(size: 11, weight: .semibold))
+                                                .font(.system(size: 12, weight: .semibold))
                                         }
                                         if let preview = item.preview {
                                             Image(nsImage: preview)
                                                 .resizable()
                                                 .interpolation(.high)
-                                                .scaledToFit()
-                                                .frame(width: 260, height: 150)
+                                                .scaledToFill()
+                                                .frame(width: 360, height: 210)
                                                 .clipShape(.rect(cornerRadius: 8))
                                         } else {
                                             Text("No preview")
@@ -545,7 +545,7 @@ struct NotchCapsuleView: View {
                                                 .foregroundStyle(.secondary)
                                         }
                                     }
-                                    .padding(8)
+                                    .padding(10)
                                 }
                             }
                         }
