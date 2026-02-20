@@ -2,7 +2,7 @@ import SwiftUI
 
 final class NotchViewModel: ObservableObject {
     @Published var isExpanded = false
-    @Published var minimizedItems: [MinimizedWindowItem] = []
+    @Published var terminalItems: [TerminalWindowItem] = []
     @Published var contentWidth: CGFloat = 0
 
     @Published var isHoveringPreview = false {

@@ -28,13 +28,14 @@ final class InteractiveTerminalPanel: NSPanel {
     }
 }
 
-struct MinimizedWindowItem: Identifiable {
+struct TerminalWindowItem: Identifiable {
     let id: UUID
     let number: Int
     let displayID: CGDirectDisplayID
     let title: String
     let icon: NSImage?
     let preview: NSImage?
+    let isMinimized: Bool
 }
 
 @MainActor
@@ -44,11 +45,11 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         let frame: CGRect
     }
 
-    var onMinimizedItemsChanged: (([MinimizedWindowItem]) -> Void)?
+    var onTerminalItemsChanged: (([TerminalWindowItem]) -> Void)?
 
     private struct WindowInstance {
         let id: UUID
-        let number: Int
+        var number: Int
         var displayID: CGDirectDisplayID
         let panel: NSPanel
         let notchTargetsProvider: () -> [NotchTarget]
@@ -62,6 +63,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         var expandedFrame: CGRect
         var terminalFontSize: CGFloat
         var previewSnapshot: NSImage?
+        var isAnimatingMinimize: Bool = false
     }
 
     private let expandedSize = CGSize(width: 820, height: 520)
@@ -101,43 +103,70 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             preMaximizeFrame: nil,
             expandedFrame: frame,
             terminalFontSize: defaultTerminalFontSize(),
-            previewSnapshot: nil
+            previewSnapshot: nil,
+            isAnimatingMinimize: false
         )
 
         updateContent(for: id)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: false)
-        publishMinimizedItems()
+        publishTerminalItems()
     }
 
     func restoreWindow(id: UUID) {
         guard var instance = windows[id] else { return }
         guard instance.isMinimized else {
             instance.panel.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
             windows[id] = instance
             return
         }
 
         let targetFrame = instance.expandedFrame
-        if let notchFrame = notchFrame(for: instance.displayID, in: instance) {
-            let startSize = CGSize(width: 54, height: 54)
-            let startOrigin = CGPoint(
-                x: notchFrame.midX - startSize.width / 2,
-                y: notchFrame.maxY - startSize.height
+        let startFrame: CGRect = {
+            let preferredTarget = closestDockTarget(for: targetFrame, in: instance)
+            guard let notchFrame = preferredTarget?.frame ?? notchFrame(for: instance.displayID, in: instance) else {
+                let size = CGSize(width: 54, height: 54)
+                let origin = CGPoint(x: targetFrame.midX - 27, y: targetFrame.maxY - size.height)
+                return CGRect(origin: origin, size: size)
+            }
+            let size = CGSize(width: 54, height: 54)
+            let origin = CGPoint(
+                x: notchFrame.midX - size.width / 2,
+                y: notchFrame.maxY - size.height
             )
-            instance.panel.setFrame(CGRect(origin: startOrigin, size: startSize), display: true)
-        }
+            return CGRect(origin: origin, size: size)
+        }()
+        instance.panel.setFrame(startFrame, display: true)
 
+        instance.isAnimatingMinimize = true
+        windows[id] = instance
+        updateContent(for: id)
+        
+        instance.panel.alphaValue = 0.0
         instance.panel.makeKeyAndOrderFront(nil)
+
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.24
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             instance.panel.animator().setFrame(targetFrame, display: true)
+            instance.panel.animator().alphaValue = 1.0
+        } completionHandler: { [weak self] in
+            guard let self else { return }
+            var updated = self.windows[id]
+            updated?.isAnimatingMinimize = false
+            updated?.isMinimized = false
+            if let safeUpdated = updated {
+                self.windows[id] = safeUpdated
+            }
+            if let panel = self.windows[id]?.panel, let contentView = panel.contentView {
+                self.refreshTerminalView(in: contentView)
+            }
+            self.updateContent(for: id)
+            self.publishTerminalItems()
         }
 
-        instance.isMinimized = false
-        windows[id] = instance
-        publishMinimizedItems()
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func reorganizeVisibleWindows(on displayID: CGDirectDisplayID, screen: NSScreen?) {
@@ -331,20 +360,31 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             )
             return CGRect(origin: origin, size: size)
         }()
+        
+        instance.isAnimatingMinimize = true
+        windows[id] = instance
+        updateContent(for: id)
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.20
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             instance.panel.animator().setFrame(targetFrame, display: true)
             instance.panel.animator().alphaValue = 0.0
-        } completionHandler: {
-            instance.panel.alphaValue = 1.0
-            instance.panel.orderOut(nil)
+        } completionHandler: { [weak self] in
+            guard let self else { return }
+            var updated = self.windows[id]
+            updated?.isAnimatingMinimize = false
+            if let safeUpdated = updated {
+                self.windows[id] = safeUpdated
+                safeUpdated.panel.alphaValue = 1.0
+                safeUpdated.panel.orderOut(nil)
+            }
+            self.updateContent(for: id)
         }
 
         instance.isMinimized = true
         windows[id] = instance
-        publishMinimizedItems()
+        publishTerminalItems()
     }
 
     private func closeWindow(id: UUID) {
@@ -352,30 +392,49 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.panel.orderOut(nil)
         instance.panel.close()
         windows.removeValue(forKey: id)
-        publishMinimizedItems()
+        renumberWindows()
+        publishTerminalItems()
     }
 
-    private func publishMinimizedItems() {
+    /// Re-assigns sequential numbers (1, 2, 3…) to all remaining windows
+    /// sorted by their current number, so there are never gaps.
+    private func renumberWindows() {
+        let sortedIDs = windows.values
+            .sorted { $0.number < $1.number }
+            .map(\.id)
+
+        for (index, id) in sortedIDs.enumerated() {
+            windows[id]?.number = index + 1
+            updateContent(for: id)
+        }
+        nextNumber = sortedIDs.count + 1
+    }
+
+    private func publishTerminalItems() {
         let items = windows.values
-            .filter { $0.isMinimized }
-            .map {
-                MinimizedWindowItem(
-                    id: $0.id,
-                    number: $0.number,
-                    displayID: $0.displayID,
-                    title: $0.displayTitle,
-                    icon: $0.displayIcon,
-                    preview: $0.previewSnapshot
+            .map { instance in
+                // If it's not minimized, take a fresh snapshot right now
+                // so the notch preview is always up to date.
+                let currentPreview = instance.isMinimized ? instance.previewSnapshot : capturePreview(from: instance.panel)
+                
+                return TerminalWindowItem(
+                    id: instance.id,
+                    number: instance.number,
+                    displayID: instance.displayID,
+                    title: instance.displayTitle,
+                    icon: instance.displayIcon,
+                    preview: currentPreview,
+                    isMinimized: instance.isMinimized
                 )
             }
             .sorted { $0.number < $1.number }
-        onMinimizedItemsChanged?(items)
+        onTerminalItemsChanged?(items)
     }
 
     private func makePanel() -> NSPanel {
         let panel = InteractiveTerminalPanel(
             contentRect: CGRect(origin: .zero, size: expandedSize),
-            styleMask: [.borderless, .resizable, .titled, .fullSizeContentView],
+            styleMask: [.borderless, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -437,7 +496,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             },
             toggleAlwaysOnTop: { [weak self] in
                 self?.toggleAlwaysOnTop(id: id)
-            }
+            },
+            isAnimatingMinimize: instance.isAnimatingMinimize,
+            expandedFrameSize: instance.expandedFrame.size,
+            previewSnapshot: instance.previewSnapshot
         )
 
         if let hostingView = instance.panel.contentView as? NSHostingView<MetalBlackWindowContent> {
@@ -485,6 +547,12 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         if !instance.isCompact {
             instance.expandedFrame = panel.frame
             windows[id] = instance
+        }
+        
+        // Force the terminal to snap its grid to the integer cell size
+        // continuously during the live resize drag to avoid ghosting.
+        if let rootView = panel.contentView {
+            refreshTerminalView(in: rootView)
         }
     }
 
@@ -578,6 +646,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.displayIcon = branding.icon
         windows[id] = instance
         updateContent(for: id)
+        publishTerminalItems()
     }
 
     private func handleDirectoryChanged(id: UUID, directory: String) {
@@ -611,13 +680,14 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             shortPath = cleanPath
         }
 
-        let newTitle = "NotchTerminal · \(shortPath)"
+        let newTitle = "NotchTerminal"
         guard instance.displayTitle != newTitle else { return }
         // Restore default title format, clearing any AI CLI branding
         instance.displayTitle = newTitle
         instance.displayIcon = nil
         windows[id] = instance
         updateContent(for: id)
+        publishTerminalItems()
     }
 
     private func notchFrame(for displayID: CGDirectDisplayID, in instance: WindowInstance) -> CGRect? {
@@ -661,8 +731,14 @@ struct MetalBlackWindowContent: View {
     let minimize: () -> Void
     let maximize: () -> Void
     let toggleAlwaysOnTop: () -> Void
+    let isAnimatingMinimize: Bool
+    let expandedFrameSize: CGSize
+    let previewSnapshot: NSImage?
 
     private var cornerRadius: CGFloat { isCompact ? 18 : 22 }
+    private var isRunningInPreview: Bool {
+        ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    }
 
     var body: some View {
         ZStack {
@@ -791,12 +867,39 @@ struct MetalBlackWindowContent: View {
                     .padding(.bottom, 6)
                 }
 
-                SwiftTermContainerView(
-                    windowNumber: windowNumber,
-                    fontSize: terminalFontSize,
-                    commandSubmitted: commandSubmitted,
-                    directoryChanged: directoryChanged
-                )
+                Group {
+                    if isRunningInPreview {
+                        RoundedRectangle(cornerRadius: isCompact ? 12 : 16, style: .continuous)
+                            .fill(Color.black.opacity(0.94))
+                            .overlay(alignment: .topLeading) {
+                                Text("Preview Terminal")
+                                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(.white.opacity(0.7))
+                                    .padding(12)
+                            }
+                    } else {
+                        ZStack {
+                            SwiftTermContainerView(
+                                windowNumber: windowNumber,
+                                fontSize: terminalFontSize,
+                                commandSubmitted: commandSubmitted,
+                                directoryChanged: directoryChanged
+                            )
+                            .frame(
+                                width: isAnimatingMinimize ? expandedFrameSize.width : nil,
+                                height: isAnimatingMinimize ? expandedFrameSize.height : nil,
+                                alignment: .top
+                            )
+                            .opacity(isAnimatingMinimize ? 0 : 1)
+                            
+                            if isAnimatingMinimize, let previewSnapshot {
+                                Image(nsImage: previewSnapshot)
+                                    .resizable()
+                            }
+                        }
+                    }
+                }
+                    .clipped()
                     .padding(.top, isCompact ? 8 : 14)
                     .padding(.horizontal, isCompact ? 6 : 10)
                     .padding(.bottom, isCompact ? 6 : 8)
@@ -810,9 +913,37 @@ struct MetalBlackWindowContent: View {
             .padding(10)
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .padding(2)
+        .padding(8) // Provide a generous invisible grip area (approx 8pt)
+        .background(Color.black.opacity(0.001)) // The secret sauce: invisible layer to catch mouse resize events
         .animation(.spring(response: 0.22, dampingFraction: 0.85), value: isCompact)
     }
+}
+
+#Preview("Terminal Window") {
+    MetalBlackWindowContent(
+        displayTitle: "NotchTerminal · ~/project",
+        displayIcon: nil,
+        windowNumber: 1,
+        isCompact: false,
+        isAlwaysOnTop: false,
+        isMaximized: false,
+        terminalFontSize: 13,
+        toggleCompact: {},
+        increaseFontSize: {},
+        decreaseFontSize: {},
+        commandSubmitted: { _ in },
+        directoryChanged: { _ in },
+        closeWindow: {},
+        minimize: {},
+        maximize: {},
+        toggleAlwaysOnTop: {},
+        isAnimatingMinimize: false,
+        expandedFrameSize: CGSize(width: 820, height: 520),
+        previewSnapshot: nil
+    )
+    .frame(width: 860, height: 560)
+    .padding()
+    .background(Color(nsColor: .windowBackgroundColor))
 }
 
 final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
@@ -862,9 +993,11 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     }
 
     func refreshAfterResize() {
+        super.setFrameSize(frame.size)
         let terminal = getTerminal()
         terminal.updateFullScreen()
         needsDisplay = true
+        layer?.setNeedsDisplay()
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {

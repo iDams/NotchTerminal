@@ -84,51 +84,31 @@ fragment half4 blackWindowFragment(VertexOut in [[stage_in]], constant float &ti
 fragment half4 neonBorderFragment(VertexOut in [[stage_in]], constant float &time [[buffer(0)]]) {
     float2 uv = in.uv;
     
-    // We want a traveling light effect around the perimeter.
-    // Since UVs are 0 to 1, we can create a parameter 't' that goes 0 to 1 around the edge.
-    // Instead of complex perimeter math, a radial or sweeping-angle approach is very "cyberpunk".
+    // Very slow time to make it a subtle, breathing effect
+    float t = time * 0.2;
     
-    // Convert UV to centered coordinates (-0.5 to 0.5)
-    float2 centered = uv - 0.5;
+    // DeepSeek style gradient: Orange/Red on the left, animating to Purple/Blue on the right
+    float3 colorLeft = float3(1.0, 0.35, 0.15); // Vibrant Orange/Red
+    float3 colorRight = float3(0.15, 0.45, 1.0); // Vibrant Blue
     
-    // Calculate angle from -PI to PI
-    float angle = atan2(centered.y, centered.x);
-    // Normalize to 0.0 - 1.0
-    float angleNorm = (angle + M_PI_F) / (2.0 * M_PI_F);
+    // Create a smooth base gradient across the X axis
+    // We add a slight wave to the mix factor so the colors gently shift left and right
+    float colorMix = uv.x + (sin(uv.y * 3.0 + t) * 0.1);
+    float3 baseColor = mix(colorLeft, colorRight, saturate(colorMix));
     
-    // Sweeping time
-    float sweepTime = fract(time * 0.4);
+    // Add some soft, slow-moving noise/waves along the perimeter to make it feel alive
+    float wave1 = sin((uv.x * 5.0) + t * 1.5) * 0.5 + 0.5;
+    float wave2 = sin((uv.y * 8.0) - t * 1.2) * 0.5 + 0.5;
     
-    // Calculate distance between the sweep time and the current angle
-    // Using fract to ensure it wraps around cleanly
-    float diff = fract(angleNorm - sweepTime + 1.0);
+    // Combine waves for intensity
+    float intensity = (wave1 + wave2) * 0.5;
     
-    // Create a sharp head and a long tail for the light
-    // We reverse the diff so the head is leading
-    float tail = smoothstep(0.4, 0.0, diff); 
+    // Global slow pulse
+    float pulse = 0.7 + 0.3 * sin(time * 0.8);
     
-    // Add a secondary sweep going the opposite way or slightly offset for complexity
-    float sweepTime2 = fract(-time * 0.25);
-    float diff2 = fract(angleNorm - sweepTime2 + 1.0);
-    float tail2 = smoothstep(0.3, 0.0, diff2);
-    
-    // Base color
-    float3 headColor = float3(0.9, 0.2, 1.0); // Hot pink / Magenta
-    float3 tailColor = float3(0.5, 0.1, 0.9); // Deep purple
-    
-    float3 color = mix(tailColor, headColor, tail);
-    
-    // Combine both sweeps
-    float intensity = tail + (tail2 * 0.6);
-    
-    // Edge highlight (brightest right at the edges of the UV square)
-    // Actually, in SwiftUI this will be masked by a stroke, so the whole view is only the stroke.
-    // We can just output the sweeping color!
-    
-    // Add pulsing base glow
-    float pulse = 0.3 + 0.2 * sin(time * 3.0);
-    
-    float3 finalColor = color * (intensity * 2.5 + pulse);
+    // Calculate final color
+    // Multiply base color by the moving waves to create flowing hot-spots
+    float3 finalColor = baseColor * (0.6 + intensity * 0.8) * pulse;
     
     return half4(half3(finalColor), half(1.0));
 }

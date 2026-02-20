@@ -8,7 +8,7 @@ final class NotchOverlayController {
     private let expandedSize = NSSize(width: 336, height: 78)
     private let notchClosedWidthScale: CGFloat = 0.92
     private let notchClosedHeightScale: CGFloat = 0.90
-    private let shadowPadding: CGFloat = 16
+    private let shadowPadding: CGFloat = 42
     private let noNotchTopInset: CGFloat = 6
     private let notchTopInset: CGFloat = 0
 
@@ -25,11 +25,11 @@ final class NotchOverlayController {
     private var lastInteractionTime: Date?
     private var eventMonitor: Any?
     private var closeWorkItem: DispatchWorkItem?
-    private var settingsWindow: NSWindow?
+    private var pendingShrinkWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
 
     func start() {
-        blackWindowController.onMinimizedItemsChanged = { [weak self] items in
-            self?.applyMinimizedItems(items)
+        blackWindowController.onTerminalItemsChanged = { [weak self] items in
+            self?.applyTerminalItems(items)
         }
         rebuildPanels()
         startMouseTracking()
@@ -212,7 +212,7 @@ final class NotchOverlayController {
                             if model.isExpanded {
                                 model.isExpanded = false
                                 model.hasPreviewedDuringSession = false
-                                self.layoutPanels(animated: true, displays: [displayID])
+                                self.layoutPanels(animated: true, displays: [displayID], isCollapsing: true)
                             }
                             self.closeWorkItem = nil
                         }
@@ -236,7 +236,7 @@ final class NotchOverlayController {
 
     // MARK: - Layout
 
-    private func layoutPanels(animated: Bool, displays: Set<CGDirectDisplayID>? = nil) {
+    private func layoutPanels(animated: Bool, displays: Set<CGDirectDisplayID>? = nil, isCollapsing: Bool = false) {
         for screen in NSScreen.screens {
             guard let displayID = displayID(for: screen),
                   let panel = panelsByDisplay[displayID],
@@ -274,13 +274,14 @@ final class NotchOverlayController {
 
         let visualSize: NSSize
         if isExpanded {
-            let minWidth: CGFloat = 336
+            let minWidth: CGFloat = 540
             let maxWidth: CGFloat = 800
             let targetWidth = min(max(contentWidth + (model.contentPadding * 2), minWidth), maxWidth)
-            visualSize = NSSize(width: targetWidth, height: 78)
+            visualSize = NSSize(width: targetWidth, height: 96)
         } else {
             visualSize = closedSize
         }
+        
         let shoulderExtra: CGFloat = hasNotch ? (isExpanded ? 14 : 6) * 2 : 0
 
         // Extend 2px up into the bezel when expanded to hide transparency gaps
@@ -365,45 +366,17 @@ final class NotchOverlayController {
     }
 
     private func openSettings(for displayID: CGDirectDisplayID) {
-        let window = ensureSettingsWindow()
-        placeSettingsWindow(window, on: displayID)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: false)
+        if #available(macOS 13.0, *) {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func ensureSettingsWindow() -> NSWindow {
-        if let settingsWindow { return settingsWindow }
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 500),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Settings"
-        window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 500, height: 420)
-        window.maxSize = NSSize(width: 760, height: 700)
-        window.center()
-        window.contentView = NSHostingView(rootView: SettingsView())
-        settingsWindow = window
-        return window
-    }
-
-    private func placeSettingsWindow(_ settingsWindow: NSWindow, on displayID: CGDirectDisplayID) {
-        guard let targetScreen = screen(forDisplayID: displayID) else { return }
-        let visible = targetScreen.visibleFrame
-        let size = settingsWindow.frame.size
-        let origin = CGPoint(
-            x: visible.midX - size.width / 2,
-            y: visible.midY - size.height / 2
-        )
-        settingsWindow.setFrameOrigin(origin)
-    }
-
-    private func applyMinimizedItems(_ items: [MinimizedWindowItem]) {
+    private func applyTerminalItems(_ items: [TerminalWindowItem]) {
         for (displayID, model) in modelsByDisplay {
-            model.minimizedItems = items
+            model.terminalItems = items
                 .filter { $0.displayID == displayID }
                 .sorted { $0.number < $1.number }
         }

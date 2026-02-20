@@ -42,7 +42,7 @@ struct SettingsView: View {
                 }
         }
         .frame(
-            minWidth: 500,
+            minWidth: 560,
             idealWidth: 560,
             maxWidth: 760,
             minHeight: 420,
@@ -75,44 +75,51 @@ struct GeneralSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ZenithSettingsSection(contentSpacing: 12) {
-                    Text("System")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
+                    ZenithSectionHeading(
+                        title: "System",
+                        subtitle: "Core behavior and app visibility options.",
+                        icon: "macwindow"
+                    )
 
                     ZenithPreferenceToggleRow(
                         title: "Enable haptic feedback",
                         subtitle: "Use haptics when interactions occur in the notch.",
+                        icon: "waveform.path",
                         binding: $hapticFeedback
                     )
 
                     ZenithPreferenceToggleRow(
                         title: "Show Dock icon",
                         subtitle: "Display the app icon in the Dock using the configured AppIcon asset.",
+                        icon: "dock.rectangle",
                         binding: $showDockIcon
                     )
                }
 
                 ZenithSettingsSection(contentSpacing: 12) {
-                    Text("Automation")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
+                    ZenithSectionHeading(
+                        title: "Automation",
+                        subtitle: "Controls how and when the notch opens and closes.",
+                        icon: "cursorarrow.motionlines"
+                    )
 
                     ZenithPreferenceToggleRow(
                         title: "Open notch on hover",
                         subtitle: "Automatically expands the notch when the cursor reaches it.",
+                        icon: "cursorarrow.rays",
                         binding: $autoOpenOnHover
                     )
 
                     ZenithPreferenceToggleRow(
                         title: "Keep open while typing",
                         subtitle: "Avoid auto-close while you are actively typing.",
+                        icon: "keyboard",
                         binding: $lockWhileTyping
                     )
                 }
             }
-            .padding()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
         }
     }
 }
@@ -137,13 +144,16 @@ struct AppearanceSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ZenithSettingsSection(contentSpacing: 12) {
-                    Text("Geometry")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
+                    ZenithSectionHeading(
+                        title: "Geometry",
+                        subtitle: "Fine-tune notch layout and spacing.",
+                        icon: "aspectratio"
+                    )
 
                     ZenithSliderPreferenceRow(
                         title: "Content padding",
+                        subtitle: "Spacing between terminal content and notch edges.",
+                        icon: "arrow.up.left.and.arrow.down.right",
                         value: $contentPadding,
                         range: 0 ... 40,
                         step: 1,
@@ -152,6 +162,8 @@ struct AppearanceSettingsView: View {
 
                     ZenithSliderPreferenceRow(
                         title: "Notch width fine-tune",
+                        subtitle: "Adjust horizontal notch size offset.",
+                        icon: "arrow.left.and.right",
                         value: $notchWidthOffset,
                         range: -80 ... 80,
                         step: 1,
@@ -160,6 +172,8 @@ struct AppearanceSettingsView: View {
 
                     ZenithSliderPreferenceRow(
                         title: "Notch height fine-tune",
+                        subtitle: "Adjust vertical notch size offset.",
+                        icon: "arrow.up.and.down",
                         value: $notchHeightOffset,
                         range: -48 ... 48,
                         step: 1,
@@ -168,20 +182,24 @@ struct AppearanceSettingsView: View {
                 }
 
                 ZenithSettingsSection(contentSpacing: 12) {
-                    Text("Compact Ticker")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
+                    ZenithSectionHeading(
+                        title: "Compact Ticker",
+                        subtitle: "Provider status in closed-notch mode.",
+                        icon: "rectangle.compress.vertical"
+                    )
 
                     ZenithPreferenceToggleRow(
                         title: "Show compact provider ticker",
                         subtitle: "When the notch is closed, rotate provider status in a compact row.",
+                        icon: "text.line.first.and.arrowtriangle.forward",
                         binding: $compactTickerEnabled
                     )
 
                     if compactTickerEnabled {
                         ZenithSliderPreferenceRow(
                             title: "Rotation interval",
+                            subtitle: "How often the provider preview changes.",
+                            icon: "timer",
                             value: $compactTickerInterval,
                             range: 4 ... 20,
                             step: 1,
@@ -190,6 +208,8 @@ struct AppearanceSettingsView: View {
 
                         ZenithSliderPreferenceRow(
                             title: "Closed notch extra width",
+                            subtitle: "Extra width available in compact mode.",
+                            icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
                             value: $compactTickerClosedExtraWidth,
                             range: 0 ... 260,
                             step: 2,
@@ -199,10 +219,15 @@ struct AppearanceSettingsView: View {
                 }
 
                 ZenithSettingsSection(contentSpacing: 12) {
-                    Text("Effects")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
+                    ZenithSectionHeading(
+                        title: "Experimental Effects",
+                        subtitle: "Optional visuals that may vary by screen/GPU.",
+                        icon: "sparkles"
+                    )
+                    
+                    Text("These visual effects are experimental and may vary by screen/GPU.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
 
                     let hasAnyNotch = NSScreen.screens.contains { screen in
                         if #available(macOS 12.0, *) {
@@ -228,6 +253,7 @@ struct AppearanceSettingsView: View {
                         ZenithPreferenceToggleRow(
                             title: "Enable fake notch glow",
                             subtitle: "Show the purple glow effect only on screens without a physical notch.",
+                            icon: "sun.max.trianglebadge.exclamationmark",
                             binding: $fakeNotchGlowEnabled
                         )
                     }
@@ -236,12 +262,14 @@ struct AppearanceSettingsView: View {
                         ZenithPreferenceToggleRow(
                             title: "Enable Aurora background",
                             subtitle: "Render an ethereal, animated Metal shader behind the terminal contents.",
+                            icon: "wave.3.right.circle",
                             binding: $auroraBackgroundEnabled
                         )
                     }
                 }
             }
-            .padding()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
         }
     }
 }
@@ -251,28 +279,44 @@ struct AppearanceSettingsView: View {
 struct ZenithPreferenceToggleRow: View {
     let title: String
     let subtitle: String?
+    let icon: String?
     @Binding var binding: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Toggle(isOn: $binding) {
-                Text(title)
-                    .font(.body)
+        HStack(alignment: .top, spacing: 10) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.secondary)
             }
-            .toggleStyle(.checkbox)
 
-            if let subtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.body.weight(.medium))
+
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+
+            Spacer(minLength: 8)
+
+            Toggle("", isOn: $binding)
+                .labelsHidden()
+                .toggleStyle(.switch)
         }
+        .padding(.vertical, 2)
     }
 }
 
 struct ZenithSliderPreferenceRow: View {
     let title: String
+    let subtitle: String?
+    let icon: String?
     @Binding var value: Double
     let range: ClosedRange<Double>
     let step: Double
@@ -280,14 +324,38 @@ struct ZenithSliderPreferenceRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title)
+            HStack(alignment: .center, spacing: 10) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.body.weight(.medium))
+
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
                 Spacer()
                 Text(valueFormatter(value))
+                    .font(.footnote.monospacedDigit())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .clipShape(Capsule())
                     .foregroundStyle(.secondary)
             }
+
             Slider(value: $value, in: range, step: step)
         }
+        .padding(.vertical, 2)
     }
 }
 
@@ -301,12 +369,38 @@ struct ZenithSettingsSection<Content: View>: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.46))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Color.primary.opacity(0.1), lineWidth: 1)
         )
+    }
+}
+
+struct ZenithSectionHeading: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 20, height: 20)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+
+                Text(subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(.tertiary)
+            }
+        }
     }
 }
 
@@ -326,7 +420,7 @@ struct AboutSettingsView: View {
                     Image("AppLogo")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 124, height: 124)
+                        .frame(width: 92, height: 92)
                         .padding(.top, 8)
 
                     VStack(spacing: 4) {
@@ -348,16 +442,7 @@ struct AboutSettingsView: View {
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(nsColor: .controlBackgroundColor).opacity(0.85),
-                                    Color(nsColor: .windowBackgroundColor).opacity(0.65)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.45))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -656,4 +741,19 @@ struct MarkdownTextView: NSViewRepresentable {
 
         return output
     }
+}
+
+#Preview("Settings - General") {
+    GeneralSettingsView()
+        .frame(width: 620, height: 460)
+}
+
+#Preview("Settings - Appearance") {
+    AppearanceSettingsView()
+        .frame(width: 620, height: 620)
+}
+
+#Preview("Settings - About") {
+    AboutSettingsView()
+        .frame(width: 620, height: 680)
 }
