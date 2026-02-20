@@ -78,6 +78,13 @@ This project uses SwiftTerm for terminal emulation and local PTY process integra
 - Fork used by this project: https://github.com/iDams/SwiftTerm
 - License: MIT (see upstream repository license file)
 
+### Port-Killer (Inspiration)
+
+The open-ports panel and process-termination flow were inspired by Port-Killer, and part of the port scanning/kill logic approach was adapted for this project.
+
+- Project: https://github.com/productdevbook/port-killer
+- License: MIT
+
 ### Brand Assets
 
 Some command branding icons correspond to third-party products (for example, Claude/OpenCode logos).

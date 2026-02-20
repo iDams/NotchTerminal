@@ -131,6 +131,10 @@ struct NotchCapsuleView: View {
         .overlay(alignment: .topTrailing) {
             if showExpandedControls {
                 Button(action: {
+                    NSApp.activate(ignoringOtherApps: true)
+                    for window in NSApp.windows where window.title == "Settings" || window.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" {
+                        window.makeKeyAndOrderFront(nil)
+                    }
                     if #available(macOS 14.0, *) {
                         openSettingsNative()
                     } else {

@@ -112,3 +112,34 @@ fragment half4 neonBorderFragment(VertexOut in [[stage_in]], constant float &tim
     
     return half4(half3(finalColor), half(1.0));
 }
+
+#include <SwiftUI/SwiftUI_Metal.h>
+
+[[ stitchable ]] half4 crtFilter(float2 position, half4 color, float2 size, float time) {
+    float2 uv = position / size;
+    
+    // 1. Curvature (barrel distortion) just for the black borders
+    float2 crt_uv = uv * 2.0 - 1.0;
+    float2 offset = crt_uv.yx / 8.0; 
+    float2 curved_uv = crt_uv + crt_uv * offset * offset;
+    
+    // Solid black outside the tube
+    if (abs(curved_uv.x) > 1.0 || abs(curved_uv.y) > 1.0) {
+        return half4(0.0, 0.0, 0.0, 1.0); 
+    }
+    
+    // 2. Scanlines
+    float scanline = sin(uv.y * size.y * 1.5) * 0.04;
+    
+    // 3. Vignette (darken edges)
+    float vignette = distance(uv, float2(0.5, 0.5));
+    vignette = smoothstep(1.0, 0.2, vignette);
+    
+    // 4. Static noise
+    float noise = fract(sin(dot(uv, float2(12.9898, 78.233)) + time * 10.0) * 43758.5453) * 0.03;
+    
+    // Total darkening alpha
+    float darkness = (1.0 - vignette) + scanline + noise;
+    
+    return half4(0.0, 0.0, 0.0, clamp(half(darkness), 0.0h, 1.0h));
+}

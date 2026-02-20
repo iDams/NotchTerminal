@@ -5,6 +5,7 @@ private enum SettingsTab: Hashable {
     case general
     case appearance
     case about
+    case experimental
 }
 
 struct SettingsView: View {
@@ -18,6 +19,8 @@ struct SettingsView: View {
             return 560
         case .about:
             return 640
+        case .experimental:
+            return 320
         }
     }
 
@@ -39,6 +42,12 @@ struct SettingsView: View {
                 .tag(SettingsTab.about)
                 .tabItem {
                     Label("About", systemImage: "info.circle")
+                }
+
+            ExperimentalSettingsView()
+                .tag(SettingsTab.experimental)
+                .tabItem {
+                    Label("Experimental", systemImage: "flask")
                 }
         }
         .frame(
@@ -128,8 +137,6 @@ struct AppearanceSettingsView: View {
     @AppStorage("contentPadding") var contentPadding: Double = 14
     @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
     @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
-    @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
-    @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
     
     @AppStorage("compactTickerEnabled") var compactTickerEnabled: Bool = true
     @AppStorage("compactTickerInterval") var compactTickerInterval: Double = 20
@@ -214,56 +221,6 @@ struct AppearanceSettingsView: View {
                             range: 0 ... 260,
                             step: 2,
                             valueFormatter: { "\(Int($0))" }
-                        )
-                    }
-                }
-
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "Experimental Effects",
-                        subtitle: "Optional visuals that may vary by screen/GPU.",
-                        icon: "sparkles"
-                    )
-                    
-                    Text("These visual effects are experimental and may vary by screen/GPU.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-
-                    let hasAnyNotch = NSScreen.screens.contains { screen in
-                        if #available(macOS 12.0, *) {
-                            let left = screen.auxiliaryTopLeftArea ?? .zero
-                            let right = screen.auxiliaryTopRightArea ?? .zero
-                            let blockedWidth = screen.frame.width - left.width - right.width
-                            return blockedWidth > 20 && min(left.height, right.height) > 0
-                        }
-                        return false
-                    }
-                    
-                    let hasAnyNoNotch = NSScreen.screens.contains { screen in
-                        if #available(macOS 12.0, *) {
-                            let left = screen.auxiliaryTopLeftArea ?? .zero
-                            let right = screen.auxiliaryTopRightArea ?? .zero
-                            let blockedWidth = screen.frame.width - left.width - right.width
-                            return !(blockedWidth > 20 && min(left.height, right.height) > 0)
-                        }
-                        return true
-                    }
-
-                    if hasAnyNoNotch {
-                        ZenithPreferenceToggleRow(
-                            title: "Enable fake notch glow",
-                            subtitle: "Show the purple glow effect only on screens without a physical notch.",
-                            icon: "sun.max.trianglebadge.exclamationmark",
-                            binding: $fakeNotchGlowEnabled
-                        )
-                    }
-
-                    if hasAnyNotch {
-                        ZenithPreferenceToggleRow(
-                            title: "Enable Aurora background",
-                            subtitle: "Render an ethereal, animated Metal shader behind the terminal contents.",
-                            icon: "wave.3.right.circle",
-                            binding: $auroraBackgroundEnabled
                         )
                     }
                 }
@@ -756,4 +713,80 @@ struct MarkdownTextView: NSViewRepresentable {
 #Preview("Settings - About") {
     AboutSettingsView()
         .frame(width: 620, height: 680)
+}
+
+struct ExperimentalSettingsView: View {
+    @AppStorage("enableCRTFilter") var enableCRTFilter: Bool = false
+    @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
+    @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                ZenithSettingsSection(contentSpacing: 12) {
+                    ZenithSectionHeading(
+                        title: "Experimental Effects",
+                        subtitle: "Optional visuals that may vary by screen/GPU.",
+                        icon: "sparkles"
+                    )
+                    
+                    Text("These visual effects are highly experimental and cost battery life.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+
+                    let hasAnyNotch = NSScreen.screens.contains { screen in
+                        if #available(macOS 12.0, *) {
+                            let left = screen.auxiliaryTopLeftArea ?? .zero
+                            let right = screen.auxiliaryTopRightArea ?? .zero
+                            let blockedWidth = screen.frame.width - left.width - right.width
+                            return blockedWidth > 20 && min(left.height, right.height) > 0
+                        }
+                        return false
+                    }
+                    
+                    let hasAnyNoNotch = NSScreen.screens.contains { screen in
+                        if #available(macOS 12.0, *) {
+                            let left = screen.auxiliaryTopLeftArea ?? .zero
+                            let right = screen.auxiliaryTopRightArea ?? .zero
+                            let blockedWidth = screen.frame.width - left.width - right.width
+                            return !(blockedWidth > 20 && min(left.height, right.height) > 0)
+                        }
+                        return true
+                    }
+
+                    if hasAnyNoNotch {
+                        ZenithPreferenceToggleRow(
+                            title: "Fake Notch Glow",
+                            subtitle: "Neon purple glow effect for simulated notches.",
+                            icon: "sun.max.trianglebadge.exclamationmark",
+                            binding: $fakeNotchGlowEnabled
+                        )
+                    }
+
+                    if hasAnyNotch {
+                        ZenithPreferenceToggleRow(
+                            title: "Aurora Background",
+                            subtitle: "Animated Metal shader behind the terminal contents.",
+                            icon: "wave.3.right.circle",
+                            binding: $auroraBackgroundEnabled
+                        )
+                    }
+                    
+                    ZenithPreferenceToggleRow(
+                        title: "CRT Monitor Filter",
+                        subtitle: "Adds curvature, scanlines, and static noise to emulate old hardware.",
+                        icon: "tv",
+                        binding: $enableCRTFilter
+                    )
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+        }
+    }
+}
+
+#Preview("Settings - Experimental") {
+    ExperimentalSettingsView()
+        .frame(width: 620, height: 420)
 }
