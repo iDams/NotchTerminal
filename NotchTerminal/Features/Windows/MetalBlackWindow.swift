@@ -187,33 +187,72 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         let marginBottom: CGFloat = 20
         let vSpacing: CGFloat = 14
         let hSpacing: CGFloat = 16
-        let columnWidth = visibleIDs
-            .compactMap { windows[$0]?.panel.frame.width }
-            .max() ?? expandedSize.width
 
-        var currentX = usable.maxX - marginX - columnWidth
-        var currentTop = usable.maxY - marginTop
-        let minY = usable.minY + marginBottom
         let minX = usable.minX + marginX
+        let maxX = usable.maxX - marginX
+        let minY = usable.minY + marginBottom
+        let maxY = usable.maxY - marginTop
+
+        var placements: [UUID: CGRect] = [:]
+        var overflowIDs: [UUID] = []
+
+        // Row-flow layout from top-right to left, then wraps to next row.
+        // This avoids overlap for normal counts.
+        var rowRightX = maxX
+        var rowTopY = maxY
+        var rowHeight: CGFloat = 0
 
         for id in visibleIDs {
-            guard var instance = windows[id] else { continue }
+            guard let instance = windows[id] else { continue }
             let size = instance.panel.frame.size
 
-            if currentTop - size.height < minY {
-                currentX -= (columnWidth + hSpacing)
-                currentTop = usable.maxY - marginTop
+            // Wrap to next row if current window doesn't fit this row.
+            if rowRightX - size.width < minX {
+                rowTopY -= (rowHeight + vSpacing)
+                rowRightX = maxX
+                rowHeight = 0
             }
 
-            if currentX < minX {
-                // If windows exceed available columns, keep them in the leftmost column
-                // instead of pushing off-screen.
-                currentX = minX
-                currentTop = max(minY + size.height, currentTop)
+            let nextY = rowTopY - size.height
+            if nextY < minY {
+                overflowIDs.append(id)
+                continue
             }
 
-            let origin = CGPoint(x: currentX, y: max(minY, currentTop - size.height))
-            let targetFrame = CGRect(origin: origin, size: size)
+            let x = max(minX, rowRightX - size.width)
+            let frame = CGRect(x: x, y: nextY, width: size.width, height: size.height)
+            placements[id] = frame
+
+            rowRightX = x - hSpacing
+            rowHeight = max(rowHeight, size.height)
+        }
+
+        // If there are more windows than the screen can tile, place the rest
+        // in a controlled diagonal stack near bottom-left.
+        if !overflowIDs.isEmpty {
+            let stackStepX: CGFloat = 24
+            let stackStepY: CGFloat = 20
+            let stackColumns = 4
+
+            for (index, id) in overflowIDs.enumerated() {
+                guard let instance = windows[id] else { continue }
+                let size = instance.panel.frame.size
+                let col = CGFloat(index % stackColumns)
+                let row = CGFloat(index / stackColumns)
+
+                let x = min(maxX - size.width, minX + (col * stackStepX))
+                let y = min(maxY - size.height, minY + (row * stackStepY))
+                placements[id] = CGRect(
+                    x: max(minX, x),
+                    y: max(minY, y),
+                    width: size.width,
+                    height: size.height
+                )
+            }
+        }
+
+        for id in visibleIDs {
+            guard var instance = windows[id], let targetFrame = placements[id] else { continue }
 
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.24
@@ -223,7 +262,6 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
             instance.expandedFrame = targetFrame
             windows[id] = instance
-            currentTop = targetFrame.minY - vSpacing
         }
     }
 
@@ -525,7 +563,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func frameForInitialShow(on screen: NSScreen, size: CGSize) -> CGRect {
         let origin = CGPoint(
             x: screen.frame.midX - size.width / 2,
-            y: screen.frame.maxY - size.height - 120
+            y: screen.frame.maxY - size.height - 220
         )
         return CGRect(origin: origin, size: size)
     }
@@ -695,7 +733,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         let candidate = targets
             .map { target -> (NotchTarget, CGFloat, CGRect) in
-                let expanded = target.frame.insetBy(dx: -200, dy: -150)
+                // Extremely tight drop zone so it only docks when the window practically touches the Notch
+                let expanded = target.frame.insetBy(dx: -40, dy: -30)
                 let dx = topCenter.x - expanded.midX
                 let dy = topCenter.y - expanded.midY
                 let dist2 = (dx * dx) + (dy * dy)
@@ -730,6 +769,7 @@ struct MetalBlackWindowContent: View {
     let previewSnapshot: NSImage?
     
     @AppStorage("enableCRTFilter") private var enableCRTFilter: Bool = false
+    @Environment(\.controlActiveState) private var controlActiveState
     @State private var showOpenPortsPopover = false
     @State private var openPorts: [OpenPortEntry] = []
     @State private var isLoadingOpenPorts = false
@@ -745,7 +785,7 @@ struct MetalBlackWindowContent: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(.black)
 
-            BlackWindowMetalEffectView()
+            BlackWindowMetalEffectView(isActive: (controlActiveState == .key) || !openPorts.isEmpty)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .opacity(isCompact ? 0.22 : 0.35)
 
@@ -1681,13 +1721,15 @@ struct SwiftTermContainerView: NSViewRepresentable {
 }
 
 struct BlackWindowMetalEffectView: NSViewRepresentable {
+    var isActive: Bool = true
+    
     func makeCoordinator() -> Renderer {
         Renderer()
     }
 
     func makeNSView(context: Context) -> MTKView {
         let view = MTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
-        view.isPaused = false
+        view.isPaused = !isActive
         view.enableSetNeedsDisplay = true
         view.preferredFramesPerSecond = 30
         view.sampleCount = 1
@@ -1699,7 +1741,9 @@ struct BlackWindowMetalEffectView: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: MTKView, context: Context) {}
+    func updateNSView(_ nsView: MTKView, context: Context) {
+        nsView.isPaused = !isActive
+    }
 
     final class Renderer: NSObject, MTKViewDelegate {
         private var commandQueue: MTLCommandQueue?

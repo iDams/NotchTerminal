@@ -72,9 +72,9 @@ struct NotchCapsuleView: View {
 
                                     Spacer(minLength: 0) // Flexible spacer to push items to center
                                 }
+                                .padding(.horizontal, 16) // Extra padding to keep items away from the fading edges
                                 // Force the internal HStack to fill the ScrollView so the Spacers work correctly
                                 .frame(minWidth: scrollGeo.size.width)
-                                .padding(.horizontal, 16) // Extra padding to keep items away from the fading edges
                                 .transaction { transaction in
                                     transaction.animation = nil
                                 }
@@ -104,28 +104,43 @@ struct NotchCapsuleView: View {
                         }
                     }
                     if model.hasPhysicalNotch {
-                        Spacer().frame(height: 20)
+                        Spacer().frame(height: 24)
                     } else {
-                        Spacer().frame(height: 26)
+                        Spacer().frame(height: 30)
                     }
                 }
                 .transition(.opacity)
             }
         }
         .mask(notchBackgroundMaskGroup)
+        .contentShape(RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous))
         .overlay {
             if !model.hasPhysicalNotch && model.fakeNotchGlowEnabled {
-                // The neon shader sweeping effect
-                NotchMetalEffectView(shader: "neonBorderFragment")
-                    .mask {
-                        RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                            .stroke(lineWidth: model.isExpanded ? 1.5 : 1.0)
-                    }
-                    .shadow(
-                        color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.65 : 0.45),
-                        radius: model.isExpanded ? 20 : 13
-                    )
-                    .allowsHitTesting(false)
+                ZStack {
+                    // 1. Massive Inner Glow (hacia adentro)
+                    // The blur creates a soft glow, but the clipShape perfectly chops off the outside
+                    // so it never hits the square bounding box bounds.
+                    NotchMetalEffectView(shader: "neonBorderFragment")
+                        .mask {
+                            RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                                .stroke(lineWidth: model.isExpanded ? 24 : 16)
+                                .blur(radius: model.isExpanded ? 12 : 8)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous))
+                        .opacity(0.85)
+
+                    // 2. The sharp neon boundary line with a gentle outward shadow
+                    NotchMetalEffectView(shader: "neonBorderFragment")
+                        .mask {
+                            RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                                .stroke(lineWidth: model.isExpanded ? 1.8 : 1.2)
+                        }
+                        .shadow(
+                            color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.9 : 0.7),
+                            radius: model.isExpanded ? 10 : 6
+                        )
+                }
+                .allowsHitTesting(false)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -215,7 +230,13 @@ struct NotchCapsuleView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .shadow(color: .black.opacity(0.12), radius: 3, y: 1.5)
+        .background {
+            // Draw the shadow on a decoupled background shape that expressly ignores mouse clicks.
+            // This prevents the 42px shadow bounds from stealing clicks from windows below the Notch.
+            notchBackgroundMaskGroup
+                .shadow(color: .black.opacity(0.12), radius: 3, y: 1.5)
+                .allowsHitTesting(false)
+        }
         .padding(shadowPadding)
         // Ensure the entire Notch expanding structure is anchored to the top of the NSPanel
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

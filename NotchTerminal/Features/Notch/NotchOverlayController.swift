@@ -274,10 +274,10 @@ final class NotchOverlayController {
 
         let visualSize: NSSize
         if isExpanded {
-            let minWidth: CGFloat = 540
-            let maxWidth: CGFloat = 800
+            let minWidth: CGFloat = 680
+            let maxWidth: CGFloat = 1100
             let targetWidth = min(max(contentWidth + (model.contentPadding * 2), minWidth), maxWidth)
-            visualSize = NSSize(width: targetWidth, height: 96)
+            visualSize = NSSize(width: targetWidth, height: 160)
         } else {
             visualSize = closedSize
         }
