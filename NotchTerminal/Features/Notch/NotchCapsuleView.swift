@@ -22,6 +22,7 @@ struct NotchCapsuleView: View {
     @State private var showExpandedControls = false
     @State private var controlsRevealWorkItem: DispatchWorkItem?
     @State private var hoveredChipID: UUID?
+    @State private var isHoveringPlus = false
     @AppStorage("showChipCloseButtonOnHover") private var showChipCloseButtonOnHover = true
     @AppStorage("confirmBeforeCloseAll") private var confirmBeforeCloseAll = true
 
@@ -65,7 +66,12 @@ struct NotchCapsuleView: View {
         ZStack {
             Rectangle()
                 .fill(Color(red: 0, green: 0, blue: 0))
-                .opacity(model.hasPhysicalNotch ? (model.isExpanded ? 1.0 : 0.0) : 1.0)
+                .opacity(
+                    model.hasPhysicalNotch 
+                        ? (model.isExpanded ? 1.0 : (model.isHoveringPreview ? 1.0 : 0.0))
+                        : 1.0
+                )
+                .animation(.easeInOut(duration: 0.2), value: model.isHoveringPreview)
             
             if model.auroraBackgroundEnabled && model.isExpanded {
                 NotchMetalEffectView()
@@ -80,7 +86,9 @@ struct NotchCapsuleView: View {
                         if model.availableScreens.count > 1 {
                             Button(action: {
                                 if model.activeScreenIndex > 0 {
-                                    model.activeScreenIndex -= 1
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                                        model.activeScreenIndex -= 1
+                                    }
                                 }
                             }) {
                                 Image(systemName: "chevron.left")
@@ -101,17 +109,23 @@ struct NotchCapsuleView: View {
                                     HStack(spacing: 8) {
                                         ForEach(model.visibleTerminalItems) { item in
                                             terminalItemButton(for: item)
+                                                .transition(.scale(scale: 0.8).combined(with: .opacity))
                                         }
 
                                         Button(action: openBlackWindow) {
                                             Image(systemName: "plus")
                                                 .font(.system(size: 14, weight: .bold))
-                                                .foregroundStyle(.white.opacity(0.7))
+                                                .foregroundStyle(.white.opacity(isHoveringPlus ? 1.0 : 0.7))
                                                 .frame(width: 28, height: 28)
-                                                .background(Color.white.opacity(0.1), in: Circle())
+                                                .background(Color.white.opacity(isHoveringPlus ? 0.25 : 0.1), in: Circle())
+                                                .scaleEffect(isHoveringPlus ? 1.1 : 1.0)
+                                                .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.6), value: isHoveringPlus)
                                         }
                                         .buttonStyle(.plain)
                                         .help("New Terminal")
+                                        .onHover { hovering in
+                                            isHoveringPlus = hovering
+                                        }
                                     }
                                     .padding(.vertical, 12)
                                     .background(GeometryReader { innerGeo in
@@ -145,7 +159,9 @@ struct NotchCapsuleView: View {
                         if model.availableScreens.count > 1 {
                             Button(action: {
                                 if model.activeScreenIndex < model.availableScreens.count - 1 {
-                                    model.activeScreenIndex += 1
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                                        model.activeScreenIndex += 1
+                                    }
                                 }
                             }) {
                                 Image(systemName: "chevron.right")
@@ -249,7 +265,7 @@ struct NotchCapsuleView: View {
                     }
                 }
                 .padding(.leading, 10)
-                .padding(.top, model.hasPhysicalNotch ? 10 : 4)
+                .padding(.top, model.hasPhysicalNotch ? 10 : (model.closedSize.height - 24) / 2)
                 .transition(.opacity)
             }
         }
@@ -274,7 +290,7 @@ struct NotchCapsuleView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 10)
-                .padding(.top, model.hasPhysicalNotch ? 10 : 4)
+                .padding(.top, model.hasPhysicalNotch ? 10 : (model.closedSize.height - 24) / 2)
                 .transition(.opacity)
             }
         }
@@ -531,7 +547,8 @@ struct NotchCapsuleView: View {
                 shoulderRadius: shoulderRadius,
                 overshoot: 6.0
             )
-                .foregroundStyle(Color(red: 0, green: 0, blue: 0))
+                .foregroundStyle(Color(red: 0, green: 0, blue: 0).opacity(model.isExpanded || model.isHoveringPreview ? 1.0 : 0.01))
+                .animation(.easeInOut(duration: 0.2), value: model.isHoveringPreview)
         } else {
             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
                 .foregroundStyle(Color(red: 0, green: 0, blue: 0))
