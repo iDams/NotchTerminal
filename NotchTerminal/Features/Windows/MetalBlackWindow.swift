@@ -126,9 +126,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
 
         let targetFrame = instance.expandedFrame
+        // Use the displayID saved at minimize time to find the correct notch position
         let startFrame: CGRect = {
-            let preferredTarget = closestDockTarget(for: targetFrame, in: instance)
-            guard let notchFrame = preferredTarget?.frame ?? notchFrame(for: instance.displayID, in: instance) else {
+            guard let notchFrame = notchFrame(for: instance.displayID, in: instance) else {
                 let size = CGSize(width: 54, height: 54)
                 let origin = CGPoint(x: targetFrame.midX - 27, y: targetFrame.maxY - size.height)
                 return CGRect(origin: origin, size: size)
@@ -140,7 +140,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             )
             return CGRect(origin: origin, size: size)
         }()
-        instance.panel.setFrame(startFrame, display: true)
+        instance.panel.setFrame(startFrame, display: false)
 
         instance.isAnimatingMinimize = true
         windows[id] = instance
@@ -624,8 +624,18 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         if let hostingView = instance.panel.contentView as? NSHostingView<MetalBlackWindowContent> {
             hostingView.rootView = root
         } else {
-            instance.panel.contentView = NSHostingView(rootView: root)
+            let hostingView = NSHostingView(rootView: root)
+            instance.panel.contentView = hostingView
         }
+        // Ensure the hosting view is fully transparent so the SwiftUI clipShape
+        // defines the visible edges — no opaque rectangle behind the rounded corners.
+        if let cv = instance.panel.contentView {
+            cv.wantsLayer = true
+            cv.layer?.backgroundColor = .clear
+            cv.layer?.cornerRadius = isCompact ? 18 : 22
+            cv.layer?.masksToBounds = true
+        }
+        instance.panel.invalidateShadow()
 
         if let panel = instance.panel as? InteractiveTerminalPanel {
             panel.onCommandPlus = { [weak self] in
@@ -1060,21 +1070,17 @@ struct MetalBlackWindowContent: View {
                                 commandSubmitted: commandSubmitted,
                                 directoryChanged: directoryChanged
                             )
-                            .frame(
-                                width: isAnimatingMinimize ? expandedFrameSize.width : nil,
-                                height: isAnimatingMinimize ? expandedFrameSize.height : nil,
-                                alignment: .top
-                            )
                             .modifier(CRTFilterModifier(enabled: enableCRTFilter))
                             .opacity(isAnimatingMinimize ? 0 : 1)
                             
                             if isAnimatingMinimize, let previewSnapshot {
-                                Image(nsImage: previewSnapshot)
-                                    .resizable()
-                                    .frame(
-                                        width: expandedFrameSize.width,
-                                        height: expandedFrameSize.height
-                                    )
+                                GeometryReader { geo in
+                                    Image(nsImage: previewSnapshot)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: geo.size.width, height: geo.size.height)
+                                        .clipped()
+                                }
                             }
                         }
                     }
@@ -1093,8 +1099,7 @@ struct MetalBlackWindowContent: View {
             .padding(10)
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .padding(8) // Provide a generous invisible grip area (approx 8pt)
-        .background(isAnimatingMinimize ? Color.clear : Color.black.opacity(0.001))
+        .background(Color.black.opacity(0.001))
         .animation(.spring(response: 0.22, dampingFraction: 0.85), value: isCompact)
     }
 

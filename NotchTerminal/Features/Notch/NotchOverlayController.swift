@@ -221,7 +221,7 @@ final class NotchOverlayController {
             let visualTargetWidth = min(max(model.contentWidth + (model.contentPadding * 2), 680), 1100)
             let currentWidth = model.isExpanded ? visualTargetWidth : collapsedNoNotchSize.width
             let currentHeight = model.isExpanded ? 160.0 : collapsedNoNotchSize.height
-            let topInset = model.hasPhysicalNotch ? notchTopInset : noNotchTopInset
+            let topInset = topInset(for: model, isExpanded: model.isExpanded)
             let activationPadding: CGFloat = model.isExpanded ? 10 : 20
             
             let accurateActivationRect = CGRect(
@@ -346,11 +346,8 @@ final class NotchOverlayController {
         
         let shoulderExtra: CGFloat = hasNotch ? (isExpanded ? 14 : 6) * 2 : 0
 
-        // Extend 2px up into the bezel when expanded to hide transparency gaps
-        let topOvershoot: CGFloat = (isExpanded && hasNotch) ? 2.0 : 0.0
-
-        let panelSize = NSSize(width: visualSize.width + shoulderExtra + (shadowPadding * 2), height: visualSize.height + topOvershoot + (shadowPadding * 2))
-        let topInset = hasNotch ? notchTopInset : noNotchTopInset
+        let panelSize = NSSize(width: visualSize.width + shoulderExtra + (shadowPadding * 2), height: visualSize.height + (shadowPadding * 2))
+        let topInset = topInset(for: model, isExpanded: isExpanded)
 
         let visualOrigin = CGPoint(
             x: screen.frame.midX - (visualSize.width + shoulderExtra) / 2.0,
@@ -392,6 +389,13 @@ final class NotchOverlayController {
         )
         // Keep fake-notch activation compact for non-notch displays.
         return virtual.insetBy(dx: -18, dy: -12)
+    }
+
+    private func topInset(for model: NotchViewModel, isExpanded: Bool) -> CGFloat {
+        if model.hasPhysicalNotch {
+            return notchTopInset
+        }
+        return noNotchTopInset
     }
 
     private func hardwareNotchRect(for screen: NSScreen) -> CGRect {

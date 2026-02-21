@@ -272,7 +272,7 @@ struct NotchCapsuleView: View {
         .padding(shadowPadding)
         // Ensure the entire Notch expanding structure is anchored to the top of the NSPanel
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: model.isExpanded)
+        .animation(expansionAnimation, value: model.isExpanded)
     }
 
     // MARK: - Subviews
@@ -398,13 +398,22 @@ struct NotchCapsuleView: View {
         model.hasPhysicalNotch ? (model.isExpanded ? 14 : 6) : 0
     }
 
+    private var expansionAnimation: Animation {
+        if model.hasPhysicalNotch {
+            // Real-notch displays: avoid spring bounce (down/up feel).
+            return .easeOut(duration: 0.18)
+        }
+        // Fake notch keeps the current spring personality.
+        return .spring(response: 0.35, dampingFraction: 0.82)
+    }
+
     @ViewBuilder
     private var notchBackgroundMaskGroup: some View {
         if model.hasPhysicalNotch {
             NotchShape(
                 cornerRadius: notchCornerRadius,
                 shoulderRadius: shoulderRadius,
-                overshoot: (model.isExpanded && model.hasPhysicalNotch) ? 2.0 : 0.0
+                overshoot: 0.0
             )
                 .foregroundStyle(Color(red: 0, green: 0, blue: 0))
         } else {
