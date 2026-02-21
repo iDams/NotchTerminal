@@ -529,8 +529,20 @@ final class NotchOverlayController {
             anchorScreen: screen(forDisplayID: displayID),
             notchTargetsProvider: { [weak self] in
                 guard let self else { return [] }
-                return self.panelsByDisplay.map { key, panel in
-                    MetalBlackWindowsManager.NotchTarget(displayID: key, frame: panel.frame)
+                return self.panelsByDisplay.compactMap { key, panel in
+                    guard let screen = self.screen(forDisplayID: key),
+                          let model = self.modelsByDisplay[key] else { return nil }
+                    
+                    let size = model.closedSize
+                    // Match top inset logic for unexpanded notch
+                    let topInset: CGFloat = model.hasPhysicalNotch ? self.notchTopInset : self.noNotchTopInset
+                    let origin = CGPoint(
+                        x: screen.frame.midX - size.width / 2.0,
+                        y: screen.frame.maxY - size.height - topInset
+                    )
+                    
+                    let closedFrame = CGRect(origin: origin, size: size)
+                    return MetalBlackWindowsManager.NotchTarget(displayID: key, frame: closedFrame)
                 }
             }
         )

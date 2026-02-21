@@ -164,12 +164,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.panel.alphaValue = 0.0
         instance.panel.makeKeyAndOrderFront(nil)
 
-        // Give the window server a tiny runloop tick to register the window at startFrame
-        // so that the animation to targetFrame is actually interpolated.
+        // Let WindowServer register the start frame first; otherwise restore can jump/freeze.
         DispatchQueue.main.async {
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.24
-                context.allowsImplicitAnimation = true
                 context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                 instance.panel.animator().setFrame(targetFrame, display: true)
                 instance.panel.animator().alphaValue = 1.0
@@ -179,16 +177,21 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
                     var updated = self.windows[id]
                     updated?.isAnimatingMinimize = false
                     updated?.isMinimized = false
+                    updated?.previewSnapshot = nil
                     if let safeUpdated = updated {
                         self.windows[id] = safeUpdated
                     }
-                    if let panel = self.windows[id]?.panel, let contentView = panel.contentView {
-                        self.refreshTerminalView(in: contentView)
-                    }
                     self.updateContent(for: id)
                     self.publishTerminalItems()
-                    
                     NSApp.activate(ignoringOtherApps: true)
+
+                    // Refresh terminal grid on next turn, after SwiftUI tree is restored.
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self,
+                              let panel = self.windows[id]?.panel,
+                              let contentView = panel.contentView else { return }
+                        self.refreshTerminalView(in: contentView)
+                    }
                 }
             }
         }
@@ -544,25 +547,22 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         windows[id] = instance
         updateContent(for: id)
 
-        DispatchQueue.main.async {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.20
-                context.allowsImplicitAnimation = true
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                instance.panel.animator().setFrame(targetFrame, display: true)
-                instance.panel.animator().alphaValue = 0.0
-            } completionHandler: { [weak self] in
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    var updated = self.windows[id]
-                    updated?.isAnimatingMinimize = false
-                    if let safeUpdated = updated {
-                        self.windows[id] = safeUpdated
-                        safeUpdated.panel.alphaValue = 1.0
-                        safeUpdated.panel.orderOut(nil)
-                    }
-                    self.updateContent(for: id)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.20
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            instance.panel.animator().setFrame(targetFrame, display: true)
+            instance.panel.animator().alphaValue = 0.0
+        } completionHandler: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                var updated = self.windows[id]
+                updated?.isAnimatingMinimize = false
+                if let safeUpdated = updated {
+                    self.windows[id] = safeUpdated
+                    safeUpdated.panel.alphaValue = 1.0
+                    safeUpdated.panel.orderOut(nil)
                 }
+                self.updateContent(for: id)
             }
         }
 
@@ -984,7 +984,7 @@ struct MetalBlackWindowContent: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(.black)
 
-            BlackWindowMetalEffectView(isActive: (controlActiveState == .key) || !openPorts.isEmpty)
+            BlackWindowMetalEffectView(isActive: ((controlActiveState == .key) || !openPorts.isEmpty) && !isAnimatingMinimize)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .opacity(isCompact ? 0.22 : 0.35)
 
@@ -1726,6 +1726,36 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     private var currentInputLine = ""
     private var isInLiveResize = false
 
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        guard modifiers == [.command], let key = event.charactersIgnoringModifiers?.lowercased() else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        switch key {
+        case "c":
+            copy(self)
+            return true
+        case "v":
+            paste(self)
+            return true
+        case "a":
+            selectAll(self)
+            return true
+        case "k":
+            clearBuffer(nil)
+            return true
+        case "f":
+            searchAction(nil)
+            return true
+        case "w":
+            closeTerminalSession(nil)
+            return true
+        default:
+            return super.performKeyEquivalent(with: event)
+        }
+    }
+
     override func send(source: TerminalView, data: ArraySlice<UInt8>) {
         super.send(source: source, data: data)
 
@@ -1814,23 +1844,47 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
 
     override func menu(for event: NSEvent) -> NSMenu? {
         let menu = NSMenu()
-        let copyItem = NSMenuItem(title: "Copy", action: #selector(copy(_:)), keyEquivalent: "")
+        menu.autoenablesItems = false
+        menu.allowsContextMenuPlugIns = false
+
+        let copyItem = NSMenuItem(title: "Copy", action: #selector(copy(_:)), keyEquivalent: "c")
+        copyItem.keyEquivalentModifierMask = [.command]
         copyItem.target = self
+        copyItem.isEnabled = true
         menu.addItem(copyItem)
 
-        let pasteItem = NSMenuItem(title: "Paste", action: #selector(paste(_:)), keyEquivalent: "")
+        let pasteItem = NSMenuItem(title: "Paste", action: #selector(paste(_:)), keyEquivalent: "v")
+        pasteItem.keyEquivalentModifierMask = [.command]
         pasteItem.target = self
+        pasteItem.isEnabled = true
         menu.addItem(pasteItem)
 
         menu.addItem(.separator())
-        let selectAllItem = NSMenuItem(title: "Select All", action: #selector(selectAll(_:)), keyEquivalent: "")
+        let selectAllItem = NSMenuItem(title: "Select All", action: #selector(selectAll(_:)), keyEquivalent: "a")
+        selectAllItem.keyEquivalentModifierMask = [.command]
         selectAllItem.target = self
+        selectAllItem.isEnabled = true
         menu.addItem(selectAllItem)
 
         menu.addItem(.separator())
-        let clearItem = NSMenuItem(title: "Clear Buffer", action: #selector(clearBuffer(_:)), keyEquivalent: "")
+        let clearItem = NSMenuItem(title: "Clear Buffer", action: #selector(clearBuffer(_:)), keyEquivalent: "k")
+        clearItem.keyEquivalentModifierMask = [.command]
         clearItem.target = self
+        clearItem.isEnabled = true
         menu.addItem(clearItem)
+
+        let searchItem = NSMenuItem(title: "Search", action: #selector(searchAction(_:)), keyEquivalent: "f")
+        searchItem.keyEquivalentModifierMask = [.command]
+        searchItem.target = self
+        searchItem.isEnabled = true
+        menu.addItem(searchItem)
+
+        menu.addItem(.separator())
+        let closeItem = NSMenuItem(title: "Close", action: #selector(closeTerminalSession(_:)), keyEquivalent: "w")
+        closeItem.keyEquivalentModifierMask = [.command]
+        closeItem.target = self
+        closeItem.isEnabled = true
+        menu.addItem(closeItem)
 
         return menu
     }
@@ -1838,6 +1892,18 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     @objc func clearBuffer(_ sender: Any?) {
         let clearCommand = Array("clear\n".utf8)
         send(source: self, data: clearCommand[...])
+        self.window?.makeFirstResponder(self)
+    }
+
+    @objc func closeTerminalSession(_ sender: Any?) {
+        let exitCommand = Array("exit\n".utf8)
+        send(source: self, data: exitCommand[...])
+        self.window?.makeFirstResponder(self)
+    }
+
+    @objc func searchAction(_ sender: Any?) {
+        let reverseSearch: [UInt8] = [0x12]
+        send(source: self, data: reverseSearch[...])
         self.window?.makeFirstResponder(self)
     }
 
