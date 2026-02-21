@@ -6,6 +6,7 @@ final class MetalEffectRenderer: NSObject, MTKViewDelegate {
     private var commandQueue: MTLCommandQueue?
     private var pipelineState: MTLRenderPipelineState?
     private var start = CACurrentMediaTime()
+    var auroraTheme: NotchViewModel.AuroraTheme = .classic
 
     init(fragmentFunctionName: String) {
         self.fragmentFunctionName = fragmentFunctionName
@@ -56,9 +57,55 @@ final class MetalEffectRenderer: NSObject, MTKViewDelegate {
         let time = Float(CACurrentMediaTime() - start)
         encoder.setRenderPipelineState(pipelineState)
         encoder.setFragmentBytes([time], length: MemoryLayout<Float>.size, index: 0)
+        
+        let colors = getAuroraColors(for: auroraTheme)
+        encoder.setFragmentBytes([colors], length: MemoryLayout<AuroraColors>.stride, index: 1)
+        
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         encoder.endEncoding()
         commandBuffer.present(drawable)
         commandBuffer.commit()
+    }
+    
+    // MARK: - Theme Colors
+    private struct AuroraColors {
+        var color1: SIMD3<Float>
+        var color2:SIMD3<Float>
+        var color3: SIMD3<Float>
+    }
+
+    private func getAuroraColors(for theme: NotchViewModel.AuroraTheme) -> AuroraColors {
+        switch theme {
+        case .classic:
+            return AuroraColors(
+                color1: SIMD3(0.15, 0.02, 0.40),
+                color2: SIMD3(0.00, 0.20, 0.50),
+                color3: SIMD3(0.00, 0.40, 0.50)
+            )
+        case .neon:
+            return AuroraColors(
+                color1: SIMD3(0.00, 0.50, 0.20),
+                color2: SIMD3(0.00, 0.45, 0.60),
+                color3: SIMD3(0.20, 0.80, 0.30)
+            )
+        case .sunset:
+            return AuroraColors(
+                color1: SIMD3(0.60, 0.10, 0.20),
+                color2: SIMD3(0.70, 0.30, 0.00),
+                color3: SIMD3(0.80, 0.15, 0.40)
+            )
+        case .crimson:
+            return AuroraColors(
+                color1: SIMD3(0.50, 0.00, 0.05),
+                color2: SIMD3(0.30, 0.00, 0.00),
+                color3: SIMD3(0.80, 0.05, 0.10)
+            )
+        case .matrix:
+            return AuroraColors(
+                color1: SIMD3(0.00, 0.20, 0.00),
+                color2: SIMD3(0.00, 0.40, 0.05),
+                color3: SIMD3(0.10, 0.80, 0.10)
+            )
+        }
     }
 }

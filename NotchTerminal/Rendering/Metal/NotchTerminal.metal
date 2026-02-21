@@ -13,6 +13,12 @@ struct VertexOut {
     float2 uv;
 };
 
+struct AuroraColors {
+    float3 color1;
+    float3 color2;
+    float3 color3;
+};
+
 vertex VertexOut notchVertex(uint vertexID [[vertex_id]]) {
     constexpr float2 positions[4] = {
         float2(-1.0, -1.0),
@@ -27,7 +33,9 @@ vertex VertexOut notchVertex(uint vertexID [[vertex_id]]) {
     return out;
 }
 
-fragment half4 notchFragment(VertexOut in [[stage_in]], constant float &time [[buffer(0)]]) {
+fragment half4 notchFragment(VertexOut in [[stage_in]], 
+                             constant float &time [[buffer(0)]],
+                             constant AuroraColors &colors [[buffer(1)]]) {
     float2 uv = in.uv;
     
     // Smooth, slow time
@@ -50,14 +58,9 @@ fragment half4 notchFragment(VertexOut in [[stage_in]], constant float &time [[b
     float verticalFade = smoothstep(0.98, 0.60, uv.y);
     glow *= verticalFade;
     
-    // Brighter, more saturated color palette
-    float3 color1 = float3(0.15, 0.02, 0.40); // Vibrant purple
-    float3 color2 = float3(0.00, 0.20, 0.50); // Deep rich blue
-    float3 color3 = float3(0.00, 0.40, 0.50); // Bright cyan
-    
-    // Mix colors
-    float3 color = mix(color1, color2, aurora);
-    color = mix(color, color3, wave3 * wave1);
+    // Mix colors dynamically from buffer
+    float3 color = mix(colors.color1, colors.color2, aurora);
+    color = mix(color, colors.color3, wave3 * wave1);
     
     color += 0.04 * sin((uv.x * 12.0) + (uv.y * 12.0) + (time * 1.5));
     

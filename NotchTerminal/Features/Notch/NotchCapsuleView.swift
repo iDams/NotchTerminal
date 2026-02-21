@@ -74,7 +74,7 @@ struct NotchCapsuleView: View {
                 .animation(.easeInOut(duration: 0.2), value: model.isHoveringPreview)
             
             if model.auroraBackgroundEnabled && model.isExpanded {
-                NotchMetalEffectView()
+                NotchMetalEffectView(theme: model.auroraTheme)
                     .opacity(0.85) // Allow some black to bleed through
                     .transition(.opacity)
             }

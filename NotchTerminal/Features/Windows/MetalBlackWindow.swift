@@ -78,13 +78,14 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     
     @AppStorage("terminalDefaultWidth") private var terminalDefaultWidth: Double = 640
     @AppStorage("terminalDefaultHeight") private var terminalDefaultHeight: Double = 400
-    @AppStorage("notchDockingSensitivity") private var notchDockingSensitivity: Double = 20
+    @AppStorage("notchDockingSensitivity") private var notchDockingSensitivity: Double = 80
 
     private var expandedSize: CGSize {
         CGSize(width: terminalDefaultWidth, height: terminalDefaultHeight)
     }
     private var windows: [UUID: WindowInstance] = [:]
     private var pendingDockTargets: [UUID: NotchTarget] = [:]
+    private var dockingPreviewOriginalFrames: [UUID: CGRect] = [:]
     private var closingWithoutTerminate = Set<UUID>()
     private var nextNumber: Int = 1
 
@@ -132,6 +133,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     func restoreWindow(id: UUID) {
         guard var instance = windows[id] else { return }
+        applyBaseLevel(for: instance)
         guard instance.isMinimized else {
             instance.panel.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -523,7 +525,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard var instance = windows[id] else { return }
         guard !instance.isMinimized else { return }
 
-        instance.expandedFrame = instance.panel.frame
+        let frameBeforeDockPreview = dockingPreviewOriginalFrames[id]
+        instance.expandedFrame = frameBeforeDockPreview ?? instance.panel.frame
         instance.previewSnapshot = capturePreview(from: instance.panel)
         let preferredTarget = closestDockTarget(for: instance.panel.frame, in: instance)
         if let preferredTarget {
@@ -546,6 +549,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.isAnimatingMinimize = true
         windows[id] = instance
         updateContent(for: id)
+        dockingPreviewOriginalFrames.removeValue(forKey: id)
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.20
@@ -771,12 +775,16 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
               let instance = windows[id],
               !instance.isMinimized else { return }
 
+        let isDraggingWithMouse = (NSEvent.pressedMouseButtons & 0x1) != 0
+
         let nearTarget = closestDockTarget(for: panel.frame, in: instance)
 
-        if let nearTarget {
+        if let nearTarget, isDraggingWithMouse {
             pendingDockTargets[id] = nearTarget
+            applyDockPreviewIfNeeded(id: id)
         } else {
             pendingDockTargets.removeValue(forKey: id)
+            restoreDockPreviewIfNeeded(id: id)
         }
 
         // Install a one-shot mouse-up monitor to detect end of drag.
@@ -824,7 +832,61 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
                 return
             }
         }
+        for id in Array(dockingPreviewOriginalFrames.keys) {
+            restoreDockPreviewIfNeeded(id: id)
+        }
         pendingDockTargets.removeAll()
+    }
+
+    private func applyDockPreviewIfNeeded(id: UUID) {
+        guard let instance = windows[id], !instance.isAnimatingMinimize else { return }
+        guard dockingPreviewOriginalFrames[id] == nil else { return }
+
+        let original = instance.panel.frame
+        dockingPreviewOriginalFrames[id] = original
+
+        // Keep dragged terminal above notch overlay while it is in dock preview range.
+        instance.panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 1)
+        instance.panel.orderFrontRegardless()
+
+        // Temporary visual shrink while the dragged window is in notch dock range.
+        // This is only a preview and is restored if the drop is canceled.
+        let width = max(300, original.width * 0.74)
+        let height = max(190, original.height * 0.74)
+        let previewSize = CGSize(width: width, height: height)
+        let previewOrigin = CGPoint(
+            x: original.midX - (previewSize.width / 2),
+            y: original.maxY - previewSize.height
+        )
+        let previewFrame = CGRect(origin: previewOrigin, size: previewSize)
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.12
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            instance.panel.animator().setFrame(previewFrame, display: true)
+        }
+    }
+
+    private func restoreDockPreviewIfNeeded(id: UUID) {
+        guard let originalFrame = dockingPreviewOriginalFrames.removeValue(forKey: id),
+              let instance = windows[id],
+              !instance.isAnimatingMinimize,
+              !instance.isMinimized else { return }
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.12
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            instance.panel.animator().setFrame(originalFrame, display: true)
+        }
+        applyBaseLevel(for: instance)
+    }
+
+    private func applyBaseLevel(for instance: WindowInstance) {
+        if instance.isAlwaysOnTop {
+            instance.panel.level = .floating
+        } else {
+            instance.panel.level = .normal
+        }
     }
 
     private func refreshTerminalView(in view: NSView) {

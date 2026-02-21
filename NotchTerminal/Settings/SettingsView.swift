@@ -29,25 +29,25 @@ struct SettingsView: View {
             GeneralSettingsView()
                 .tag(SettingsTab.general)
                 .tabItem {
-                    Label("General", systemImage: "gear")
+                    Label("settings.general".localized, systemImage: "gear")
                 }
 
             AppearanceSettingsView()
                 .tag(SettingsTab.appearance)
                 .tabItem {
-                    Label("Appearance", systemImage: "paintpalette")
+                    Label("settings.appearance".localized, systemImage: "paintpalette")
                 }
 
             AboutSettingsView()
                 .tag(SettingsTab.about)
                 .tabItem {
-                    Label("About", systemImage: "info.circle")
+                    Label("settings.about".localized, systemImage: "info.circle")
                 }
 
             ExperimentalSettingsView()
                 .tag(SettingsTab.experimental)
                 .tabItem {
-                    Label("Experimental", systemImage: "flask")
+                    Label("settings.experimental".localized, systemImage: "flask")
                 }
         }
         .frame(
@@ -98,27 +98,69 @@ struct GeneralSettingsView: View {
     @AppStorage("showChipCloseButtonOnHover") var showChipCloseButtonOnHover: Bool = true
     @AppStorage("confirmBeforeCloseAll") var confirmBeforeCloseAll: Bool = true
     @AppStorage("closeActionMode") var closeActionMode: String = CloseActionDisplayMode.terminateProcessAndClose.rawValue
+    
+    @State private var languageManager = LanguageManager.shared
+    @State private var selectedLanguage: String = LanguageManager.shared.currentLanguage
+    @State private var useSystemLanguage: Bool = !LanguageManager.shared.userHasSelectedLanguage
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "System",
-                        subtitle: "Core behavior and app visibility options.",
+                        title: "settings.language".localized,
+                        subtitle: "settings.language.subtitle".localized,
+                        icon: "globe"
+                    )
+
+                    Toggle(isOn: $useSystemLanguage) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("settings.language.system".localized)
+                                .font(.body.weight(.medium))
+                            Text("settings.language.system.subtitle".localized)
+                                .font(.footnote)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .onChange(of: useSystemLanguage) { _, newValue in
+                        if newValue {
+                            languageManager.resetToSystemLanguage()
+                            selectedLanguage = languageManager.currentLanguage
+                        }
+                    }
+                    .padding(.vertical, 2)
+
+                    if !useSystemLanguage {
+                        Picker("settings.language".localized, selection: $selectedLanguage) {
+                            ForEach(languageManager.availableLanguages, id: \.code) { language in
+                                Text(language.name).tag(language.code)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 210)
+                        .onChange(of: selectedLanguage) { _, newValue in
+                            languageManager.setLanguage(newValue)
+                        }
+                    }
+                }
+
+                ZenithSettingsSection(contentSpacing: 12) {
+                    ZenithSectionHeading(
+                        title: "settings.system".localized,
+                        subtitle: "settings.system.subtitle".localized,
                         icon: "macwindow"
                     )
 
                     ZenithPreferenceToggleRow(
-                        title: "Enable haptic feedback",
-                        subtitle: "Use haptics when interactions occur in the notch.",
+                        title: "settings.hapticFeedback".localized,
+                        subtitle: "settings.hapticFeedback.subtitle".localized,
                         icon: "waveform.path",
                         binding: $hapticFeedback
                     )
 
                     ZenithPreferenceToggleRow(
-                        title: "Show Dock icon",
-                        subtitle: "Display the app icon in the Dock using the configured AppIcon asset.",
+                        title: "settings.showDockIcon".localized,
+                        subtitle: "settings.showDockIcon.subtitle".localized,
                         icon: "dock.rectangle",
                         binding: $showDockIcon
                     )
@@ -126,21 +168,21 @@ struct GeneralSettingsView: View {
 
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "Automation",
-                        subtitle: "Controls how and when the notch opens and closes.",
+                        title: "settings.automation".localized,
+                        subtitle: "settings.automation.subtitle".localized,
                         icon: "cursorarrow.motionlines"
                     )
 
                     ZenithPreferenceToggleRow(
-                        title: "Open notch on hover",
-                        subtitle: "Automatically expands the notch when the cursor reaches it.",
+                        title: "settings.autoOpenOnHover".localized,
+                        subtitle: "settings.autoOpenOnHover.subtitle".localized,
                         icon: "cursorarrow.rays",
                         binding: $autoOpenOnHover
                     )
 
                     ZenithPreferenceToggleRow(
-                        title: "Keep open while typing",
-                        subtitle: "Avoid auto-close while you are actively typing.",
+                        title: "settings.lockWhileTyping".localized,
+                        subtitle: "settings.lockWhileTyping.subtitle".localized,
                         icon: "keyboard",
                         binding: $lockWhileTyping
                     )
@@ -148,21 +190,21 @@ struct GeneralSettingsView: View {
 
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "Terminal Actions",
-                        subtitle: "Bulk actions, safety checks, and per-chip behavior.",
+                        title: "settings.terminalActions".localized,
+                        subtitle: "settings.terminalActions.subtitle".localized,
                         icon: "slider.horizontal.3"
                     )
 
                     ZenithPreferenceToggleRow(
-                        title: "Show close button on chip hover",
-                        subtitle: "Display a small close button when hovering a terminal chip.",
+                        title: "settings.showChipCloseButton".localized,
+                        subtitle: "settings.showChipCloseButton.subtitle".localized,
                         icon: "xmark.circle",
                         binding: $showChipCloseButtonOnHover
                     )
 
                     ZenithPreferenceToggleRow(
-                        title: "Confirm before Close All",
-                        subtitle: "Ask for confirmation before closing every terminal window.",
+                        title: "settings.confirmBeforeCloseAll".localized,
+                        subtitle: "settings.confirmBeforeCloseAll.subtitle".localized,
                         icon: "exclamationmark.triangle",
                         binding: $confirmBeforeCloseAll
                     )
@@ -174,18 +216,18 @@ struct GeneralSettingsView: View {
                             .foregroundStyle(.secondary)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Close action mode")
+                            Text("settings.closeActionMode".localized)
                                 .font(.body.weight(.medium))
-                            Text("Defines what Close does in chip/context/bulk actions.")
+                            Text("settings.closeActionMode.subtitle".localized)
                                 .font(.footnote)
                                 .foregroundStyle(.tertiary)
                         }
 
                         Spacer(minLength: 8)
 
-                        Picker("Close action mode", selection: $closeActionMode) {
+                        Picker("settings.closeActionMode".localized, selection: $closeActionMode) {
                             ForEach(CloseActionDisplayMode.allCases) { mode in
-                                Text(mode.title).tag(mode.rawValue)
+                                Text(mode.title.localized).tag(mode.rawValue)
                             }
                         }
                         .pickerStyle(.menu)
@@ -223,14 +265,14 @@ struct AppearanceSettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "Geometry",
-                        subtitle: "Fine-tune notch layout and spacing.",
+                        title: "settings.appearance.geometry".localized,
+                        subtitle: "settings.appearance.geometry.subtitle".localized,
                         icon: "aspectratio"
                     )
 
                     ZenithSliderPreferenceRow(
-                        title: "Content padding",
-                        subtitle: "Spacing between terminal content and notch edges.",
+                        title: "settings.contentPadding".localized,
+                        subtitle: "settings.contentPadding.subtitle".localized,
                         icon: "arrow.up.left.and.arrow.down.right",
                         value: $contentPadding,
                         range: 0 ... 40,
@@ -239,8 +281,8 @@ struct AppearanceSettingsView: View {
                     )
 
                     ZenithSliderPreferenceRow(
-                        title: "Notch width fine-tune",
-                        subtitle: "Adjust horizontal notch size offset.",
+                        title: "settings.notchWidthOffset".localized,
+                        subtitle: "settings.notchWidthOffset.subtitle".localized,
                         icon: "arrow.left.and.right",
                         value: $notchWidthOffset,
                         range: -80 ... 80,
@@ -249,8 +291,8 @@ struct AppearanceSettingsView: View {
                     )
 
                     ZenithSliderPreferenceRow(
-                        title: "Notch height fine-tune",
-                        subtitle: "Adjust vertical notch size offset.",
+                        title: "settings.notchHeightOffset".localized,
+                        subtitle: "settings.notchHeightOffset.subtitle".localized,
                         icon: "arrow.up.and.down",
                         value: $notchHeightOffset,
                         range: -48 ... 48,
@@ -261,14 +303,14 @@ struct AppearanceSettingsView: View {
 
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "Terminal Window Defaults",
-                        subtitle: "Size parameters for new terminal sessions.",
+                        title: "settings.appearance.terminalDefaults".localized,
+                        subtitle: "settings.appearance.terminalDefaults.subtitle".localized,
                         icon: "macwindow.on.rectangle"
                     )
 
                     ZenithSliderPreferenceRow(
-                        title: "Default width",
-                        subtitle: "Horizontal size in points.",
+                        title: "settings.terminalDefaultWidth".localized,
+                        subtitle: "settings.terminalDefaultWidth.subtitle".localized,
                         icon: "arrow.left.and.right",
                         value: $terminalDefaultWidth,
                         range: 400 ... 1600,
@@ -277,8 +319,8 @@ struct AppearanceSettingsView: View {
                     )
 
                     ZenithSliderPreferenceRow(
-                        title: "Default height",
-                        subtitle: "Vertical size in points.",
+                        title: "settings.terminalDefaultHeight".localized,
+                        subtitle: "settings.terminalDefaultHeight.subtitle".localized,
                         icon: "arrow.up.and.down",
                         value: $terminalDefaultHeight,
                         range: 200 ... 1000,
@@ -289,14 +331,14 @@ struct AppearanceSettingsView: View {
 
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "Docking Sensitivity",
-                        subtitle: "How close a window needs to be to snap into the notch.",
+                        title: "settings.appearance.docking".localized,
+                        subtitle: "settings.appearance.docking.subtitle".localized,
                         icon: "magnet"
                     )
 
                     ZenithSliderPreferenceRow(
-                        title: "Detection radius",
-                        subtitle: "Larger means earlier detection, smaller requires getting closer.",
+                        title: "settings.notchDockingSensitivity".localized,
+                        subtitle: "settings.notchDockingSensitivity.subtitle".localized,
                         icon: "record.circle",
                         value: $notchDockingSensitivity,
                         range: 0 ... 100,
@@ -307,22 +349,22 @@ struct AppearanceSettingsView: View {
 
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "Compact Ticker",
-                        subtitle: "Provider status in closed-notch mode.",
+                        title: "settings.appearance.compactTicker".localized,
+                        subtitle: "settings.appearance.compactTicker.subtitle".localized,
                         icon: "rectangle.compress.vertical"
                     )
 
                     ZenithPreferenceToggleRow(
-                        title: "Show compact provider ticker",
-                        subtitle: "When the notch is closed, rotate provider status in a compact row.",
+                        title: "settings.compactTickerEnabled".localized,
+                        subtitle: "settings.compactTickerEnabled.subtitle".localized,
                         icon: "text.line.first.and.arrowtriangle.forward",
                         binding: $compactTickerEnabled
                     )
 
                     if compactTickerEnabled {
                         ZenithSliderPreferenceRow(
-                            title: "Rotation interval",
-                            subtitle: "How often the provider preview changes.",
+                            title: "settings.compactTickerInterval".localized,
+                            subtitle: "settings.compactTickerInterval.subtitle".localized,
                             icon: "timer",
                             value: $compactTickerInterval,
                             range: 4 ... 20,
@@ -331,8 +373,8 @@ struct AppearanceSettingsView: View {
                         )
 
                         ZenithSliderPreferenceRow(
-                            title: "Closed notch extra width",
-                            subtitle: "Extra width available in compact mode.",
+                            title: "settings.compactTickerClosedExtraWidth".localized,
+                            subtitle: "settings.compactTickerClosedExtraWidth.subtitle".localized,
                             icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
                             value: $compactTickerClosedExtraWidth,
                             range: 0 ... 260,
@@ -836,18 +878,19 @@ struct ExperimentalSettingsView: View {
     @AppStorage("enableCRTFilter") var enableCRTFilter: Bool = false
     @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
     @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
+    @AppStorage("auroraTheme") var auroraTheme: NotchViewModel.AuroraTheme = .classic
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "Experimental Effects",
-                        subtitle: "Optional visuals that may vary by screen/GPU.",
+                        title: "settings.experimental.effects".localized,
+                        subtitle: "settings.experimental.effects.subtitle".localized,
                         icon: "sparkles"
                     )
                     
-                    Text("These visual effects are highly experimental and cost battery life.")
+                    Text("settings.experimental.warning".localized)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
 
@@ -873,8 +916,8 @@ struct ExperimentalSettingsView: View {
 
                     if hasAnyNoNotch {
                         ZenithPreferenceToggleRow(
-                            title: "Fake Notch Glow",
-                            subtitle: "Neon purple glow effect for simulated notches.",
+                            title: "settings.fakeNotchGlow".localized,
+                            subtitle: "settings.fakeNotchGlow.subtitle".localized,
                             icon: "sun.max.trianglebadge.exclamationmark",
                             binding: $fakeNotchGlowEnabled
                         )
@@ -882,16 +925,26 @@ struct ExperimentalSettingsView: View {
 
                     if hasAnyNotch {
                         ZenithPreferenceToggleRow(
-                            title: "Aurora Background",
-                            subtitle: "Animated Metal shader behind the terminal contents.",
-                            icon: "wave.3.right.circle",
+                            title: "settings.auroraBackground".localized,
+                            subtitle: "settings.auroraBackground.subtitle".localized,
+                            icon: "waveform.circle",
                             binding: $auroraBackgroundEnabled
                         )
+                    
+                        if auroraBackgroundEnabled {
+                            Picker("Aurora Theme", selection: $auroraTheme) {
+                                ForEach(NotchViewModel.AuroraTheme.allCases) { theme in
+                                    Text(theme.localizedName).tag(theme)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .padding(.leading, 32) // Indent to show it's a sub-setting
+                        }
                     }
                     
                     ZenithPreferenceToggleRow(
-                        title: "CRT Monitor Filter",
-                        subtitle: "Adds curvature, scanlines, and static noise to emulate old hardware.",
+                        title: "settings.crtFilter".localized,
+                        subtitle: "settings.crtFilter.subtitle".localized,
                         icon: "tv",
                         binding: $enableCRTFilter
                     )

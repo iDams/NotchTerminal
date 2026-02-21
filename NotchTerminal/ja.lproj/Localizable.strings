@@ -1,0 +1,117 @@
+/* General */
+"app.name" = "NotchTerminal";
+"app.tagline" = "ノッチに住むターミナルエミュレーター。";
+
+/* Settings - General */
+"settings.general" = "一般";
+"settings.appearance" = "外観";
+"settings.about" = "情報";
+"settings.experimental" = "実験的";
+
+/* Settings - System */
+"settings.system" = "システム";
+"settings.system.subtitle" = "コア動作とアプリの表示オプション。";
+"settings.hapticFeedback" = "触覚フィードバックを有効にする";
+"settings.hapticFeedback.subtitle" = "ノッチでのインタラクション時に触覚を使用します。";
+"settings.showDockIcon" = "Dockアイコンを表示";
+"settings.showDockIcon.subtitle" = "AppIconアセットを使用してDockにアプリアイコンを表示します。";
+
+/* Settings - Automation */
+"settings.automation" = "自動化";
+"settings.automation.subtitle" = "ノッチが開閉するタイミングと方法を制御します。";
+"settings.autoOpenOnHover" = "ホバー時にノッチを開く";
+"settings.autoOpenOnHover.subtitle" = "カーソルが到達すると自動的にノッチを展開します。";
+"settings.lockWhileTyping" = "入力中に開いたままにする";
+"settings.lockWhileTyping.subtitle" = "入力中に自動的に閉じることを防ぎます。";
+
+/* Settings - Terminal Actions */
+"settings.terminalActions" = "ターミナルアクション";
+"settings.terminalActions.subtitle" = "一括アクション、安全チェック、チップごとの動作。";
+"settings.showChipCloseButton" = "チップホバー時に閉じるボタンを表示";
+"settings.showChipCloseButton.subtitle" = "ターミナルチップをホバーときに小さい閉じるボタンを表示します。";
+"settings.confirmBeforeCloseAll" = "すべて閉じる前に確認";
+"settings.confirmBeforeCloseAll.subtitle" = "すべてのターミナルウィンドウを閉じる前に確認を求めます。";
+"settings.closeActionMode" = "閉じるアクションのモード";
+"settings.closeActionMode.subtitle" = "チップ/コンテキスト/一括アクションで閉じるを実行した時の動作を定義します。";
+"settings.closeActionMode.closeWindow" = "ウィンドウのみ閉じる";
+"settings.closeActionMode.terminateProcess" = "プロセスを終了して閉じる";
+
+/* Settings - Appearance */
+"settings.appearance.geometry" = "ジオメトリ";
+"settings.appearance.geometry.subtitle" = "ノッチのレイアウトとスペーシングを微調整します。";
+"settings.contentPadding" = "コンテンツパディング";
+"settings.contentPadding.subtitle" = "ターミナルコンテンツとノッチ端の間の間隔。";
+"settings.notchWidthOffset" = "ノッチ幅の微調整";
+"settings.notchWidthOffset.subtitle" = "ノッチサイズの水平オフセットを調整します。";
+"settings.notchHeightOffset" = "ノッチ高さの微調整";
+"settings.notchHeightOffset.subtitle" = "ノッチサイズの垂直オフセットを調整します。";
+
+"settings.appearance.terminalDefaults" = "ターミナルウィンドウのデフォルト";
+"settings.appearance.terminalDefaults.subtitle" = "新しいターミナルセッションのサイズパラメータ。";
+"settings.terminalDefaultWidth" = "デフォルト幅";
+"settings.terminalDefaultWidth.subtitle" = "水平サイズ（ポイント）。";
+"settings.terminalDefaultHeight" = "デフォルト高さ";
+"settings.terminalDefaultHeight.subtitle" = "垂直サイズ（ポイント）。";
+
+"settings.appearance.docking" = "停泊感度";
+"settings.appearance.docking.subtitle" = "ウィンドウがノッチにスナップするために必要な近さ。";
+"settings.notchDockingSensitivity" = "検出半径";
+"settings.notchDockingSensitivity.subtitle" = "大きいほど早期検出、小さいほど近づく必要があります。";
+
+"settings.appearance.compactTicker" = "コンパクトティッカー";
+"settings.appearance.compactTicker.subtitle" = "ノッチ閉じた状態でのプロバイダー状態。";
+"settings.compactTickerEnabled" = "コンパクトプロバイダーティッカーを表示";
+"settings.compactTickerEnabled.subtitle" = "ノッチが閉じているとき、プロバイダー状態コンパクトな行でローテーションします。";
+"settings.compactTickerInterval" = "ローテーション間隔";
+"settings.compactTickerInterval.subtitle" = "プロバイダープレビューが変化する頻度。";
+"settings.compactTickerClosedExtraWidth" = "閉じたノッチの追加幅";
+"settings.compactTickerClosedExtraWidth.subtitle" = "コンパクトモードで利用可能な追加幅。";
+
+/* Settings - Experimental */
+"settings.experimental.effects" = "実験的エフェクト";
+"settings.experimental.effects.subtitle" = "画面/GPUによって異なる場合があります。";
+"settings.experimental.warning" = "これらの視覚エフェクトはバッテリーを消費します。";
+"settings.fakeNotchGlow" = "フェイクノッチグロー";
+"settings.fakeNotchGlow.subtitle" = "シミュレートされたノッチのネオン紫グローエフェクト。";
+"settings.auroraBackground" = "オーロラ背景";
+"settings.auroraBackground.subtitle" = "ターミナルコンテンツの後ろにアニメーション付きMetalシェーダー。";
+"settings.crtFilter" = "CRTモニターフィルター";
+"settings.crtFilter.subtitle" = "曲線、スキャンライン、静電ノイズを追加して古いハードウェアをエミュレートします。";
+
+/* Settings - Language */
+"settings.language" = "言語";
+"settings.language.subtitle" = "お好みの言語を選択してください。";
+"settings.language.system" = "システムデフォルト";
+"settings.language.system.subtitle" = "システムの言語設定を使用します。";
+
+/* Settings - About */
+"settings.about.title" = "NotchTerminal";
+"settings.about.version" = "バージョン 1.0.0";
+"settings.about.checkUpdates" = "アップデートを確認";
+"settings.about.checkUpdates.subtitle" = "新しいバージョンを確認します";
+"settings.about.releaseNotes" = "リリースノート";
+"settings.about.releaseNotes.subtitle" = "変更点を見る";
+"settings.about.website" = "プロジェクトウェブサイト";
+"settings.about.website.subtitle" = "リポジトリとドキュメント";
+"settings.about.donate" = "コーヒーを奢る";
+"settings.about.donate.subtitle" = "開発をサポート";
+"settings.about.thirdParty" = "サードパーティの情報を表示";
+"settings.about.copyright" = "© 2026 Marco Astorga González. 全著作権所有。オープンソースとして公開。";
+
+/* Actions */
+"action.restore" = "復元";
+"action.minimize" = "最小化";
+"action.close" = "閉じる";
+"action.closeAll" = "すべて閉じる";
+"action.restoreAll" = "すべて復元";
+"action.minimizeAll" = "すべて最小化";
+"action.moveToThisDisplay" = "このディスプレイに移動";
+"action.alwaysOnTop" = "常に最前面";
+"action.disableAlwaysOnTop" = "常に最前面を無効";
+"action.reorganize" = "ターミナルを再編";
+"action.settings" = "設定";
+"action.newTerminal" = "新しいターミナル";
+
+/* Misc */
+"menu.bulkActions" = "一括アクション";
+"menu.closeAllOnThisDisplay" = "このディスプレイですべて閉じる";

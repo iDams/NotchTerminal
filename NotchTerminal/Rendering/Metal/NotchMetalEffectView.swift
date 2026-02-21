@@ -2,9 +2,12 @@ import SwiftUI
 import MetalKit
 struct NotchMetalEffectView: NSViewRepresentable {
     var shader: String = "notchFragment"
+    var theme: NotchViewModel.AuroraTheme = .classic
 
     func makeCoordinator() -> MetalEffectRenderer {
-        MetalEffectRenderer(fragmentFunctionName: shader)
+        let renderer = MetalEffectRenderer(fragmentFunctionName: shader)
+        renderer.auroraTheme = theme
+        return renderer
     }
 
     func makeNSView(context: Context) -> MTKView {
@@ -21,7 +24,9 @@ struct NotchMetalEffectView: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: MTKView, context: Context) {}
+    func updateNSView(_ nsView: MTKView, context: Context) {
+        context.coordinator.auroraTheme = theme
+    }
 }
 
 /// A reusable modifier that applies a complex, multi-layered blurred mask to a View

@@ -44,6 +44,21 @@ final class NotchViewModel: ObservableObject {
     @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
     @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
     @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
+    @AppStorage("auroraTheme") var auroraTheme: AuroraTheme = .classic
+
+    enum AuroraTheme: String, CaseIterable, Identifiable {
+        case classic, neon, sunset, crimson, matrix
+        var id: String { rawValue }
+        var localizedName: String {
+            switch self {
+            case .classic: return "Classic (Purple & Blue)"
+            case .neon: return "Neon (Cyan & Green)"
+            case .sunset: return "Sunset (Orange & Pink)"
+            case .crimson: return "Crimson (Red & Dark Red)"
+            case .matrix: return "Matrix (Black & Emerald)"
+            }
+        }
+    }
 
     // Usage
     @AppStorage("hapticFeedback") var hapticFeedback: Bool = true

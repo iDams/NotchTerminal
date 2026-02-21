@@ -1,0 +1,117 @@
+/* General */
+"app.name" = "NotchTerminal";
+"app.tagline" = "Un émulateur de terminal qui vit dans votre notch.";
+
+/* Settings - General */
+"settings.general" = "Général";
+"settings.appearance" = "Apparence";
+"settings.about" = "À propos";
+"settings.experimental" = "Expérimental";
+
+/* Settings - System */
+"settings.system" = "Système";
+"settings.system.subtitle" = "Comportement principal et options de visibilité de l'application.";
+"settings.hapticFeedback" = "Activer le retour haptique";
+"settings.hapticFeedback.subtitle" = "Utilise le retour haptique lors des interactions dans le notch.";
+"settings.showDockIcon" = "Afficher l'icône dans le Dock";
+"settings.showDockIcon.subtitle" = "Affiche l'icône de l'application dans le Dock en utilisant l'asset AppIcon.";
+
+/* Settings - Automation */
+"settings.automation" = "Automatisation";
+"settings.automation.subtitle" = "Contrôle comment et quand le notch s'ouvre et se ferme.";
+"settings.autoOpenOnHover" = "Ouvrir le notch au survol";
+"settings.autoOpenOnHover.subtitle" = "Développe automatiquement le notch lorsque le curseur l'atteint.";
+"settings.lockWhileTyping" = "Garder ouvert pendant la saisie";
+"settings.lockWhileTyping.subtitle" = "Évite la fermeture automatique pendant que vous tapez activement.";
+
+/* Settings - Terminal Actions */
+"settings.terminalActions" = "Actions du terminal";
+"settings.terminalActions.subtitle" = "Actions groupées, vérifications de sécurité et comportement par puce.";
+"settings.showChipCloseButton" = "Afficher le bouton fermer au survol de la puce";
+"settings.showChipCloseButton.subtitle" = "Affiche un petit bouton fermer lors du survol d'une puce.";
+"settings.confirmBeforeCloseAll" = "Confirmer avant Tout fermer";
+"settings.confirmBeforeCloseAll.subtitle" = "Demande confirmation avant de fermer toutes les fenêtres de terminal.";
+"settings.closeActionMode" = "Mode d'action Fermer";
+"settings.closeActionMode.subtitle" = "Définit ce que fait Fermer dans les actions puce/contexte/groupées.";
+"settings.closeActionMode.closeWindow" = "Fermer uniquement la fenêtre";
+"settings.closeActionMode.terminateProcess" = "Terminer le processus et fermer";
+
+/* Settings - Appearance */
+"settings.appearance.geometry" = "Géométrie";
+"settings.appearance.geometry.subtitle" = "Ajustez finement la disposition et l'espacement du notch.";
+"settings.contentPadding" = "Remplissage du contenu";
+"settings.contentPadding.subtitle" = "Espacement entre le contenu du terminal et les bords du notch.";
+"settings.notchWidthOffset" = "Ajustement fin de la largeur du notch";
+"settings.notchWidthOffset.subtitle" = "Ajuste le décalage horizontal de la taille du notch.";
+"settings.notchHeightOffset" = "Ajustement fin de la hauteur du notch";
+"settings.notchHeightOffset.subtitle" = "Ajuste le décalage vertical de la taille du notch.";
+
+"settings.appearance.terminalDefaults" = "Valeurs par défaut de la fenêtre terminal";
+"settings.appearance.terminalDefaults.subtitle" = "Paramètres de taille pour les nouvelles sessions de terminal.";
+"settings.terminalDefaultWidth" = "Largeur par défaut";
+"settings.terminalDefaultWidth.subtitle" = "Taille horizontale en points.";
+"settings.terminalDefaultHeight" = "Hauteur par défaut";
+"settings.terminalDefaultHeight.subtitle" = "Taille verticale en points.";
+
+"settings.appearance.docking" = "Sensibilité d'ancrage";
+"settings.appearance.docking.subtitle" = "À quelle distance une fenêtre doit être pour s'ancrer dans le notch.";
+"settings.notchDockingSensitivity" = "Rayon de détection";
+"settings.notchDockingSensitivity.subtitle" = "Plus grand signifie détection plus précoce, plus petit nécessite d'être plus proche.";
+
+"settings.appearance.compactTicker" = "Ticker compact";
+"settings.appearance.compactTicker.subtitle" = "État du fournisseur en mode notch fermé.";
+"settings.compactTickerEnabled" = "Afficher le ticker de fournisseur compact";
+"settings.compactTickerEnabled.subtitle" = "Lorsque le notch est fermé, fait défiler l'état du fournisseur dans une rangée compacte.";
+"settings.compactTickerInterval" = "Intervalle de rotation";
+"settings.compactTickerInterval.subtitle" = "À quelle fréquence l'aperçu du fournisseur change.";
+"settings.compactTickerClosedExtraWidth" = "Largeur supplémentaire notch fermé";
+"settings.compactTickerClosedExtraWidth.subtitle" = "Largeur supplémentaire disponible en mode compact.";
+
+/* Settings - Experimental */
+"settings.experimental.effects" = "Effets expérimentaux";
+"settings.experimental.effects.subtitle" = "Visuels optionnels qui peuvent varier selon l'écran/GPU.";
+"settings.experimental.warning" = "Ces effets visuels sont hautement expérimentaux et consomment de la batterie.";
+"settings.fakeNotchGlow" = "Lueur de notch simulé";
+"settings.fakeNotchGlow.subtitle" = "Effet de lueur néon violet pour les notches simulés.";
+"settings.auroraBackground" = "Fond Aurore";
+"settings.auroraBackground.subtitle" = "Shader Metal animé derrière le contenu du terminal.";
+"settings.crtFilter" = "Filtre écran CRT";
+"settings.crtFilter.subtitle" = "Ajoute courbure, scanlines et bruit statique pour imiter le ancien matériel.";
+
+/* Settings - Language */
+"settings.language" = "Langue";
+"settings.language.subtitle" = "Choisissez votre langue préférée.";
+"settings.language.system" = "Par défaut du système";
+"settings.language.system.subtitle" = "Utilise la langue configurée sur votre système.";
+
+/* Settings - About */
+"settings.about.title" = "NotchTerminal";
+"settings.about.version" = "Version 1.0.0";
+"settings.about.checkUpdates" = "Vérifier les mises à jour";
+"settings.about.checkUpdates.subtitle" = "Recherche des versions plus récentes";
+"settings.about.releaseNotes" = "Notes de version";
+"settings.about.releaseNotes.subtitle" = "Voir ce qui a changé";
+"settings.about.website" = "Site web du projet";
+"settings.about.website.subtitle" = "Dépôt et documentation";
+"settings.about.donate" = "M'offrir un café";
+"settings.about.donate.subtitle" = "Soutenir le développement";
+"settings.about.thirdParty" = "Voir les avis tiers";
+"settings.about.copyright" = "© 2026 Marco Astorga González. Tous droits réservés. Publié en open source.";
+
+/* Actions */
+"action.restore" = "Restaurer";
+"action.minimize" = "Minimiser";
+"action.close" = "Fermer";
+"action.closeAll" = "Tout fermer";
+"action.restoreAll" = "Tout restaurer";
+"action.minimizeAll" = "Tout minimiser";
+"action.moveToThisDisplay" = "Déplacer vers cet écran";
+"action.alwaysOnTop" = "Toujours au premier plan";
+"action.disableAlwaysOnTop" = "Désactiver toujours au premier plan";
+"action.reorganize" = "Réorganiser les terminaux";
+"action.settings" = "Paramètres";
+"action.newTerminal" = "Nouveau terminal";
+
+/* Misc */
+"menu.bulkActions" = "Actions groupées";
+"menu.closeAllOnThisDisplay" = "Tout fermer sur cet écran";

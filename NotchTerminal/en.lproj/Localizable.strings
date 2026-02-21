@@ -1,0 +1,117 @@
+/* General */
+"app.name" = "NotchTerminal";
+"app.tagline" = "A terminal emulator that lives in your notch.";
+
+/* Settings - General */
+"settings.general" = "General";
+"settings.appearance" = "Appearance";
+"settings.about" = "About";
+"settings.experimental" = "Experimental";
+
+/* Settings - System */
+"settings.system" = "System";
+"settings.system.subtitle" = "Core behavior and app visibility options.";
+"settings.hapticFeedback" = "Enable haptic feedback";
+"settings.hapticFeedback.subtitle" = "Use haptics when interactions occur in the notch.";
+"settings.showDockIcon" = "Show Dock icon";
+"settings.showDockIcon.subtitle" = "Display the app icon in the Dock using the configured AppIcon asset.";
+
+/* Settings - Automation */
+"settings.automation" = "Automation";
+"settings.automation.subtitle" = "Controls how and when the notch opens and closes.";
+"settings.autoOpenOnHover" = "Open notch on hover";
+"settings.autoOpenOnHover.subtitle" = "Automatically expands the notch when the cursor reaches it.";
+"settings.lockWhileTyping" = "Keep open while typing";
+"settings.lockWhileTyping.subtitle" = "Avoid auto-close while you are actively typing.";
+
+/* Settings - Terminal Actions */
+"settings.terminalActions" = "Terminal Actions";
+"settings.terminalActions.subtitle" = "Bulk actions, safety checks, and per-chip behavior.";
+"settings.showChipCloseButton" = "Show close button on chip hover";
+"settings.showChipCloseButton.subtitle" = "Display a small close button when hovering a terminal chip.";
+"settings.confirmBeforeCloseAll" = "Confirm before Close All";
+"settings.confirmBeforeCloseAll.subtitle" = "Ask for confirmation before closing every terminal window.";
+"settings.closeActionMode" = "Close action mode";
+"settings.closeActionMode.subtitle" = "Defines what Close does in chip/context/bulk actions.";
+"settings.closeActionMode.closeWindow" = "Close window only";
+"settings.closeActionMode.terminateProcess" = "Terminate process and close";
+
+/* Settings - Appearance */
+"settings.appearance.geometry" = "Geometry";
+"settings.appearance.geometry.subtitle" = "Fine-tune notch layout and spacing.";
+"settings.contentPadding" = "Content padding";
+"settings.contentPadding.subtitle" = "Spacing between terminal content and notch edges.";
+"settings.notchWidthOffset" = "Notch width fine-tune";
+"settings.notchWidthOffset.subtitle" = "Adjust horizontal notch size offset.";
+"settings.notchHeightOffset" = "Notch height fine-tune";
+"settings.notchHeightOffset.subtitle" = "Adjust vertical notch size offset.";
+
+"settings.appearance.terminalDefaults" = "Terminal Window Defaults";
+"settings.appearance.terminalDefaults.subtitle" = "Size parameters for new terminal sessions.";
+"settings.terminalDefaultWidth" = "Default width";
+"settings.terminalDefaultWidth.subtitle" = "Horizontal size in points.";
+"settings.terminalDefaultHeight" = "Default height";
+"settings.terminalDefaultHeight.subtitle" = "Vertical size in points.";
+
+"settings.appearance.docking" = "Docking Sensitivity";
+"settings.appearance.docking.subtitle" = "How close a window needs to be to snap into the notch.";
+"settings.notchDockingSensitivity" = "Detection radius";
+"settings.notchDockingSensitivity.subtitle" = "Larger means earlier detection, smaller requires getting closer.";
+
+"settings.appearance.compactTicker" = "Compact Ticker";
+"settings.appearance.compactTicker.subtitle" = "Provider status in closed-notch mode.";
+"settings.compactTickerEnabled" = "Show compact provider ticker";
+"settings.compactTickerEnabled.subtitle" = "When the notch is closed, rotate provider status in a compact row.";
+"settings.compactTickerInterval" = "Rotation interval";
+"settings.compactTickerInterval.subtitle" = "How often the provider preview changes.";
+"settings.compactTickerClosedExtraWidth" = "Closed notch extra width";
+"settings.compactTickerClosedExtraWidth.subtitle" = "Extra width available in compact mode.";
+
+/* Settings - Experimental */
+"settings.experimental.effects" = "Experimental Effects";
+"settings.experimental.effects.subtitle" = "Optional visuals that may vary by screen/GPU.";
+"settings.experimental.warning" = "These visual effects are highly experimental and cost battery life.";
+"settings.fakeNotchGlow" = "Fake Notch Glow";
+"settings.fakeNotchGlow.subtitle" = "Neon purple glow effect for simulated notches.";
+"settings.auroraBackground" = "Aurora Background";
+"settings.auroraBackground.subtitle" = "Animated Metal shader behind the terminal contents.";
+"settings.crtFilter" = "CRT Monitor Filter";
+"settings.crtFilter.subtitle" = "Adds curvature, scanlines, and static noise to emulate old hardware.";
+
+/* Settings - Language */
+"settings.language" = "Language";
+"settings.language.subtitle" = "Choose your preferred language.";
+"settings.language.system" = "System Default";
+"settings.language.system.subtitle" = "Uses your system's language setting.";
+
+/* Settings - About */
+"settings.about.title" = "NotchTerminal";
+"settings.about.version" = "Version 1.0.0";
+"settings.about.checkUpdates" = "Check for Updates";
+"settings.about.checkUpdates.subtitle" = "Looks for newer versions";
+"settings.about.releaseNotes" = "Release Notes";
+"settings.about.releaseNotes.subtitle" = "See what changed";
+"settings.about.website" = "Project Website";
+"settings.about.website.subtitle" = "Repository and documentation";
+"settings.about.donate" = "Buy Me a Coffee";
+"settings.about.donate.subtitle" = "Support development";
+"settings.about.thirdParty" = "View Third-Party Notices";
+"settings.about.copyright" = "© 2026 Marco Astorga González. All rights reserved. Released as open source.";
+
+/* Actions */
+"action.restore" = "Restore";
+"action.minimize" = "Minimize";
+"action.close" = "Close";
+"action.closeAll" = "Close All";
+"action.restoreAll" = "Restore All";
+"action.minimizeAll" = "Minimize All";
+"action.moveToThisDisplay" = "Move to this Display";
+"action.alwaysOnTop" = "Always on Top";
+"action.disableAlwaysOnTop" = "Disable Always on Top";
+"action.reorganize" = "Reorganize Terminals";
+"action.settings" = "Settings";
+"action.newTerminal" = "New Terminal";
+
+/* Misc */
+"menu.bulkActions" = "Bulk actions";
+"menu.closeAllOnThisDisplay" = "Close All on This Display";
