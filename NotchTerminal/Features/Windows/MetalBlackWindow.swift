@@ -74,8 +74,15 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         var isAnimatingMinimize: Bool = false
     }
 
-    private let expandedSize = CGSize(width: 820, height: 520)
     private let compactSize = CGSize(width: 220, height: 220)
+    
+    @AppStorage("terminalDefaultWidth") private var terminalDefaultWidth: Double = 640
+    @AppStorage("terminalDefaultHeight") private var terminalDefaultHeight: Double = 400
+    @AppStorage("notchDockingSensitivity") private var notchDockingSensitivity: Double = 20
+
+    private var expandedSize: CGSize {
+        CGSize(width: terminalDefaultWidth, height: terminalDefaultHeight)
+    }
     private var windows: [UUID: WindowInstance] = [:]
     private var pendingDockTargets: [UUID: NotchTarget] = [:]
     private var closingWithoutTerminate = Set<UUID>()
@@ -131,6 +138,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             windows[id] = instance
             return
         }
+        guard !instance.isAnimatingMinimize else { return }
 
         let targetFrame = instance.expandedFrame
         // Use the displayID saved at minimize time to find the correct notch position
@@ -156,32 +164,38 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.panel.alphaValue = 0.0
         instance.panel.makeKeyAndOrderFront(nil)
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.24
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            instance.panel.animator().setFrame(targetFrame, display: true)
-            instance.panel.animator().alphaValue = 1.0
-        } completionHandler: { [weak self] in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                var updated = self.windows[id]
-                updated?.isAnimatingMinimize = false
-                updated?.isMinimized = false
-                if let safeUpdated = updated {
-                    self.windows[id] = safeUpdated
+        // Give the window server a tiny runloop tick to register the window at startFrame
+        // so that the animation to targetFrame is actually interpolated.
+        DispatchQueue.main.async {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.24
+                context.allowsImplicitAnimation = true
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                instance.panel.animator().setFrame(targetFrame, display: true)
+                instance.panel.animator().alphaValue = 1.0
+            } completionHandler: { [weak self] in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    var updated = self.windows[id]
+                    updated?.isAnimatingMinimize = false
+                    updated?.isMinimized = false
+                    if let safeUpdated = updated {
+                        self.windows[id] = safeUpdated
+                    }
+                    if let panel = self.windows[id]?.panel, let contentView = panel.contentView {
+                        self.refreshTerminalView(in: contentView)
+                    }
+                    self.updateContent(for: id)
+                    self.publishTerminalItems()
+                    
+                    NSApp.activate(ignoringOtherApps: true)
                 }
-                if let panel = self.windows[id]?.panel, let contentView = panel.contentView {
-                    self.refreshTerminalView(in: contentView)
-                }
-                self.updateContent(for: id)
-                self.publishTerminalItems()
             }
         }
-
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     func minimizeWindow(id: UUID) {
+        guard let instance = windows[id], !instance.isAnimatingMinimize else { return }
         minimizeWindowInternal(id: id)
     }
 
@@ -530,22 +544,25 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         windows[id] = instance
         updateContent(for: id)
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.20
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            instance.panel.animator().setFrame(targetFrame, display: true)
-            instance.panel.animator().alphaValue = 0.0
-        } completionHandler: { [weak self] in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                var updated = self.windows[id]
-                updated?.isAnimatingMinimize = false
-                if let safeUpdated = updated {
-                    self.windows[id] = safeUpdated
-                    safeUpdated.panel.alphaValue = 1.0
-                    safeUpdated.panel.orderOut(nil)
+        DispatchQueue.main.async {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.20
+                context.allowsImplicitAnimation = true
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                instance.panel.animator().setFrame(targetFrame, display: true)
+                instance.panel.animator().alphaValue = 0.0
+            } completionHandler: { [weak self] in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    var updated = self.windows[id]
+                    updated?.isAnimatingMinimize = false
+                    if let safeUpdated = updated {
+                        self.windows[id] = safeUpdated
+                        safeUpdated.panel.alphaValue = 1.0
+                        safeUpdated.panel.orderOut(nil)
+                    }
+                    self.updateContent(for: id)
                 }
-                self.updateContent(for: id)
             }
         }
 
@@ -909,8 +926,14 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         let candidate = targets
             .map { target -> (NotchTarget, CGFloat, CGRect) in
-                // Extremely tight drop zone so it only docks when the window practically touches the Notch
-                let expanded = target.frame.insetBy(dx: -40, dy: -30)
+                let sensitivity = CGFloat(notchDockingSensitivity)
+                
+                // CRITICAL FIX: `target.frame` is the NSPanel frame, which expands dynamically
+                // when the UI grid opens, becoming huge. 
+                // We MUST dock into the closed notch frame exclusively.
+                let baseFrame = self.notchFrame(for: target.displayID, in: instance) ?? target.frame
+                let expanded = baseFrame.insetBy(dx: -sensitivity, dy: -(sensitivity * 0.75))
+                
                 let dx = topCenter.x - expanded.midX
                 let dy = topCenter.y - expanded.midY
                 let dist2 = (dx * dx) + (dy * dy)

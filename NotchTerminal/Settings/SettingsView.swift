@@ -205,6 +205,10 @@ struct AppearanceSettingsView: View {
     @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
     @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
     
+    @AppStorage("terminalDefaultWidth") var terminalDefaultWidth: Double = 640
+    @AppStorage("terminalDefaultHeight") var terminalDefaultHeight: Double = 400
+    @AppStorage("notchDockingSensitivity") var notchDockingSensitivity: Double = 20
+    
     @AppStorage("compactTickerEnabled") var compactTickerEnabled: Bool = true
     @AppStorage("compactTickerInterval") var compactTickerInterval: Double = 20
     @AppStorage("compactTickerClosedExtraWidth") var compactTickerClosedExtraWidth: Double = 216
@@ -252,6 +256,52 @@ struct AppearanceSettingsView: View {
                         range: -48 ... 48,
                         step: 1,
                         valueFormatter: { "\(Int($0))" }
+                    )
+                }
+
+                ZenithSettingsSection(contentSpacing: 12) {
+                    ZenithSectionHeading(
+                        title: "Terminal Window Defaults",
+                        subtitle: "Size parameters for new terminal sessions.",
+                        icon: "macwindow.on.rectangle"
+                    )
+
+                    ZenithSliderPreferenceRow(
+                        title: "Default width",
+                        subtitle: "Horizontal size in points.",
+                        icon: "arrow.left.and.right",
+                        value: $terminalDefaultWidth,
+                        range: 400 ... 1600,
+                        step: 10,
+                        valueFormatter: { "\(Int($0))" }
+                    )
+
+                    ZenithSliderPreferenceRow(
+                        title: "Default height",
+                        subtitle: "Vertical size in points.",
+                        icon: "arrow.up.and.down",
+                        value: $terminalDefaultHeight,
+                        range: 200 ... 1000,
+                        step: 10,
+                        valueFormatter: { "\(Int($0))" }
+                    )
+                }
+
+                ZenithSettingsSection(contentSpacing: 12) {
+                    ZenithSectionHeading(
+                        title: "Docking Sensitivity",
+                        subtitle: "How close a window needs to be to snap into the notch.",
+                        icon: "magnet"
+                    )
+
+                    ZenithSliderPreferenceRow(
+                        title: "Detection radius",
+                        subtitle: "Larger means earlier detection, smaller requires getting closer.",
+                        icon: "record.circle",
+                        value: $notchDockingSensitivity,
+                        range: 0 ... 100,
+                        step: 2,
+                        valueFormatter: { "\(Int($0)) pt" }
                     )
                 }
 

@@ -112,19 +112,21 @@ struct NotchCapsuleView: View {
                                                 .transition(.scale(scale: 0.8).combined(with: .opacity))
                                         }
 
-                                        Button(action: openBlackWindow) {
-                                            Image(systemName: "plus")
-                                                .font(.system(size: 14, weight: .bold))
-                                                .foregroundStyle(.white.opacity(isHoveringPlus ? 1.0 : 0.7))
-                                                .frame(width: 28, height: 28)
-                                                .background(Color.white.opacity(isHoveringPlus ? 0.25 : 0.1), in: Circle())
-                                                .scaleEffect(isHoveringPlus ? 1.1 : 1.0)
-                                                .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.6), value: isHoveringPlus)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .help("New Terminal")
-                                        .onHover { hovering in
-                                            isHoveringPlus = hovering
+                                        if model.activeDisplayID == model.ownDisplayID {
+                                            Button(action: openBlackWindow) {
+                                                Image(systemName: "plus")
+                                                    .font(.system(size: 14, weight: .bold))
+                                                    .foregroundStyle(.white.opacity(isHoveringPlus ? 1.0 : 0.7))
+                                                    .frame(width: 28, height: 28)
+                                                    .background(Color.white.opacity(isHoveringPlus ? 0.25 : 0.1), in: Circle())
+                                                    .scaleEffect(isHoveringPlus ? 1.1 : 1.0)
+                                                    .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.6), value: isHoveringPlus)
+                                            }
+                                            .buttonStyle(.plain)
+                                            .help("New Terminal")
+                                            .onHover { hovering in
+                                                isHoveringPlus = hovering
+                                            }
                                         }
                                     }
                                     .padding(.vertical, 12)
@@ -359,7 +361,27 @@ struct NotchCapsuleView: View {
     @ViewBuilder
     private func terminalItemButton(for item: TerminalWindowItem) -> some View {
         Button(action: {
-            // Acción vacía: los taps se manejan con onTapGesture abajo para poder coordinar simple y doble tap.
+            if let event = NSApp.currentEvent {
+                if event.modifierFlags.contains(.option) {
+                    closeBlackWindow(item.id)
+                    return
+                }
+                
+                if event.clickCount == 2 {
+                    hoveredMinimizedItemID = nil
+                    pendingHoverItemID = nil
+                    hoverActivationWorkItem?.cancel()
+                    hoverActivationWorkItem = nil
+                    bringBlackWindow(item.id)
+                    return
+                }
+            }
+            
+            hoveredMinimizedItemID = nil
+            pendingHoverItemID = nil
+            hoverActivationWorkItem?.cancel()
+            hoverActivationWorkItem = nil
+            restoreBlackWindow(item.id)
         }) {
             ZStack(alignment: .topTrailing) {
                 HStack(spacing: 4) {
@@ -419,24 +441,14 @@ struct NotchCapsuleView: View {
                 closeBlackWindow(item.id)
             }
         }
-        .onTapGesture(count: 2) {
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
+            if let event = NSApp.currentEvent, event.modifierFlags.contains(.option) { return }
             hoveredMinimizedItemID = nil
             pendingHoverItemID = nil
             hoverActivationWorkItem?.cancel()
             hoverActivationWorkItem = nil
             bringBlackWindow(item.id)
-        }
-        .onTapGesture(count: 1) {
-            if let event = NSApp.currentEvent, event.modifierFlags.contains(.option) {
-                closeBlackWindow(item.id)
-            } else {
-                hoveredMinimizedItemID = nil
-                pendingHoverItemID = nil
-                hoverActivationWorkItem?.cancel()
-                hoverActivationWorkItem = nil
-                restoreBlackWindow(item.id)
-            }
-        }
+        })
         .onHover { hovering in
             hoveredChipID = hovering ? item.id : (hoveredChipID == item.id ? nil : hoveredChipID)
             if hovering {
