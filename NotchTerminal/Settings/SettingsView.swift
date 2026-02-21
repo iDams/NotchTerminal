@@ -836,38 +836,10 @@ struct ExperimentalSettingsView: View {
     @AppStorage("enableCRTFilter") var enableCRTFilter: Bool = false
     @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
     @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
-    @AppStorage("physicalNotchDebugOverlay") var physicalNotchDebugOverlay: Bool = false
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "Debug Options",
-                        subtitle: "Developer tools for testing and diagnostics.",
-                        icon: "antenna.radiowaves.left.and.right"
-                    )
-                    
-                    let hasAnyNotch = NSScreen.screens.contains { screen in
-                        if #available(macOS 12.0, *) {
-                            let left = screen.auxiliaryTopLeftArea ?? .zero
-                            let right = screen.auxiliaryTopRightArea ?? .zero
-                            let blockedWidth = screen.frame.width - left.width - right.width
-                            return blockedWidth > 20 && min(left.height, right.height) > 0
-                        }
-                        return false
-                    }
-
-                    if hasAnyNotch {
-                        ZenithPreferenceToggleRow(
-                            title: "Physical Notch Debug Overlay",
-                            subtitle: "Show yellow overlay on the area hidden by the physical notch.",
-                            icon: "exclamationmark.triangle.fill",
-                            binding: $physicalNotchDebugOverlay
-                        )
-                    }
-                }
-
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
                         title: "Experimental Effects",

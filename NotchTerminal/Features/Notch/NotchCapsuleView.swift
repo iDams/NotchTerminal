@@ -25,7 +25,6 @@ struct NotchCapsuleView: View {
     @State private var isHoveringPlus = false
     @AppStorage("showChipCloseButtonOnHover") private var showChipCloseButtonOnHover = true
     @AppStorage("confirmBeforeCloseAll") private var confirmBeforeCloseAll = true
-    @AppStorage("physicalNotchDebugOverlay") private var physicalNotchDebugOverlay = false
 
     private var expandedWidth: CGFloat {
         let minWidth: CGFloat = 680
@@ -224,15 +223,6 @@ struct NotchCapsuleView: View {
                         )
                 }
                 .allowsHitTesting(false)
-            }
-            
-            // Physical Notch Debug Overlay - shows yellow on the hidden area
-            if model.hasPhysicalNotch && physicalNotchDebugOverlay {
-                let debugHeight = model.physicalNotchHeight
-                Rectangle()
-                    .fill(Color.yellow.opacity(0.5))
-                    .frame(width: model.closedSize.width, height: debugHeight)
-                    .allowsHitTesting(false)
             }
         }
         .overlay(alignment: .topLeading) {
