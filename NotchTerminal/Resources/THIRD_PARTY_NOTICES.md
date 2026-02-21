@@ -8,6 +8,7 @@ NotchTerminal uses SwiftTerm for terminal emulation.
 - Fork referenced by this project: https://github.com/iDams/SwiftTerm
 - License: MIT License
 
+
 Please review the license text in the SwiftTerm repository:
 - Upstream license: https://github.com/migueldeicaza/SwiftTerm/blob/main/LICENSE
 - Fork license: https://github.com/iDams/SwiftTerm/blob/main/LICENSE
@@ -16,6 +17,7 @@ Please review the license text in the SwiftTerm repository:
 
 NotchTerminal's open-ports feature was inspired by Port-Killer, and part of the port discovery/process termination logic approach was adapted.
 
+- Port-Killer inspiration for open-port workflow (MIT): https://github.com/productdevbook/port-killer
 - Project: https://github.com/productdevbook/port-killer
 - License: MIT License
 - License text: https://github.com/productdevbook/port-killer/blob/main/LICENSE

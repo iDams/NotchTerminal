@@ -72,6 +72,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         var terminalFontSize: CGFloat
         var previewSnapshot: NSImage?
         var isAnimatingMinimize: Bool = false
+        var currentDirectory: String = NSHomeDirectory()
     }
 
     private let compactSize = CGSize(width: 220, height: 220)
@@ -89,20 +90,26 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private var closingWithoutTerminate = Set<UUID>()
     private var nextNumber: Int = 1
 
+    private func defaultDisplayIcon() -> NSImage? {
+        NSImage(named: "AppLogo")
+    }
+
     func createWindow(
         displayID: CGDirectDisplayID,
         anchorScreen: NSScreen?,
+        session: TerminalSession? = nil,
         notchTargetsProvider: @escaping () -> [NotchTarget]
     ) {
         let screen = anchorScreen ?? NSScreen.main ?? NSScreen.screens.first
         guard let screen else { return }
 
-        let id = UUID()
+        let id = session?.id ?? UUID()
         let number = nextNumber
         nextNumber += 1
 
         let panel = makePanel()
-        let frame = frameForInitialShow(on: screen, size: expandedSize)
+        let size = session != nil ? CGSize(width: session!.windowWidth, height: session!.windowHeight) : expandedSize
+        let frame = session != nil ? frameForInitialShow(on: screen, size: size) : frameForInitialShow(on: screen, size: expandedSize)
         panel.setFrame(frame, display: true)
 
         windows[id] = WindowInstance(
@@ -113,7 +120,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             panel: panel,
             notchTargetsProvider: notchTargetsProvider,
             displayTitle: "NotchTerminal",
-            displayIcon: nil,
+            displayIcon: defaultDisplayIcon(),
             isCompact: false,
             isMinimized: false,
             isAlwaysOnTop: false,
@@ -122,7 +129,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             expandedFrame: frame,
             terminalFontSize: defaultTerminalFontSize(),
             previewSnapshot: nil,
-            isAnimatingMinimize: false
+            isAnimatingMinimize: false,
+            currentDirectory: session?.workingDirectory ?? NSHomeDirectory()
         )
 
         updateContent(for: id)
@@ -507,10 +515,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.isAlwaysOnTop.toggle()
         if instance.isAlwaysOnTop {
             instance.panel.level = .floating
-            instance.panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+            instance.panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .transient]
         } else {
             instance.panel.level = .normal
-            instance.panel.collectionBehavior = [.managed, .fullScreenAuxiliary]
+            instance.panel.collectionBehavior = [.managed, .fullScreenAuxiliary, .transient]
         }
         windows[id] = instance
         updateContent(for: id)
@@ -647,7 +655,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         panel.showsResizeIndicator = true
         panel.level = .normal
         panel.minSize = CGSize(width: 360, height: 240)
-        panel.collectionBehavior = [.managed, .fullScreenAuxiliary]
+        panel.collectionBehavior = [.managed, .fullScreenAuxiliary, .transient]
         panel.hidesOnDeactivate = false
         panel.isMovableByWindowBackground = false
         panel.delegate = self
@@ -700,7 +708,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             },
             isAnimatingMinimize: instance.isAnimatingMinimize,
             expandedFrameSize: instance.expandedFrame.size,
-            previewSnapshot: instance.previewSnapshot
+            previewSnapshot: instance.previewSnapshot,
+            currentDirectory: instance.currentDirectory
         )
 
         if let hostingView = instance.panel.contentView as? NSHostingView<MetalBlackWindowContent> {
@@ -884,7 +893,22 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             instance.panel.animator().setFrame(originalFrame, display: true)
         }
+        publishTerminalItems()
         applyBaseLevel(for: instance)
+    }
+
+    func currentSessions() -> [TerminalSession] {
+        windows.values.map { instance in
+            TerminalSession(
+                id: instance.id,
+                workingDirectory: instance.currentDirectory,
+                windowWidth: instance.expandedFrame.width,
+                windowHeight: instance.expandedFrame.height,
+                isDockedToNotch: instance.isMinimized,
+                lastKnownDisplayID: String(instance.displayID),
+                creationTimestamp: Date()
+            )
+        }
     }
 
     private func applyBaseLevel(for instance: WindowInstance) {
@@ -935,13 +959,30 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     private func handleCommandSubmitted(id: UUID, command: String) {
         guard var instance = windows[id] else { return }
+        let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let branding = CLICommandBrandingResolver.branding(for: command)
 
-        // Only update title for whitelisted AI CLI tools
-        guard let newTitle = branding.title else { return }
-        guard instance.displayTitle != newTitle || instance.displayIcon !== branding.icon else { return }
-        instance.displayTitle = newTitle
-        instance.displayIcon = branding.icon
+        if let newTitle = branding.title {
+            guard instance.displayTitle != newTitle || instance.displayIcon !== branding.icon else { return }
+            instance.displayTitle = newTitle
+            instance.displayIcon = branding.icon
+        } else {
+            // Keep branding for in-CLI slash commands, but reset when leaving the CLI.
+            if trimmed == "exit" || trimmed == "quit" {
+                instance.displayTitle = "NotchTerminal"
+                instance.displayIcon = defaultDisplayIcon()
+            } else if trimmed.hasPrefix("/") {
+                return
+            } else if instance.displayIcon != nil {
+                // If a regular shell command appears after branding was active,
+                // assume we returned to the shell and clear branding.
+                instance.displayTitle = "NotchTerminal"
+                instance.displayIcon = defaultDisplayIcon()
+            } else {
+                return
+            }
+        }
+
         windows[id] = instance
         updateContent(for: id)
         publishTerminalItems()
@@ -967,15 +1008,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         // URL decode in case of spaces etc.
         cleanPath = cleanPath.removingPercentEncoding ?? cleanPath
+        instance.currentDirectory = cleanPath
 
-        let newTitle = "NotchTerminal"
-        guard instance.displayTitle != newTitle else { return }
-        // Restore default title format, clearing any AI CLI branding
-        instance.displayTitle = newTitle
-        instance.displayIcon = nil
         windows[id] = instance
-        updateContent(for: id)
-        publishTerminalItems()
     }
 
     private func preferredCloseActionMode() -> CloseActionMode {
@@ -1034,6 +1069,7 @@ struct MetalBlackWindowContent: View {
     let isAnimatingMinimize: Bool
     let expandedFrameSize: CGSize
     let previewSnapshot: NSImage?
+    let currentDirectory: String
     
     @AppStorage("enableCRTFilter") private var enableCRTFilter: Bool = false
     @Environment(\.controlActiveState) private var controlActiveState
@@ -1221,6 +1257,7 @@ struct MetalBlackWindowContent: View {
                             SwiftTermContainerView(
                                 windowNumber: windowNumber,
                                 fontSize: terminalFontSize,
+                                currentDirectory: currentDirectory,
                                 commandSubmitted: commandSubmitted,
                                 directoryChanged: directoryChanged
                             )
@@ -1754,7 +1791,8 @@ private enum PortProcessService {
         toggleAlwaysOnTop: {},
         isAnimatingMinimize: false,
         expandedFrameSize: CGSize(width: 820, height: 520),
-        previewSnapshot: nil
+        previewSnapshot: nil,
+        currentDirectory: "/Users/marco/project"
     )
     .frame(width: 860, height: 560)
     .padding()
@@ -1797,6 +1835,14 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+
+        // Preserve shell autocomplete regardless of focus chain quirks.
+        if event.keyCode == 48, modifiers.isEmpty {
+            let tab: [UInt8] = [0x09]
+            send(source: self, data: tab[...])
+            return true
+        }
+
         guard modifiers == [.command], let key = event.charactersIgnoringModifiers?.lowercased() else {
             return super.performKeyEquivalent(with: event)
         }
@@ -2025,6 +2071,7 @@ private final class DragRegionNSView: NSView {
 struct SwiftTermContainerView: NSViewRepresentable {
     let windowNumber: Int
     let fontSize: CGFloat
+    let currentDirectory: String
     let commandSubmitted: (String) -> Void
     let directoryChanged: (String) -> Void
 
@@ -2044,6 +2091,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
         terminal.wantsLayer = true
         terminal.layer?.backgroundColor = NSColor.black.cgColor
         context.coordinator.windowNumber = windowNumber
+        context.coordinator.currentDirectory = currentDirectory
         context.coordinator.tryStartProcessIfNeeded(on: terminal)
         DispatchQueue.main.async {
             terminal.window?.makeFirstResponder(terminal)
@@ -2070,6 +2118,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
         var processStarted = false
         var startRetryScheduled = false
         var windowNumber: Int = 0
+        var currentDirectory: String = NSHomeDirectory()
         var onDirectoryChanged: ((String) -> Void)?
 
         func tryStartProcessIfNeeded(on terminal: LocalProcessTerminalView) {
@@ -2080,7 +2129,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
                 terminal.startProcess(
                     executable: shell,
                     args: ["-l"],
-                    currentDirectory: NSHomeDirectory()
+                    currentDirectory: currentDirectory
                 )
                 processStarted = true
                 return

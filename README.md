@@ -1,98 +1,108 @@
 # NotchTerminal
 
-NotchTerminal is a macOS notch-first terminal utility built with SwiftUI, AppKit, Metal, and SwiftTerm.
+NotchTerminal is a macOS app that puts a terminal workflow in the notch area.
 
-It provides a Dynamic-Island-style top overlay, quick terminal windows, minimized window previews, and configurable behavior for notch and non-notch displays.
+It combines:
+- A top notch overlay (real notch and no-notch screens)
+- Floating terminal windows
+- Quick terminal actions (restore/minimize/close)
+- Metal-based visual effects
 
-## Current Features
+## What It Does
 
-- Notch overlay UI (physical notch and fake notch support)
-- Hover-to-expand notch behavior
-- Optional keep-open while typing
-- Minimized terminal window chips with hover preview popovers
-- Quick actions from notch:
-  - New terminal window
-  - Reorganize visible windows
-  - Restore minimized windows
-- Floating terminal windows with:
-  - Minimize / close / maximize
-  - Compact mode
-  - Always-on-top toggle
-  - Terminal font size controls (`⌘+` / `⌘-`)
-- Animated Metal visual effects:
-  - Notch background shader
-  - Detached notification-style orb effect
-  - Black window subtle animated background
-- Appearance controls:
-  - Content padding
-  - Notch width/height fine-tune
-  - Optional fake-notch glow
-  - Compact ticker options
-- App icon and image assets migrated to `Assets.xcassets`
-- Optional Dock icon toggle (`Show Dock icon`)
+### Notch Overlay
+- Expands on hover
+- Works on multi-display setups
+- Shows minimized terminal chips
+- Opens quick actions:
+  - `New`
+  - `Reorg`
+  - `Bulk` (`Restore All`, `Minimize All`, `Close All`, `Close All on This Display`)
+  - `Settings`
+
+### Terminal Windows
+- Open/close/minimize/maximize
+- Compact mode
+- Always-on-top toggle
+- Dock-to-notch behavior when dragged near the notch
+- Drag and drop folders/files into terminal (inserts escaped path)
+
+### Terminal Actions
+- Context menu includes:
+  - `Copy`
+  - `Paste`
+  - `Select All`
+  - `Clear Buffer`
+  - `Search` (sends Ctrl+R)
+  - `Close` (sends `exit`)
+- Keyboard shortcuts:
+  - `⌘C`, `⌘V`, `⌘A`
+  - `⌘K` clear
+  - `⌘F` search
+  - `⌘W` close session
+  - `⌘+` / `⌘-` font size
+
+### Open Ports Panel
+- Lists listening TCP ports
+- Search/filter by dev/all
+- Kill process by PID from the UI
+
+### Session + Persistence
+- Stores terminal sessions via SwiftData
+- Restores sessions on launch (work in progress)
 
 ## Requirements
 
 - macOS 14+
-- Xcode 16+
+- Xcode 16+ (for development)
+
+Runtime note:
+- The app defaults to `/bin/zsh`, which is available on a clean macOS install.
 
 ## Build and Run
 
 1. Open `NotchTerminal.xcodeproj`
-2. Select the `NotchTerminal` scheme
-3. Build and Run
+2. Select scheme `NotchTerminal`
+3. Build and run
 
-## Settings
+## Settings Overview
 
-Open the app Settings to configure:
-
-- System
-  - Haptic feedback
-  - Show Dock icon
-- Automation
-  - Open notch on hover
-  - Keep open while typing
-- Appearance
-  - Geometry tuning
-  - Compact ticker behavior
-  - Fake notch glow
+- `General`
+  - Dock icon toggle
+  - Haptics
+  - Hover/open behavior
+  - Close confirmation behavior
+- `Appearance`
+  - Notch geometry offsets
+  - Docking sensitivity
+  - Effects toggles
+- `About`
+  - Version/info links
+  - Third-party notices
+- `Experimental`
+  - Work-in-progress options
 
 ## Project Structure
 
-- `NotchTerminal/App` app entry and lifecycle
-- `NotchTerminal/Features/Notch` notch overlay UI and behavior
-- `NotchTerminal/Features/Windows` terminal window manager and terminal container
-- `NotchTerminal/Rendering/Metal` Metal renderers and shaders
-- `NotchTerminal/Services` app services (branding, etc.)
-- `NotchTerminal/Extensions` framework extensions
-- `NotchTerminal/Settings` settings UI
-- `NotchTerminal/Assets.xcassets` app and UI image assets
+- `NotchTerminal/App` app lifecycle
+- `NotchTerminal/Features/Notch` overlay + notch UI
+- `NotchTerminal/Features/Windows` floating window manager + terminal integration
+- `NotchTerminal/Features/Persistence` SwiftData models
+- `NotchTerminal/Rendering/Metal` Metal shaders/renderers
+- `NotchTerminal/Settings` settings screens
+- `NotchTerminal/Services` helpers/services
+- `NotchTerminal/Assets.xcassets` icons/images
 
-## Credits and Third-Party
+## Credits
 
-### SwiftTerm
+See `NotchTerminal/Resources/THIRD_PARTY_NOTICES.md`.
 
-This project uses SwiftTerm for terminal emulation and local PTY process integration.
+Main attributions:
+- SwiftTerm (terminal emulation, MIT)
+- Port-Killer inspiration for open-port workflow (MIT)
 
-- Upstream: https://github.com/migueldeicaza/SwiftTerm
-- Fork used by this project: https://github.com/iDams/SwiftTerm
-- License: MIT (see upstream repository license file)
+Brand marks/logos used in UI belong to their respective owners and are used for identification only.
 
-### Port-Killer (Inspiration)
+## License
 
-The open-ports panel and process-termination flow were inspired by Port-Killer, and part of the port scanning/kill logic approach was adapted for this project.
-
-- Project: https://github.com/productdevbook/port-killer
-- License: MIT
-
-### Brand Assets
-
-Some command branding icons correspond to third-party products (for example, Claude/OpenCode logos).
-
-- These marks and logos are property of their respective owners.
-- They are used here only for UI identification.
-- This project is not affiliated with or endorsed by those brands.
-
-### Notices
-
-See `THIRD_PARTY_NOTICES.md` for attribution notes.
+MIT. See `LICENSE`.

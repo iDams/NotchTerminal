@@ -20,11 +20,17 @@ enum CLICommandBrandingResolver {
         "gemini",
         "gemini cli",
         "gemini-cli",
+        // Qwen
+        "qwen",
+        "qwen-cli",
         // Meta
         "llama",
         // Ollama
         "ollama",
+        // OpenAI Codex
+        "codex",
         // GitHub Copilot
+        "copilot",
         "gh copilot",
         "github-copilot-cli",
         // OpenCode
@@ -69,6 +75,15 @@ enum CLICommandBrandingResolver {
 
     private static let iconAssetByCommand: [String: String] = [
         "opencode": "CLIOpencode",
+        "gemini": "CLIGemini",
+        "gemini cli": "CLIGemini",
+        "gemini-cli": "CLIGemini",
+        "qwen": "CLIQwen",
+        "qwen-cli": "CLIQwen",
+        "copilot": "CLICopilot",
+        "gh copilot": "CLICopilot",
+        "github-copilot-cli": "CLICopilot",
+        "codex": "CLICodex",
         "claude": "CLIClaude",
         "claude code": "CLIClaude",
         "claud code": "CLIClaude"

@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Combine
+import SwiftData
 
 /// A hosting view that passes mouse events specifically if the SwiftUI layer determines it shouldn't catch them.
 class PassthroughHostingView<Content: View>: NSHostingView<Content> {
@@ -53,6 +54,11 @@ final class NotchOverlayController {
     private var observers: [NSObjectProtocol] = []
     private var lastCursorLocation: CGPoint?
     private var cancellables = Set<AnyCancellable>()
+    private var modelContext: ModelContext?
+
+    init(modelContext: ModelContext? = nil) {
+        self.modelContext = modelContext
+    }
 
     private var lastKeyTime: Date?
     private var lastInteractionTime: Date?
@@ -70,9 +76,11 @@ final class NotchOverlayController {
         startMouseTracking()
         startEventMonitoring()
         registerObservers()
+        restoreSessions()
     }
 
     func stop() {
+        saveSessions()
         timer?.invalidate()
         timer = nil
 
@@ -97,6 +105,54 @@ final class NotchOverlayController {
         pinnedExpandedDisplays.removeAll()
 
         blackWindowController.closeAllWindows()
+    }
+
+    private func restoreSessions() {
+        guard let modelContext else { return }
+        let descriptor = FetchDescriptor<TerminalSession>()
+        if let sessions = try? modelContext.fetch(descriptor), !sessions.isEmpty {
+            for session in sessions {
+                let displayIDToUse: CGDirectDisplayID = {
+                    if let parsed = UInt32(session.lastKnownDisplayID) {
+                        return CGDirectDisplayID(parsed)
+                    }
+                    return CGMainDisplayID()
+                }()
+                blackWindowController.createWindow(
+                    displayID: displayIDToUse,
+                    anchorScreen: screen(forDisplayID: displayIDToUse),
+                    session: session,
+                    notchTargetsProvider: { [weak self] in
+                        guard let self else { return [] }
+                        return self.panelsByDisplay.compactMap { key, _ in
+                            guard let screen = self.screen(forDisplayID: key),
+                                  let model = self.modelsByDisplay[key] else { return nil }
+                            
+                            let size = model.closedSize
+                            let topInset: CGFloat = model.hasPhysicalNotch ? self.notchTopInset : self.noNotchTopInset
+                            let origin = CGPoint(
+                                x: screen.frame.midX - size.width / 2.0,
+                                y: screen.frame.maxY - size.height - topInset
+                            )
+                            return MetalBlackWindowsManager.NotchTarget(displayID: key, frame: CGRect(origin: origin, size: size))
+                        }
+                    }
+                )
+                if session.isDockedToNotch {
+                    blackWindowController.minimizeWindow(id: session.id)
+                }
+            }
+        }
+    }
+
+    private func saveSessions() {
+        guard let modelContext else { return }
+        try? modelContext.delete(model: TerminalSession.self)
+        let sessions = blackWindowController.currentSessions()
+        for session in sessions {
+            modelContext.insert(session)
+        }
+        try? modelContext.save()
     }
 
     private func startEventMonitoring() {
@@ -252,7 +308,7 @@ final class NotchOverlayController {
         panel.ignoresMouseEvents = false
         panel.hidesOnDeactivate = false
         panel.level = .statusBar
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .transient]
         panel.contentView = PassthroughHostingView(
             rootView: AnyView(
                 NotchCapsuleView(

@@ -15,6 +15,8 @@
 "settings.hapticFeedback.subtitle" = "Use haptics when interactions occur in the notch.";
 "settings.showDockIcon" = "Show Dock icon";
 "settings.showDockIcon.subtitle" = "Display the app icon in the Dock using the configured AppIcon asset.";
+"settings.quitApp" = "Quit application";
+"settings.quitApp.subtitle" = "Close NotchTerminal completely.";
 
 /* Settings - Automation */
 "settings.automation" = "Automation";
@@ -35,6 +37,8 @@
 "settings.closeActionMode.subtitle" = "Defines what Close does in chip/context/bulk actions.";
 "settings.closeActionMode.closeWindow" = "Close window only";
 "settings.closeActionMode.terminateProcess" = "Terminate process and close";
+"settings.dangerZone" = "Danger Zone";
+"settings.dangerZone.subtitle" = "Sensitive actions that affect the whole app.";
 
 /* Settings - Appearance */
 "settings.appearance.geometry" = "Geometry";
@@ -113,6 +117,7 @@
 "action.reorganize" = "Reorganize Terminals";
 "action.settings" = "Settings";
 "action.newTerminal" = "New Terminal";
+"action.quit" = "Quit";
 
 /* Misc */
 "menu.bulkActions" = "Bulk actions";

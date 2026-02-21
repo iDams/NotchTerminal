@@ -3,6 +3,7 @@ import AppKit
 import QuartzCore
 import MetalKit
 import Combine
+import SwiftData
 
 @main
 struct NotchTerminalApp: App {
@@ -18,6 +19,7 @@ struct NotchTerminalApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notchController: NotchOverlayController?
     private var userDefaultsObserver: NSObjectProtocol?
+    private var modelContainer: ModelContainer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupEditMenu()
@@ -29,7 +31,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             self?.applyDockIconPreference()
         }
-        notchController = NotchOverlayController()
+        
+        do {
+            modelContainer = try ModelContainer(for: TerminalSession.self)
+        } catch {
+            print("Failed to initialize SwiftData container: \(error)")
+        }
+        
+        notchController = NotchOverlayController(modelContext: modelContainer?.mainContext)
         notchController?.start()
     }
 

@@ -239,6 +239,36 @@ struct GeneralSettingsView: View {
                     }
                     .padding(.vertical, 2)
                 }
+
+                ZenithSettingsSection(contentSpacing: 12) {
+                    ZenithSectionHeading(
+                        title: "settings.dangerZone".localized,
+                        subtitle: "settings.dangerZone.subtitle".localized,
+                        icon: "exclamationmark.octagon"
+                    )
+
+                    HStack(alignment: .center, spacing: 10) {
+                        Image(systemName: "power")
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 20, height: 20)
+                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("settings.quitApp".localized)
+                                .font(.body.weight(.medium))
+                            Text("settings.quitApp.subtitle".localized)
+                                .font(.footnote)
+                                .foregroundStyle(.tertiary)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Button("action.quit".localized, role: .destructive) {
+                            NSApp.terminate(nil)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -532,7 +562,7 @@ struct AboutSettingsView: View {
 
     private let websiteURL = URL(string: "https://github.com/iDams/NotchTerminal")
     private let changelogURL = URL(string: "https://github.com/iDams/NotchTerminal/releases")
-    private let donationURL = URL(string: "https://buymeacoffee.com/idams")
+    private let donationURL = URL(string: "https://buymeacoffee.com/marcoastorj")
 
     var body: some View {
         ScrollView {

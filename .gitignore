@@ -9,6 +9,7 @@ DerivedData/
 ## Various settings
 *.pbxuser
 !default.pbxuser
+*.xcuserstate
 *.mode1v3
 !default.mode1v3
 *.mode2v3
@@ -35,6 +36,7 @@ playground.xcworkspace
 # Swift Package Manager
 #
 .build/
+.swiftpm/
 
 # CocoaPods
 #
@@ -74,3 +76,7 @@ vendor/
 
 # macOS Finder metadata
 .DS_Store
+
+# Local scratch/debug files
+output.log
+test_canvas.swift
