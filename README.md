@@ -2,6 +2,10 @@
 
 NotchTerminal is a macOS app that puts a terminal workflow in the notch area.
 
+<p align="center">
+  <img src="docs/logo.png" alt="NotchTerminal Logo" width="160" />
+</p>
+
 It combines:
 - A top notch overlay (real notch and no-notch screens)
 - Floating terminal windows
@@ -102,6 +106,16 @@ Main attributions:
 - Port-Killer inspiration for open-port workflow (MIT)
 
 Brand marks/logos used in UI belong to their respective owners and are used for identification only.
+
+## Support
+
+If you want to support development:
+
+- Buy Me a Coffee: https://buymeacoffee.com/marcoastorj
+
+<p align="center">
+  <img src="docs/bmc_qr.png" alt="Buy Me a Coffee QR" width="260" />
+</p>
 
 ## License
 
