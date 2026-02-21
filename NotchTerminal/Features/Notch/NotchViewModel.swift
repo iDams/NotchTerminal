@@ -36,6 +36,7 @@ final class NotchViewModel: ObservableObject {
     var hasPreviewedDuringSession = false
 
     var hasPhysicalNotch = false
+    @Published var physicalNotchHeight: CGFloat = 38
 
     // Appearance
     @AppStorage("contentPadding") var contentPadding: Double = 14

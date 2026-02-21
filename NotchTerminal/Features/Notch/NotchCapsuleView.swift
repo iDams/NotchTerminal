@@ -14,6 +14,7 @@ struct NotchCapsuleView: View {
     let minimizeAllWindows: () -> Void
     let closeAllWindows: () -> Void
     let closeAllWindowsOnDisplay: () -> Void
+    let requestCloseAllConfirmation: (CGDirectDisplayID) -> Void
     let openSettings: () -> Void
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
@@ -21,7 +22,6 @@ struct NotchCapsuleView: View {
     @State private var showExpandedControls = false
     @State private var controlsRevealWorkItem: DispatchWorkItem?
     @State private var hoveredChipID: UUID?
-    @State private var showCloseAllConfirmation = false
     @AppStorage("showChipCloseButtonOnHover") private var showChipCloseButtonOnHover = true
     @AppStorage("confirmBeforeCloseAll") private var confirmBeforeCloseAll = true
 
@@ -43,6 +43,7 @@ struct NotchCapsuleView: View {
         minimizeAllWindows: @escaping () -> Void = {},
         closeAllWindows: @escaping () -> Void = {},
         closeAllWindowsOnDisplay: @escaping () -> Void = {},
+        requestCloseAllConfirmation: @escaping (CGDirectDisplayID) -> Void = { _ in },
         openSettings: @escaping () -> Void = {}
     ) {
         self.openBlackWindow = openBlackWindow
@@ -56,6 +57,7 @@ struct NotchCapsuleView: View {
         self.minimizeAllWindows = minimizeAllWindows
         self.closeAllWindows = closeAllWindows
         self.closeAllWindowsOnDisplay = closeAllWindowsOnDisplay
+        self.requestCloseAllConfirmation = requestCloseAllConfirmation
         self.openSettings = openSettings
     }
 
@@ -247,7 +249,7 @@ struct NotchCapsuleView: View {
                     }
                 }
                 .padding(.leading, 10)
-                .padding(.top, model.hasPhysicalNotch ? 0 : 4)
+                .padding(.top, model.hasPhysicalNotch ? 10 : 4)
                 .transition(.opacity)
             }
         }
@@ -272,7 +274,7 @@ struct NotchCapsuleView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 10)
-                .padding(.top, model.hasPhysicalNotch ? 0 : 4)
+                .padding(.top, model.hasPhysicalNotch ? 10 : 4)
                 .transition(.opacity)
             }
         }
@@ -333,18 +335,6 @@ struct NotchCapsuleView: View {
         // Ensure the entire Notch expanding structure is anchored to the top of the NSPanel
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(expansionAnimation, value: model.isExpanded)
-        .alert("Close all terminals?", isPresented: $showCloseAllConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Close All", role: .destructive) {
-                closeAllWindows()
-            }
-            Button("Close All and don't ask again", role: .destructive) {
-                confirmBeforeCloseAll = false
-                closeAllWindows()
-            }
-        } message: {
-            Text("Close \(model.terminalItems.count) terminals?")
-        }
     }
 
     // MARK: - Subviews
@@ -352,15 +342,7 @@ struct NotchCapsuleView: View {
     @ViewBuilder
     private func terminalItemButton(for item: TerminalWindowItem) -> some View {
         Button(action: {
-            if NSApp.currentEvent?.modifierFlags.contains(.option) == true {
-                closeBlackWindow(item.id)
-                return
-            }
-            hoveredMinimizedItemID = nil
-            pendingHoverItemID = nil
-            hoverActivationWorkItem?.cancel()
-            hoverActivationWorkItem = nil
-            restoreBlackWindow(item.id)
+            // Acción vacía: los taps se manejan con onTapGesture abajo para poder coordinar simple y doble tap.
         }) {
             ZStack(alignment: .topTrailing) {
                 HStack(spacing: 4) {
@@ -398,6 +380,12 @@ struct NotchCapsuleView: View {
                 restoreBlackWindow(item.id)
             }
             .disabled(!item.isMinimized)
+            
+            if model.ownDisplayID != item.displayID {
+                Button("Move to this Display", systemImage: "macwindow.badge.plus") {
+                    bringBlackWindow(item.id)
+                }
+            }
 
             Button("Minimize", systemImage: "rectangle.bottomthird.inset.filled") {
                 minimizeBlackWindow(item.id)
@@ -414,13 +402,24 @@ struct NotchCapsuleView: View {
                 closeBlackWindow(item.id)
             }
         }
-        .simultaneousGesture(TapGesture(count: 2).onEnded {
+        .onTapGesture(count: 2) {
             hoveredMinimizedItemID = nil
             pendingHoverItemID = nil
             hoverActivationWorkItem?.cancel()
             hoverActivationWorkItem = nil
             bringBlackWindow(item.id)
-        })
+        }
+        .onTapGesture(count: 1) {
+            if let event = NSApp.currentEvent, event.modifierFlags.contains(.option) {
+                closeBlackWindow(item.id)
+            } else {
+                hoveredMinimizedItemID = nil
+                pendingHoverItemID = nil
+                hoverActivationWorkItem?.cancel()
+                hoverActivationWorkItem = nil
+                restoreBlackWindow(item.id)
+            }
+        }
         .onHover { hovering in
             hoveredChipID = hovering ? item.id : (hoveredChipID == item.id ? nil : hoveredChipID)
             if hovering {
@@ -497,7 +496,7 @@ struct NotchCapsuleView: View {
 
     private func requestCloseAll() {
         if confirmBeforeCloseAll {
-            showCloseAllConfirmation = true
+            requestCloseAllConfirmation(model.ownDisplayID)
             return
         }
         closeAllWindows()

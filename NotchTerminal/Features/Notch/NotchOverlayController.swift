@@ -60,6 +60,7 @@ final class NotchOverlayController {
     private var localKeyMonitor: Any?
     private var closeWorkItem: DispatchWorkItem?
     private var pendingShrinkWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
+    private var pinnedExpandedDisplays: Set<CGDirectDisplayID> = []
 
     func start() {
         blackWindowController.onTerminalItemsChanged = { [weak self] items in
@@ -93,6 +94,7 @@ final class NotchOverlayController {
         closeWorkItem = nil
         pendingShrinkWorkItems.values.forEach { $0.cancel() }
         pendingShrinkWorkItems.removeAll()
+        pinnedExpandedDisplays.removeAll()
 
         blackWindowController.closeAllWindows()
     }
@@ -156,8 +158,10 @@ final class NotchOverlayController {
         for screen in screens {
             guard let displayID = displayID(for: screen) else { continue }
             let hasNotch = detectNotch(on: screen)
+            let notchHeight = screen.safeAreaInsets.top
             let model = modelsByDisplay[displayID] ?? NotchViewModel()
             model.hasPhysicalNotch = hasNotch
+            model.physicalNotchHeight = hasNotch ? max(notchHeight, 32) : 0
             model.ownDisplayID = displayID
             model.availableScreens = sortedDisplays
             
@@ -217,6 +221,9 @@ final class NotchOverlayController {
                         },
                         closeAllWindowsOnDisplay: { [weak self] in
                             self?.blackWindowController.closeAllWindows(on: displayID)
+                        },
+                        requestCloseAllConfirmation: { [weak self] sourceDisplayID in
+                            self?.presentSystemCloseAllAlert(for: sourceDisplayID)
                         },
                         openSettings: { [weak self] in
                             self?.openSettings(for: displayID)
@@ -282,6 +289,9 @@ final class NotchOverlayController {
                     closeAllWindowsOnDisplay: { [weak self] in
                         self?.blackWindowController.closeAllWindows(on: displayID)
                     },
+                    requestCloseAllConfirmation: { [weak self] sourceDisplayID in
+                        self?.presentSystemCloseAllAlert(for: sourceDisplayID)
+                    },
                     openSettings: { [weak self] in
                         self?.openSettings(for: displayID)
                     }
@@ -309,6 +319,14 @@ final class NotchOverlayController {
         for screen in NSScreen.screens {
             guard let displayID = displayID(for: screen),
                   let model = modelsByDisplay[displayID] else { continue }
+
+            if pinnedExpandedDisplays.contains(displayID) {
+                if !model.isExpanded {
+                    model.isExpanded = true
+                    changedDisplays.insert(displayID)
+                }
+                continue
+            }
 
             let visualTargetWidth = min(max(model.contentWidth + (model.contentPadding * 2), 680), 1100)
             let currentWidth = model.isExpanded ? visualTargetWidth : collapsedNoNotchSize.width
@@ -556,6 +574,46 @@ final class NotchOverlayController {
         default:
             return false
         }
+    }
+
+    private func presentSystemCloseAllAlert(for sourceDisplayID: CGDirectDisplayID) {
+        let terminalCount = modelsByDisplay.values.first?.terminalItems.count ?? 0
+        guard terminalCount > 0 else { return }
+        pinDisplayExpanded(sourceDisplayID)
+
+        let alert = NSAlert()
+        alert.messageText = "Close all terminals?"
+        alert.informativeText = "Close \(terminalCount) terminal\(terminalCount == 1 ? "" : "s")?"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Close All")
+        alert.addButton(withTitle: "Cancel")
+        alert.showsSuppressionButton = true
+        alert.suppressionButton?.title = "Don't ask again"
+
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+
+        if alert.suppressionButton?.state == .on {
+            UserDefaults.standard.set(false, forKey: "confirmBeforeCloseAll")
+        }
+        if response == .alertFirstButtonReturn {
+            blackWindowController.closeAllWindows()
+        }
+
+        unpinDisplayExpanded(sourceDisplayID)
+    }
+
+    private func pinDisplayExpanded(_ displayID: CGDirectDisplayID) {
+        pinnedExpandedDisplays.insert(displayID)
+        if let model = modelsByDisplay[displayID] {
+            model.isExpanded = true
+        }
+        layoutPanels(animated: false, displays: [displayID])
+    }
+
+    private func unpinDisplayExpanded(_ displayID: CGDirectDisplayID) {
+        pinnedExpandedDisplays.remove(displayID)
+        layoutPanels(animated: false, displays: [displayID])
     }
 
     // MARK: - Utilities

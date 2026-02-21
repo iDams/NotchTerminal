@@ -245,6 +245,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }) else { return }
         
         instance.displayID = displayID
+        instance.originalDisplayID = displayID
         
         let usable = targetScreen.visibleFrame
         let currentSize = instance.panel.frame.size
