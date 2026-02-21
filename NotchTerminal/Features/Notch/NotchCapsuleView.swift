@@ -111,6 +111,7 @@ struct NotchCapsuleView: View {
                                         .buttonStyle(.plain)
                                         .help("New Terminal")
                                     }
+                                    .padding(.vertical, 12)
                                     .background(GeometryReader { innerGeo in
                                         // The extra 80 accounts for the padding and spaces around the ScrollView
                                         Color.clear.preference(key: WidthPreferenceKey.self, value: innerGeo.size.width + 80)
@@ -207,16 +208,6 @@ struct NotchCapsuleView: View {
         .overlay(alignment: .topLeading) {
             if showExpandedControls {
                 HStack(spacing: 6) {
-                    Button(action: openBlackWindow) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.8))
-                            .padding(8)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("New Terminal")
-
                     Button(action: reorganizeBlackWindows) {
                         Image(systemName: "square.grid.2x2.fill")
                             .font(.system(size: 12, weight: .semibold))
@@ -245,11 +236,13 @@ struct NotchCapsuleView: View {
                         } label: {
                             Image(systemName: "line.3.horizontal.decrease.circle")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.white)
+                                .symbolRenderingMode(.monochrome)
+                                .foregroundColor(.white)
                                 .padding(8)
                                 .contentShape(Circle())
                         }
                         .menuStyle(.borderlessButton)
+                        .tint(.white)
                         .help("Bulk actions")
                     }
                 }
@@ -293,12 +286,12 @@ struct NotchCapsuleView: View {
             if isExpanded {
                 let workItem = DispatchWorkItem {
                     guard model.isExpanded else { return }
-                    withAnimation(.easeOut(duration: 0.12)) {
+                    withAnimation(.easeOut(duration: 0.15)) {
                         showExpandedControls = true
                     }
                 }
                 controlsRevealWorkItem = workItem
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: workItem)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
             } else {
                 showExpandedControls = false
                 hoveredMinimizedItemID = nil

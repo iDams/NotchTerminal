@@ -4,14 +4,34 @@ import Combine
 
 /// A hosting view that passes mouse events specifically if the SwiftUI layer determines it shouldn't catch them.
 class PassthroughHostingView<Content: View>: NSHostingView<Content> {
+    var model: NotchViewModel?
+
     override func hitTest(_ point: NSPoint) -> NSView? {
-        let view = super.hitTest(point)
-        // If the view hits the hosting view's background but no interactive SwiftUI element,
-        // we can let the click pass through to windows behind it.
-        if view == self {
-            return nil
+        guard let model = model else { return super.hitTest(point) }
+        
+        let contentWidth = model.contentWidth
+        let padding = model.contentPadding
+        let expandedW = min(max(contentWidth + (padding * 2), 680), 1100)
+        
+        let notchW = model.isExpanded 
+            ? expandedW + (model.hasPhysicalNotch ? 28 : 0)
+            : model.closedSize.width + (model.hasPhysicalNotch ? 12 : 0)
+        
+        let notchH = model.isExpanded ? 160.0 : model.closedSize.height
+        
+        let panelW = bounds.width
+        let panelH = bounds.height
+        
+        let x = (panelW - notchW) / 2
+        let y = panelH - 42 - notchH // 42 is shadowPadding
+        
+        // Add a slight buffer (e.g., 20 points) around the visual bounds to catch edges easily
+        let notchRect = CGRect(x: x, y: y, width: notchW, height: notchH).insetBy(dx: -20, dy: -20)
+        
+        if notchRect.contains(point) {
+            return super.hitTest(point)
         }
-        return view
+        return nil
     }
 }
 
@@ -153,6 +173,7 @@ final class NotchOverlayController {
                 let panel = makePanel(model: model, displayID: displayID)
                 panelsByDisplay[displayID] = panel
                 hostsByDisplay[displayID] = panel.contentView as? PassthroughHostingView<AnyView>
+                hostsByDisplay[displayID]?.model = model
 
                 model.$contentWidth
                     .removeDuplicates()
@@ -268,6 +289,7 @@ final class NotchOverlayController {
                     .environmentObject(model)
             )
         )
+        (panel.contentView as? PassthroughHostingView<AnyView>)?.model = model
         panel.orderFrontRegardless()
         return panel
     }
