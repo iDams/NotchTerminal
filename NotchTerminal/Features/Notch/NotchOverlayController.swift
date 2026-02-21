@@ -2,6 +2,19 @@ import SwiftUI
 import AppKit
 import Combine
 
+/// A hosting view that passes mouse events specifically if the SwiftUI layer determines it shouldn't catch them.
+class PassthroughHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let view = super.hitTest(point)
+        // If the view hits the hosting view's background but no interactive SwiftUI element,
+        // we can let the click pass through to windows behind it.
+        if view == self {
+            return nil
+        }
+        return view
+    }
+}
+
 @MainActor
 final class NotchOverlayController {
     private let collapsedNoNotchSize = NSSize(width: 126, height: 26)
@@ -13,7 +26,7 @@ final class NotchOverlayController {
     private let notchTopInset: CGFloat = 0
 
     private var panelsByDisplay: [CGDirectDisplayID: NSPanel] = [:]
-    private var hostsByDisplay: [CGDirectDisplayID: NSHostingView<AnyView>] = [:]
+    private var hostsByDisplay: [CGDirectDisplayID: PassthroughHostingView<AnyView>] = [:]
     private var modelsByDisplay: [CGDirectDisplayID: NotchViewModel] = [:]
     private let blackWindowController = MetalBlackWindowsManager()
     private var timer: Timer?
@@ -23,7 +36,8 @@ final class NotchOverlayController {
 
     private var lastKeyTime: Date?
     private var lastInteractionTime: Date?
-    private var eventMonitor: Any?
+    private var globalKeyMonitor: Any?
+    private var localKeyMonitor: Any?
     private var closeWorkItem: DispatchWorkItem?
     private var pendingShrinkWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
 
@@ -41,9 +55,13 @@ final class NotchOverlayController {
         timer?.invalidate()
         timer = nil
 
-        if let eventMonitor {
-            NSEvent.removeMonitor(eventMonitor)
-            self.eventMonitor = nil
+        if let globalKeyMonitor {
+            NSEvent.removeMonitor(globalKeyMonitor)
+            self.globalKeyMonitor = nil
+        }
+        if let localKeyMonitor {
+            NSEvent.removeMonitor(localKeyMonitor)
+            self.localKeyMonitor = nil
         }
 
         for observer in observers {
@@ -60,8 +78,16 @@ final class NotchOverlayController {
     }
 
     private func startEventMonitoring() {
-        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] _ in
+        globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] _ in
             self?.lastKeyTime = Date()
+        }
+        localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            self.lastKeyTime = Date()
+            if self.handleGlobalShortcut(event) {
+                return nil
+            }
+            return event
         }
     }
 
@@ -126,7 +152,7 @@ final class NotchOverlayController {
             if panelsByDisplay[displayID] == nil {
                 let panel = makePanel(model: model, displayID: displayID)
                 panelsByDisplay[displayID] = panel
-                hostsByDisplay[displayID] = panel.contentView as? NSHostingView<AnyView>
+                hostsByDisplay[displayID] = panel.contentView as? PassthroughHostingView<AnyView>
 
                 model.$contentWidth
                     .removeDuplicates()
@@ -150,6 +176,27 @@ final class NotchOverlayController {
                         bringBlackWindow: { [weak self] windowID in
                             self?.blackWindowController.bringWindow(id: windowID, to: displayID)
                         },
+                        minimizeBlackWindow: { [weak self] windowID in
+                            self?.blackWindowController.minimizeWindow(id: windowID)
+                        },
+                        closeBlackWindow: { [weak self] windowID in
+                            self?.blackWindowController.closeWindow(id: windowID)
+                        },
+                        toggleAlwaysOnTop: { [weak self] windowID in
+                            self?.blackWindowController.toggleAlwaysOnTopWindow(id: windowID)
+                        },
+                        restoreAllWindows: { [weak self] in
+                            self?.blackWindowController.restoreAllWindows()
+                        },
+                        minimizeAllWindows: { [weak self] in
+                            self?.blackWindowController.minimizeAllWindows()
+                        },
+                        closeAllWindows: { [weak self] in
+                            self?.blackWindowController.closeAllWindows()
+                        },
+                        closeAllWindowsOnDisplay: { [weak self] in
+                            self?.blackWindowController.closeAllWindows(on: displayID)
+                        },
                         openSettings: { [weak self] in
                             self?.openSettings(for: displayID)
                         }
@@ -172,11 +219,13 @@ final class NotchOverlayController {
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false
-        panel.ignoresMouseEvents = true
+        // For static large window to work, the window itself MUST accept mouse events,
+        // but the PassthroughHostingView will reject them if they hit clear pixels!
+        panel.ignoresMouseEvents = false
         panel.hidesOnDeactivate = false
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.contentView = NSHostingView(
+        panel.contentView = PassthroughHostingView(
             rootView: AnyView(
                 NotchCapsuleView(
                     openBlackWindow: { [weak self] in
@@ -190,6 +239,27 @@ final class NotchOverlayController {
                     },
                     bringBlackWindow: { [weak self] windowID in
                         self?.blackWindowController.bringWindow(id: windowID, to: displayID)
+                    },
+                    minimizeBlackWindow: { [weak self] windowID in
+                        self?.blackWindowController.minimizeWindow(id: windowID)
+                    },
+                    closeBlackWindow: { [weak self] windowID in
+                        self?.blackWindowController.closeWindow(id: windowID)
+                    },
+                    toggleAlwaysOnTop: { [weak self] windowID in
+                        self?.blackWindowController.toggleAlwaysOnTopWindow(id: windowID)
+                    },
+                    restoreAllWindows: { [weak self] in
+                        self?.blackWindowController.restoreAllWindows()
+                    },
+                    minimizeAllWindows: { [weak self] in
+                        self?.blackWindowController.minimizeAllWindows()
+                    },
+                    closeAllWindows: { [weak self] in
+                        self?.blackWindowController.closeAllWindows()
+                    },
+                    closeAllWindowsOnDisplay: { [weak self] in
+                        self?.blackWindowController.closeAllWindows(on: displayID)
                     },
                     openSettings: { [weak self] in
                         self?.openSettings(for: displayID)
@@ -309,11 +379,12 @@ final class NotchOverlayController {
             panel.ignoresMouseEvents = !model.isExpanded
 
             if animated {
-                NSAnimationContext.runAnimationGroup { context in
-                    context.duration = model.isExpanded ? 0.25 : 0.20
-                    context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                    panel.animator().setFrame(frame, display: true)
-                }
+                // We no longer animate AppKit frames at all for the Notch!
+                // The frame is now a static interaction zone that covers the maximum
+                // possible size of the Notch. The entire visual expansion animation
+                // is executed by SwiftUI internally, so it bounces flawlessly!
+                // We update it non-animated here, just in case screens changed.
+                panel.setFrame(frame, display: true)
             } else {
                 panel.setFrame(frame, display: true)
             }
@@ -322,8 +393,6 @@ final class NotchOverlayController {
 
     private func frameForPanel(on screen: NSScreen, model: NotchViewModel) -> CGRect {
         let hasNotch = model.hasPhysicalNotch
-        let isExpanded = model.isExpanded
-        let contentWidth = model.contentWidth
 
         let closedSize: NSSize = {
             guard hasNotch else { return collapsedNoNotchSize }
@@ -334,20 +403,23 @@ final class NotchOverlayController {
             )
         }()
 
-        let visualSize: NSSize
-        if isExpanded {
-            let minWidth: CGFloat = 680
-            let maxWidth: CGFloat = 1100
-            let targetWidth = min(max(contentWidth + (model.contentPadding * 2), minWidth), maxWidth)
-            visualSize = NSSize(width: targetWidth, height: 160)
-        } else {
-            visualSize = closedSize
+        DispatchQueue.main.async {
+            model.closedSize = closedSize
         }
-        
-        let shoulderExtra: CGFloat = hasNotch ? (isExpanded ? 14 : 6) * 2 : 0
 
-        let panelSize = NSSize(width: visualSize.width + shoulderExtra + (shadowPadding * 2), height: visualSize.height + (shadowPadding * 2))
-        let topInset = topInset(for: model, isExpanded: isExpanded)
+        // STATIC HUGE WINDOW that accommodates the fully expanded notch.
+        // SwiftUI will only draw and receive clicks where the Notch actually is.
+        let visualSize = NSSize(width: 1100, height: 160)
+        let shoulderExtra: CGFloat = hasNotch ? 64 : 0
+
+        // Keep top edge of window mathematically locked 6px into the physical bezel.
+        let topOvershoot: CGFloat = hasNotch ? 6.0 : 0.0
+
+        let panelSize = NSSize(
+            width: visualSize.width + shoulderExtra + (shadowPadding * 2),
+            height: visualSize.height + topOvershoot + (shadowPadding * 2)
+        )
+        let topInset: CGFloat = hasNotch ? notchTopInset : noNotchTopInset
 
         let visualOrigin = CGPoint(
             x: screen.frame.midX - (visualSize.width + shoulderExtra) / 2.0,
@@ -443,6 +515,24 @@ final class NotchOverlayController {
     private func applyTerminalItems(_ items: [TerminalWindowItem]) {
         for (_, model) in modelsByDisplay {
             model.terminalItems = items.sorted { $0.number < $1.number }
+        }
+    }
+
+    private func handleGlobalShortcut(_ event: NSEvent) -> Bool {
+        guard event.modifierFlags.contains([.command, .option]) else { return false }
+        guard let key = event.charactersIgnoringModifiers?.lowercased() else { return false }
+        switch key {
+        case "k":
+            blackWindowController.closeAllWindows()
+            return true
+        case "m":
+            blackWindowController.minimizeAllWindows()
+            return true
+        case "r":
+            blackWindowController.restoreAllWindows()
+            return true
+        default:
+            return false
         }
     }
 

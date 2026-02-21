@@ -71,6 +71,22 @@ struct SettingsView: View {
 }
 
 struct GeneralSettingsView: View {
+    private enum CloseActionDisplayMode: String, CaseIterable, Identifiable {
+        case closeWindowOnly
+        case terminateProcessAndClose
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .closeWindowOnly:
+                return "Close window only"
+            case .terminateProcessAndClose:
+                return "Terminate process and close"
+            }
+        }
+    }
+
     @AppStorage("hapticFeedback") var hapticFeedback: Bool = true
     @AppStorage("showDockIcon") var showDockIcon: Bool = false
     @AppStorage("showCostSummary") var showCostSummary: Bool = false
@@ -79,6 +95,9 @@ struct GeneralSettingsView: View {
     @AppStorage("autoOpenOnHover") var autoOpenOnHover: Bool = true
     @AppStorage("lockWhileTyping") var lockWhileTyping: Bool = true
     @AppStorage("preventCloseOnMouseLeave") var preventCloseOnMouseLeave: Bool = false
+    @AppStorage("showChipCloseButtonOnHover") var showChipCloseButtonOnHover: Bool = true
+    @AppStorage("confirmBeforeCloseAll") var confirmBeforeCloseAll: Bool = true
+    @AppStorage("closeActionMode") var closeActionMode: String = CloseActionDisplayMode.terminateProcessAndClose.rawValue
 
     var body: some View {
         ScrollView {
@@ -125,6 +144,54 @@ struct GeneralSettingsView: View {
                         icon: "keyboard",
                         binding: $lockWhileTyping
                     )
+                }
+
+                ZenithSettingsSection(contentSpacing: 12) {
+                    ZenithSectionHeading(
+                        title: "Terminal Actions",
+                        subtitle: "Bulk actions, safety checks, and per-chip behavior.",
+                        icon: "slider.horizontal.3"
+                    )
+
+                    ZenithPreferenceToggleRow(
+                        title: "Show close button on chip hover",
+                        subtitle: "Display a small close button when hovering a terminal chip.",
+                        icon: "xmark.circle",
+                        binding: $showChipCloseButtonOnHover
+                    )
+
+                    ZenithPreferenceToggleRow(
+                        title: "Confirm before Close All",
+                        subtitle: "Ask for confirmation before closing every terminal window.",
+                        icon: "exclamationmark.triangle",
+                        binding: $confirmBeforeCloseAll
+                    )
+
+                    HStack(alignment: .center, spacing: 10) {
+                        Image(systemName: "bolt.horizontal.circle")
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 20, height: 20)
+                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Close action mode")
+                                .font(.body.weight(.medium))
+                            Text("Defines what Close does in chip/context/bulk actions.")
+                                .font(.footnote)
+                                .foregroundStyle(.tertiary)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Picker("Close action mode", selection: $closeActionMode) {
+                            ForEach(CloseActionDisplayMode.allCases) { mode in
+                                Text(mode.title).tag(mode.rawValue)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 210)
+                    }
+                    .padding(.vertical, 2)
                 }
             }
             .padding(.horizontal, 14)

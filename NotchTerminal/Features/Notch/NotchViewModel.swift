@@ -19,6 +19,7 @@ final class NotchViewModel: ObservableObject {
     }
     
     @Published var contentWidth: CGFloat = 0
+    @Published var closedSize: CGSize = CGSize(width: 126, height: 26)
 
     @Published var isHoveringPreview = false {
         didSet {
@@ -65,6 +66,9 @@ final class NotchViewModel: ObservableObject {
     @AppStorage("autoOpenOnHover") var autoOpenOnHover: Bool = true
     @AppStorage("lockWhileTyping") var lockWhileTyping: Bool = true
     @AppStorage("preventCloseOnMouseLeave") var preventCloseOnMouseLeave: Bool = false
+    @AppStorage("showChipCloseButtonOnHover") var showChipCloseButtonOnHover: Bool = true
+    @AppStorage("confirmBeforeCloseAll") var confirmBeforeCloseAll: Bool = true
+    @AppStorage("closeActionMode") var closeActionMode: String = "terminateProcessAndClose"
 
     enum CompactTickerMetricMode: String, CaseIterable, Identifiable {
         case percent, dot

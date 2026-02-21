@@ -37,10 +37,16 @@ struct TerminalWindowItem: Identifiable {
     let icon: NSImage?
     let preview: NSImage?
     let isMinimized: Bool
+    let isAlwaysOnTop: Bool
 }
 
 @MainActor
 final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
+    enum CloseActionMode: String {
+        case closeWindowOnly
+        case terminateProcessAndClose
+    }
+
     struct NotchTarget {
         let displayID: CGDirectDisplayID
         let frame: CGRect
@@ -72,6 +78,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private let compactSize = CGSize(width: 220, height: 220)
     private var windows: [UUID: WindowInstance] = [:]
     private var pendingDockTargets: [UUID: NotchTarget] = [:]
+    private var closingWithoutTerminate = Set<UUID>()
     private var nextNumber: Int = 1
 
     func createWindow(
@@ -172,6 +179,58 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
 
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func minimizeWindow(id: UUID) {
+        minimizeWindowInternal(id: id)
+    }
+
+    func closeWindow(id: UUID, mode: CloseActionMode? = nil) {
+        closeWindowInternal(id: id, mode: mode ?? preferredCloseActionMode())
+    }
+
+    func toggleAlwaysOnTopWindow(id: UUID) {
+        toggleAlwaysOnTop(id: id)
+    }
+
+    func restoreAllWindows() {
+        let ids = windows.values
+            .sorted { $0.number < $1.number }
+            .map(\.id)
+        for id in ids {
+            restoreWindow(id: id)
+        }
+    }
+
+    func minimizeAllWindows() {
+        let ids = windows.values
+            .filter { !$0.isMinimized }
+            .sorted { $0.number < $1.number }
+            .map(\.id)
+        for id in ids {
+            minimizeWindowInternal(id: id)
+        }
+    }
+
+    func closeAllWindows(mode: CloseActionMode? = nil) {
+        let actionMode = mode ?? preferredCloseActionMode()
+        let ids = windows.values
+            .sorted { $0.number < $1.number }
+            .map(\.id)
+        for id in ids {
+            closeWindowInternal(id: id, mode: actionMode)
+        }
+    }
+
+    func closeAllWindows(on displayID: CGDirectDisplayID, mode: CloseActionMode? = nil) {
+        let actionMode = mode ?? preferredCloseActionMode()
+        let ids = windows.values
+            .filter { $0.displayID == displayID }
+            .sorted { $0.number < $1.number }
+            .map(\.id)
+        for id in ids {
+            closeWindowInternal(id: id, mode: actionMode)
+        }
     }
 
     func bringWindow(id: UUID, to displayID: CGDirectDisplayID) {
@@ -442,7 +501,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         updateContent(for: id)
     }
 
-    private func minimizeWindow(id: UUID) {
+    private func minimizeWindowInternal(id: UUID) {
         guard var instance = windows[id] else { return }
         guard !instance.isMinimized else { return }
 
@@ -494,25 +553,19 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         publishTerminalItems()
     }
 
-    private func closeWindow(id: UUID) {
+    private func closeWindowInternal(id: UUID, mode: CloseActionMode) {
         guard let instance = windows[id] else { return }
-        if let contentView = instance.panel.contentView {
+        if mode == .terminateProcessAndClose, let contentView = instance.panel.contentView {
             terminateTerminalViews(in: contentView)
+        } else {
+            closingWithoutTerminate.insert(id)
         }
         instance.panel.orderOut(nil)
         instance.panel.close()
         windows.removeValue(forKey: id)
+        closingWithoutTerminate.remove(id)
         renumberWindows()
         publishTerminalItems()
-    }
-
-    func closeAllWindows() {
-        let ids = windows.values
-            .sorted { $0.number < $1.number }
-            .map(\.id)
-        for id in ids {
-            closeWindow(id: id)
-        }
     }
 
     /// Re-assigns sequential numbers (1, 2, 3…) to all remaining windows
@@ -543,7 +596,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
                     title: instance.displayTitle,
                     icon: instance.displayIcon,
                     preview: currentPreview,
-                    isMinimized: instance.isMinimized
+                    isMinimized: instance.isMinimized,
+                    isAlwaysOnTop: instance.isAlwaysOnTop
                 )
             }
             .sorted { $0.number < $1.number }
@@ -724,7 +778,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard let panel = notification.object as? NSWindow,
               let id = windowID(for: panel) else { return }
 
-        if let contentView = panel.contentView {
+        let skipTerminate = closingWithoutTerminate.contains(id)
+        closingWithoutTerminate.remove(id)
+        if !skipTerminate, let contentView = panel.contentView {
             terminateTerminalViews(in: contentView)
         }
 
@@ -834,6 +890,11 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         windows[id] = instance
         updateContent(for: id)
         publishTerminalItems()
+    }
+
+    private func preferredCloseActionMode() -> CloseActionMode {
+        let raw = UserDefaults.standard.string(forKey: "closeActionMode") ?? CloseActionMode.terminateProcessAndClose.rawValue
+        return CloseActionMode(rawValue: raw) ?? .terminateProcessAndClose
     }
 
     private func notchFrame(for displayID: CGDirectDisplayID, in instance: WindowInstance) -> CGRect? {

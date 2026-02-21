@@ -7,25 +7,55 @@ struct NotchCapsuleView: View {
     let reorganizeBlackWindows: () -> Void
     let restoreBlackWindow: (UUID) -> Void
     let bringBlackWindow: (UUID) -> Void
+    let minimizeBlackWindow: (UUID) -> Void
+    let closeBlackWindow: (UUID) -> Void
+    let toggleAlwaysOnTop: (UUID) -> Void
+    let restoreAllWindows: () -> Void
+    let minimizeAllWindows: () -> Void
+    let closeAllWindows: () -> Void
+    let closeAllWindowsOnDisplay: () -> Void
     let openSettings: () -> Void
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
     @State private var hoverActivationWorkItem: DispatchWorkItem?
     @State private var showExpandedControls = false
     @State private var controlsRevealWorkItem: DispatchWorkItem?
-    @State private var pressedItemID: UUID?
+    @State private var hoveredChipID: UUID?
+    @State private var showCloseAllConfirmation = false
+    @AppStorage("showChipCloseButtonOnHover") private var showChipCloseButtonOnHover = true
+    @AppStorage("confirmBeforeCloseAll") private var confirmBeforeCloseAll = true
+
+    private var expandedWidth: CGFloat {
+        let minWidth: CGFloat = 680
+        let maxWidth: CGFloat = 1100
+        return min(max(model.contentWidth + (model.contentPadding * 2), minWidth), maxWidth)
+    }
     
     init(
         openBlackWindow: @escaping () -> Void = {},
         reorganizeBlackWindows: @escaping () -> Void = {},
         restoreBlackWindow: @escaping (UUID) -> Void = { _ in },
         bringBlackWindow: @escaping (UUID) -> Void = { _ in },
+        minimizeBlackWindow: @escaping (UUID) -> Void = { _ in },
+        closeBlackWindow: @escaping (UUID) -> Void = { _ in },
+        toggleAlwaysOnTop: @escaping (UUID) -> Void = { _ in },
+        restoreAllWindows: @escaping () -> Void = {},
+        minimizeAllWindows: @escaping () -> Void = {},
+        closeAllWindows: @escaping () -> Void = {},
+        closeAllWindowsOnDisplay: @escaping () -> Void = {},
         openSettings: @escaping () -> Void = {}
     ) {
         self.openBlackWindow = openBlackWindow
         self.reorganizeBlackWindows = reorganizeBlackWindows
         self.restoreBlackWindow = restoreBlackWindow
         self.bringBlackWindow = bringBlackWindow
+        self.minimizeBlackWindow = minimizeBlackWindow
+        self.closeBlackWindow = closeBlackWindow
+        self.toggleAlwaysOnTop = toggleAlwaysOnTop
+        self.restoreAllWindows = restoreAllWindows
+        self.minimizeAllWindows = minimizeAllWindows
+        self.closeAllWindows = closeAllWindows
+        self.closeAllWindowsOnDisplay = closeAllWindowsOnDisplay
         self.openSettings = openSettings
     }
 
@@ -71,7 +101,6 @@ struct NotchCapsuleView: View {
                                             terminalItemButton(for: item)
                                         }
 
-                                        // "+" button right next to the last terminal
                                         Button(action: openBlackWindow) {
                                             Image(systemName: "plus")
                                                 .font(.system(size: 14, weight: .bold))
@@ -80,7 +109,7 @@ struct NotchCapsuleView: View {
                                                 .background(Color.white.opacity(0.1), in: Circle())
                                         }
                                         .buttonStyle(.plain)
-                                        .help("New Terminal on this Monitor")
+                                        .help("New Terminal")
                                     }
                                     .background(GeometryReader { innerGeo in
                                         // The extra 80 accounts for the padding and spaces around the ScrollView
@@ -175,6 +204,60 @@ struct NotchCapsuleView: View {
                 .allowsHitTesting(false)
             }
         }
+        .overlay(alignment: .topLeading) {
+            if showExpandedControls {
+                HStack(spacing: 6) {
+                    Button(action: openBlackWindow) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.8))
+                            .padding(8)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("New Terminal")
+
+                    Button(action: reorganizeBlackWindows) {
+                        Image(systemName: "square.grid.2x2.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.8))
+                            .padding(8)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Reorganize Terminals")
+
+                    if !model.terminalItems.isEmpty {
+                        Menu {
+                            Button("Restore All", systemImage: "arrow.up.right.square") {
+                                restoreAllWindows()
+                            }
+                            Button("Minimize All", systemImage: "rectangle.bottomthird.inset.filled") {
+                                minimizeAllWindows()
+                            }
+                            Divider()
+                            Button("Close All on This Display", systemImage: "xmark.square") {
+                                closeAllWindowsOnDisplay()
+                            }
+                            Button("Close All", systemImage: "xmark.circle", role: .destructive) {
+                                requestCloseAll()
+                            }
+                        } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(8)
+                                .contentShape(Circle())
+                        }
+                        .menuStyle(.borderlessButton)
+                        .help("Bulk actions")
+                    }
+                }
+                .padding(.leading, 10)
+                .padding(.top, model.hasPhysicalNotch ? 0 : 4)
+                .transition(.opacity)
+            }
+        }
         .overlay(alignment: .topTrailing) {
             if showExpandedControls {
                 Button(action: {
@@ -193,31 +276,9 @@ struct NotchCapsuleView: View {
                         .foregroundStyle(.white.opacity(0.8))
                         .padding(8)
                         .contentShape(Circle())
-                        .transaction { transaction in
-                            transaction.animation = nil
-                        }
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 10)
-                .padding(.top, model.hasPhysicalNotch ? 0 : 4)
-                .transition(.opacity)
-            }
-        }
-        .overlay(alignment: .topLeading) {
-            if showExpandedControls {
-                Button(action: reorganizeBlackWindows) {
-                    Image(systemName: "square.grid.2x2.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .padding(8)
-                        .contentShape(Circle())
-                        .transaction { transaction in
-                            transaction.animation = nil
-                        }
-                }
-                .buttonStyle(.plain)
-                .help("Reorganize Terminals")
-                .padding(.leading, 10)
                 .padding(.top, model.hasPhysicalNotch ? 0 : 4)
                 .transition(.opacity)
             }
@@ -261,7 +322,13 @@ struct NotchCapsuleView: View {
                 model.isHoveringItem = isHovering
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(
+            width: model.isExpanded 
+                ? expandedWidth + (model.hasPhysicalNotch ? 28 : 0) // 28 = 14 * 2 (shoulder radius expanded) 
+                : model.closedSize.width + (model.hasPhysicalNotch ? 12 : 0), // 12 = 6 * 2 (shoulder radius collapsed)
+            height: model.isExpanded ? 160 : model.closedSize.height,
+            alignment: .top
+        )
         .background {
             // Draw the shadow on a decoupled background shape that expressly ignores mouse clicks.
             // This prevents the 42px shadow bounds from stealing clicks from windows below the Notch.
@@ -273,6 +340,18 @@ struct NotchCapsuleView: View {
         // Ensure the entire Notch expanding structure is anchored to the top of the NSPanel
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(expansionAnimation, value: model.isExpanded)
+        .alert("Close all terminals?", isPresented: $showCloseAllConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Close All", role: .destructive) {
+                closeAllWindows()
+            }
+            Button("Close All and don't ask again", role: .destructive) {
+                confirmBeforeCloseAll = false
+                closeAllWindows()
+            }
+        } message: {
+            Text("Close \(model.terminalItems.count) terminals?")
+        }
     }
 
     // MARK: - Subviews
@@ -280,27 +359,68 @@ struct NotchCapsuleView: View {
     @ViewBuilder
     private func terminalItemButton(for item: TerminalWindowItem) -> some View {
         Button(action: {
+            if NSApp.currentEvent?.modifierFlags.contains(.option) == true {
+                closeBlackWindow(item.id)
+                return
+            }
             hoveredMinimizedItemID = nil
             pendingHoverItemID = nil
             hoverActivationWorkItem?.cancel()
             hoverActivationWorkItem = nil
             restoreBlackWindow(item.id)
         }) {
-            HStack(spacing: 4) {
-                if let icon = item.icon {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 10, height: 10)
-                } else {
-                    Image(systemName: "app.fill")
-                        .font(.system(size: 10, weight: .bold))
+            ZStack(alignment: .topTrailing) {
+                HStack(spacing: 4) {
+                    if let icon = item.icon {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 10, height: 10)
+                    } else {
+                        Image(systemName: "app.fill")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    Text("\(item.number)")
+                        .font(.system(size: 11, weight: .semibold))
                 }
-                Text("\(item.number)")
-                    .font(.system(size: 11, weight: .semibold))
+                if showChipCloseButtonOnHover && hoveredChipID == item.id {
+                    Button {
+                        closeBlackWindow(item.id)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundStyle(.black)
+                            .padding(3)
+                            .background(.white, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: 8, y: -8)
+                    .zIndex(2)
+                }
             }
         }
         .buttonStyle(TerminalItemButtonStyle(item: item, pendingHoverItemID: pendingHoverItemID))
+        .contextMenu {
+            Button("Restore", systemImage: "arrow.up.right.square") {
+                restoreBlackWindow(item.id)
+            }
+            .disabled(!item.isMinimized)
+
+            Button("Minimize", systemImage: "rectangle.bottomthird.inset.filled") {
+                minimizeBlackWindow(item.id)
+            }
+            .disabled(item.isMinimized)
+
+            Button(item.isAlwaysOnTop ? "Disable Always on Top" : "Always on Top", systemImage: item.isAlwaysOnTop ? "pin.slash" : "pin") {
+                toggleAlwaysOnTop(item.id)
+            }
+
+            Divider()
+
+            Button("Close", systemImage: "xmark", role: .destructive) {
+                closeBlackWindow(item.id)
+            }
+        }
         .simultaneousGesture(TapGesture(count: 2).onEnded {
             hoveredMinimizedItemID = nil
             pendingHoverItemID = nil
@@ -309,6 +429,7 @@ struct NotchCapsuleView: View {
             bringBlackWindow(item.id)
         })
         .onHover { hovering in
+            hoveredChipID = hovering ? item.id : (hoveredChipID == item.id ? nil : hoveredChipID)
             if hovering {
                 pendingHoverItemID = item.id
                 hoverActivationWorkItem?.cancel()
@@ -381,6 +502,14 @@ struct NotchCapsuleView: View {
         .padding(10)
     }
 
+    private func requestCloseAll() {
+        if confirmBeforeCloseAll {
+            showCloseAllConfirmation = true
+            return
+        }
+        closeAllWindows()
+    }
+
 
 
     // MARK: - Computed Properties
@@ -399,12 +528,7 @@ struct NotchCapsuleView: View {
     }
 
     private var expansionAnimation: Animation {
-        if model.hasPhysicalNotch {
-            // Real-notch displays: avoid spring bounce (down/up feel).
-            return .easeOut(duration: 0.18)
-        }
-        // Fake notch keeps the current spring personality.
-        return .spring(response: 0.35, dampingFraction: 0.82)
+        .spring(response: 0.35, dampingFraction: 0.82)
     }
 
     @ViewBuilder
@@ -413,7 +537,7 @@ struct NotchCapsuleView: View {
             NotchShape(
                 cornerRadius: notchCornerRadius,
                 shoulderRadius: shoulderRadius,
-                overshoot: 0.0
+                overshoot: 6.0
             )
                 .foregroundStyle(Color(red: 0, green: 0, blue: 0))
         } else {
@@ -472,8 +596,8 @@ private struct NotchCapsulePreviewHarness: View {
         previewModel.contentPadding = 14
         previewModel.fakeNotchGlowEnabled = true
         previewModel.terminalItems = [
-            TerminalWindowItem(id: UUID(), number: 1, displayID: 0, title: "NotchTerminal · ~/project", icon: nil, preview: nil, isMinimized: false),
-            TerminalWindowItem(id: UUID(), number: 2, displayID: 0, title: "NotchTerminal · ~/docs", icon: nil, preview: nil, isMinimized: true)
+            TerminalWindowItem(id: UUID(), number: 1, displayID: 0, title: "NotchTerminal · ~/project", icon: nil, preview: nil, isMinimized: false, isAlwaysOnTop: false),
+            TerminalWindowItem(id: UUID(), number: 2, displayID: 0, title: "NotchTerminal · ~/docs", icon: nil, preview: nil, isMinimized: true, isAlwaysOnTop: false)
         ]
         _model = StateObject(wrappedValue: previewModel)
     }
