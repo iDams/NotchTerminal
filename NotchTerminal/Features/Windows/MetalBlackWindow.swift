@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import MetalKit
 import SwiftTerm
+import Darwin
 
 final class InteractiveTerminalPanel: NSPanel {
     var onCommandPlus: (() -> Void)?
@@ -51,6 +52,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         let id: UUID
         var number: Int
         var displayID: CGDirectDisplayID
+        var originalDisplayID: CGDirectDisplayID
         let panel: NSPanel
         let notchTargetsProvider: () -> [NotchTarget]
         var displayTitle: String
@@ -92,6 +94,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             id: id,
             number: number,
             displayID: displayID,
+            originalDisplayID: displayID,
             panel: panel,
             notchTargetsProvider: notchTargetsProvider,
             displayTitle: "NotchTerminal",
@@ -169,6 +172,68 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
 
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func bringWindow(id: UUID, to displayID: CGDirectDisplayID) {
+        guard var instance = windows[id] else { return }
+        
+        let screens = NSScreen.screens
+        guard let targetScreen = screens.first(where: {
+            if let number = $0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
+                return CGDirectDisplayID(number.uint32Value) == displayID
+            }
+            return false
+        }) else { return }
+        
+        instance.displayID = displayID
+        
+        let usable = targetScreen.visibleFrame
+        let currentSize = instance.panel.frame.size
+        let origin = CGPoint(
+            x: usable.midX - currentSize.width / 2,
+            y: usable.midY - currentSize.height / 2
+        )
+        let newFrame = CGRect(origin: origin, size: currentSize)
+        
+        instance.expandedFrame = newFrame
+        windows[id] = instance
+        
+        instance.isMinimized = false
+        instance.panel.setFrame(newFrame, display: true, animate: false)
+        instance.panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        
+        updateContent(for: id)
+        publishTerminalItems()
+    }
+
+    func reconcileDisplays() {
+        let screens = NSScreen.screens
+        let activeDisplayIDs = Set(screens.compactMap { screen -> CGDirectDisplayID? in
+            if let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
+                return CGDirectDisplayID(number.uint32Value)
+            }
+            return nil
+        })
+        
+        guard let mainScreen = NSScreen.main ?? screens.first,
+              let mainDisplayID = (mainScreen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber).map({ CGDirectDisplayID($0.uint32Value) }) else {
+            return
+        }
+
+        for (id, instance) in windows {
+            if activeDisplayIDs.contains(instance.originalDisplayID) {
+                // Return to the original monitor if we are currently orphaned
+                if instance.displayID != instance.originalDisplayID {
+                    bringWindow(id: id, to: instance.originalDisplayID)
+                }
+            } else {
+                // Relocate to the main laptop screen if our current monitor is completely gone
+                if !activeDisplayIDs.contains(instance.displayID) {
+                    bringWindow(id: id, to: mainDisplayID)
+                }
+            }
+        }
     }
 
     func reorganizeVisibleWindows(on displayID: CGDirectDisplayID, screen: NSScreen?) {
@@ -431,11 +496,23 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     private func closeWindow(id: UUID) {
         guard let instance = windows[id] else { return }
+        if let contentView = instance.panel.contentView {
+            terminateTerminalViews(in: contentView)
+        }
         instance.panel.orderOut(nil)
         instance.panel.close()
         windows.removeValue(forKey: id)
         renumberWindows()
         publishTerminalItems()
+    }
+
+    func closeAllWindows() {
+        let ids = windows.values
+            .sorted { $0.number < $1.number }
+            .map(\.id)
+        for id in ids {
+            closeWindow(id: id)
+        }
     }
 
     /// Re-assigns sequential numbers (1, 2, 3…) to all remaining windows
@@ -476,7 +553,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func makePanel() -> NSPanel {
         let panel = InteractiveTerminalPanel(
             contentRect: CGRect(origin: .zero, size: expandedSize),
-            styleMask: [.borderless, .resizable, .titled, .fullSizeContentView],
+            styleMask: [.borderless, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -490,7 +567,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         panel.minSize = CGSize(width: 360, height: 240)
         panel.collectionBehavior = [.managed, .fullScreenAuxiliary]
         panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
+        panel.isMovableByWindowBackground = false
         panel.delegate = self
 
         panel.standardWindowButton(.closeButton)?.isHidden = true
@@ -633,6 +710,19 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
     }
 
+    func windowWillClose(_ notification: Notification) {
+        guard let panel = notification.object as? NSWindow,
+              let id = windowID(for: panel) else { return }
+
+        if let contentView = panel.contentView {
+            terminateTerminalViews(in: contentView)
+        }
+
+        windows.removeValue(forKey: id)
+        renumberWindows()
+        publishTerminalItems()
+    }
+
     private func handleDragEnd() {
         // Remove the monitor immediately
         if let monitor = dragMonitor {
@@ -660,6 +750,20 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
         for subview in view.subviews {
             refreshTerminalView(in: subview)
+        }
+    }
+
+    private func terminateTerminalViews(in view: NSView) {
+        if let terminalView = view as? DetectingLocalProcessTerminalView {
+            terminalView.terminateProcessTree()
+            return
+        }
+        if let terminalView = view as? LocalProcessTerminalView {
+            terminalView.terminate()
+            return
+        }
+        for subview in view.subviews {
+            terminateTerminalViews(in: subview)
         }
     }
 
@@ -927,9 +1031,11 @@ struct MetalBlackWindowContent: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    .frame(maxWidth: .infinity)
                     .padding(.bottom, 6)
                     .background {
-                        Color.white.opacity(0.001)
+                        WindowDragRegionView()
+                            .background(Color.white.opacity(0.001))
                             .onTapGesture(count: 2) {
                                 maximize()
                             }
@@ -965,6 +1071,10 @@ struct MetalBlackWindowContent: View {
                             if isAnimatingMinimize, let previewSnapshot {
                                 Image(nsImage: previewSnapshot)
                                     .resizable()
+                                    .frame(
+                                        width: expandedFrameSize.width,
+                                        height: expandedFrameSize.height
+                                    )
                             }
                         }
                     }
@@ -984,7 +1094,7 @@ struct MetalBlackWindowContent: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .padding(8) // Provide a generous invisible grip area (approx 8pt)
-        .background(Color.black.opacity(0.001)) // The secret sauce: invisible layer to catch mouse resize events
+        .background(isAnimatingMinimize ? Color.clear : Color.black.opacity(0.001))
         .animation(.spring(response: 0.22, dampingFraction: 0.85), value: isCompact)
     }
 
@@ -1608,6 +1718,82 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     private func shellQuotedPath(_ path: String) -> String {
         // Single-quote shell escaping compatible with zsh/bash.
         "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    // MARK: - Context Menu & Edit Actions
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = NSMenu()
+        let copyItem = NSMenuItem(title: "Copy", action: #selector(copy(_:)), keyEquivalent: "")
+        copyItem.target = self
+        menu.addItem(copyItem)
+
+        let pasteItem = NSMenuItem(title: "Paste", action: #selector(paste(_:)), keyEquivalent: "")
+        pasteItem.target = self
+        menu.addItem(pasteItem)
+
+        menu.addItem(.separator())
+        let selectAllItem = NSMenuItem(title: "Select All", action: #selector(selectAll(_:)), keyEquivalent: "")
+        selectAllItem.target = self
+        menu.addItem(selectAllItem)
+
+        menu.addItem(.separator())
+        let clearItem = NSMenuItem(title: "Clear Buffer", action: #selector(clearBuffer(_:)), keyEquivalent: "")
+        clearItem.target = self
+        menu.addItem(clearItem)
+
+        return menu
+    }
+
+    @objc func clearBuffer(_ sender: Any?) {
+        let clearCommand = Array("clear\n".utf8)
+        send(source: self, data: clearCommand[...])
+        self.window?.makeFirstResponder(self)
+    }
+
+    func terminateProcessTree() {
+        let pid = process.shellPid
+        guard pid > 0 else {
+            terminate()
+            return
+        }
+
+        // First ask the whole terminal process group to hang up and terminate.
+        _ = kill(-pid, SIGHUP)
+        _ = kill(-pid, SIGTERM)
+        _ = kill(pid, SIGTERM)
+
+        // Ensure SwiftTerm also tears down PTY and monitoring resources.
+        terminate()
+
+        // If anything survives, force kill shortly after.
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.35) {
+            _ = kill(-pid, SIGKILL)
+            _ = kill(pid, SIGKILL)
+        }
+    }
+}
+
+private struct WindowDragRegionView: NSViewRepresentable {
+    func makeNSView(context: Context) -> DragRegionNSView {
+        DragRegionNSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: DragRegionNSView, context: Context) {}
+}
+
+private final class DragRegionNSView: NSView {
+    override var mouseDownCanMoveWindow: Bool { true }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        self
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let window else { return }
+        window.performDrag(with: event)
     }
 }
 

@@ -37,6 +37,28 @@ final class NotchOverlayController {
         registerObservers()
     }
 
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+
+        if let eventMonitor {
+            NSEvent.removeMonitor(eventMonitor)
+            self.eventMonitor = nil
+        }
+
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        observers.removeAll()
+
+        closeWorkItem?.cancel()
+        closeWorkItem = nil
+        pendingShrinkWorkItems.values.forEach { $0.cancel() }
+        pendingShrinkWorkItems.removeAll()
+
+        blackWindowController.closeAllWindows()
+    }
+
     private func startEventMonitoring() {
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] _ in
             self?.lastKeyTime = Date()
@@ -64,6 +86,7 @@ final class NotchOverlayController {
             let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
                     self?.rebuildPanels()
+                    self?.blackWindowController.reconcileDisplays()
                 }
             }
             observers.append(token)
@@ -74,7 +97,8 @@ final class NotchOverlayController {
 
     private func rebuildPanels() {
         let screens = NSScreen.screens
-        let displayIDs = Set(screens.compactMap(displayID(for:)))
+        let sortedDisplays = screens.compactMap(displayID(for:))
+        let displayIDs = Set(sortedDisplays)
 
         for (displayID, panel) in panelsByDisplay where !displayIDs.contains(displayID) {
             panel.orderOut(nil)
@@ -88,6 +112,15 @@ final class NotchOverlayController {
             let hasNotch = detectNotch(on: screen)
             let model = modelsByDisplay[displayID] ?? NotchViewModel()
             model.hasPhysicalNotch = hasNotch
+            model.ownDisplayID = displayID
+            model.availableScreens = sortedDisplays
+            
+            if !sortedDisplays.indices.contains(model.activeScreenIndex) || (panelsByDisplay[displayID] == nil && model.activeScreenIndex == 0) {
+                if let idx = sortedDisplays.firstIndex(of: displayID) {
+                    model.activeScreenIndex = idx
+                }
+            }
+            
             modelsByDisplay[displayID] = model
 
             if panelsByDisplay[displayID] == nil {
@@ -113,6 +146,9 @@ final class NotchOverlayController {
                         },
                         restoreBlackWindow: { [weak self] windowID in
                             self?.blackWindowController.restoreWindow(id: windowID)
+                        },
+                        bringBlackWindow: { [weak self] windowID in
+                            self?.blackWindowController.bringWindow(id: windowID, to: displayID)
                         },
                         openSettings: { [weak self] in
                             self?.openSettings(for: displayID)
@@ -152,6 +188,9 @@ final class NotchOverlayController {
                     restoreBlackWindow: { [weak self] windowID in
                         self?.blackWindowController.restoreWindow(id: windowID)
                     },
+                    bringBlackWindow: { [weak self] windowID in
+                        self?.blackWindowController.bringWindow(id: windowID, to: displayID)
+                    },
                     openSettings: { [weak self] in
                         self?.openSettings(for: displayID)
                     }
@@ -179,8 +218,20 @@ final class NotchOverlayController {
             guard let displayID = displayID(for: screen),
                   let model = modelsByDisplay[displayID] else { continue }
 
-            let activationRect = notchActivationRect(for: screen, model: model)
-            let isHovering = activationRect.contains(cursor)
+            let visualTargetWidth = min(max(model.contentWidth + (model.contentPadding * 2), 680), 1100)
+            let currentWidth = model.isExpanded ? visualTargetWidth : collapsedNoNotchSize.width
+            let currentHeight = model.isExpanded ? 160.0 : collapsedNoNotchSize.height
+            let topInset = model.hasPhysicalNotch ? notchTopInset : noNotchTopInset
+            let activationPadding: CGFloat = model.isExpanded ? 10 : 20
+            
+            let accurateActivationRect = CGRect(
+                x: screen.frame.midX - (currentWidth / 2) - activationPadding,
+                y: screen.frame.maxY - currentHeight - topInset - activationPadding,
+                width: currentWidth + (activationPadding * 2),
+                height: currentHeight + topInset + (activationPadding * 2)
+            )
+
+            let isHovering = accurateActivationRect.contains(cursor)
             var shouldExpand = model.isExpanded
 
             if isHovering {
@@ -192,7 +243,18 @@ final class NotchOverlayController {
                     let isTyping = model.lockWhileTyping &&
                                    (lastKeyTime?.timeIntervalSinceNow ?? -10) > -1.5
 
-                    if !model.preventCloseOnMouseLeave && !isTyping && !model.isHoveringPreview {
+                    // If the mouse has physically strayed very far from the accurate bounding box (e.g. they moved down to codebase)
+                    // we forcefully tear down the hover states to avoid SwiftUI .onHover getting stuck.
+                    let isFarAway = !accurateActivationRect.insetBy(dx: -40, dy: -40).contains(cursor)
+                    
+                    if isFarAway && (model.isHoveringPreview || model.isHoveringItem) {
+                        DispatchQueue.main.async {
+                            model.isHoveringPreview = false
+                            model.isHoveringItem = false
+                        }
+                    }
+
+                    if !model.preventCloseOnMouseLeave && !isTyping && (!model.isHoveringPreview || isFarAway) {
                         shouldExpand = false
                     }
                 }
@@ -375,10 +437,8 @@ final class NotchOverlayController {
     }
 
     private func applyTerminalItems(_ items: [TerminalWindowItem]) {
-        for (displayID, model) in modelsByDisplay {
-            model.terminalItems = items
-                .filter { $0.displayID == displayID }
-                .sorted { $0.number < $1.number }
+        for (_, model) in modelsByDisplay {
+            model.terminalItems = items.sorted { $0.number < $1.number }
         }
     }
 

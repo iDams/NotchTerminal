@@ -3,6 +3,21 @@ import SwiftUI
 final class NotchViewModel: ObservableObject {
     @Published var isExpanded = false
     @Published var terminalItems: [TerminalWindowItem] = []
+    
+    // Multi-screen routing
+    @Published var ownDisplayID: CGDirectDisplayID = 0
+    @Published var availableScreens: [CGDirectDisplayID] = []
+    @Published var activeScreenIndex: Int = 0
+    var activeDisplayID: CGDirectDisplayID? {
+        guard availableScreens.indices.contains(activeScreenIndex) else { return nil }
+        return availableScreens[activeScreenIndex]
+    }
+    
+    var visibleTerminalItems: [TerminalWindowItem] {
+        guard let targetID = activeDisplayID else { return [] }
+        return terminalItems.filter { $0.displayID == targetID }
+    }
+    
     @Published var contentWidth: CGFloat = 0
 
     @Published var isHoveringPreview = false {

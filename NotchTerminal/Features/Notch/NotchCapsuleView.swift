@@ -6,24 +6,26 @@ struct NotchCapsuleView: View {
     let openBlackWindow: () -> Void
     let reorganizeBlackWindows: () -> Void
     let restoreBlackWindow: (UUID) -> Void
+    let bringBlackWindow: (UUID) -> Void
     let openSettings: () -> Void
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
     @State private var hoverActivationWorkItem: DispatchWorkItem?
     @State private var showExpandedControls = false
     @State private var controlsRevealWorkItem: DispatchWorkItem?
+    @State private var pressedItemID: UUID?
     
-
-
     init(
         openBlackWindow: @escaping () -> Void = {},
         reorganizeBlackWindows: @escaping () -> Void = {},
         restoreBlackWindow: @escaping (UUID) -> Void = { _ in },
+        bringBlackWindow: @escaping (UUID) -> Void = { _ in },
         openSettings: @escaping () -> Void = {}
     ) {
         self.openBlackWindow = openBlackWindow
         self.reorganizeBlackWindows = reorganizeBlackWindows
         self.restoreBlackWindow = restoreBlackWindow
+        self.bringBlackWindow = bringBlackWindow
         self.openSettings = openSettings
     }
 
@@ -42,7 +44,22 @@ struct NotchCapsuleView: View {
             if model.isExpanded {
                 VStack {
                     Spacer(minLength: 0)
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
+                        if model.availableScreens.count > 1 {
+                            Button(action: {
+                                if model.activeScreenIndex > 0 {
+                                    model.activeScreenIndex -= 1
+                                }
+                            }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(model.activeScreenIndex > 0 ? .white.opacity(0.8) : .white.opacity(0.2))
+                                    .frame(width: 24, height: 28)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(model.activeScreenIndex == 0)
+                        }
+
                         GeometryReader { scrollGeo in
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
@@ -50,7 +67,7 @@ struct NotchCapsuleView: View {
 
                                     // Inner HStack: terminal items + the "New" button together
                                     HStack(spacing: 8) {
-                                        ForEach(model.terminalItems) { item in
+                                        ForEach(model.visibleTerminalItems) { item in
                                             terminalItemButton(for: item)
                                         }
 
@@ -63,7 +80,7 @@ struct NotchCapsuleView: View {
                                                 .background(Color.white.opacity(0.1), in: Circle())
                                         }
                                         .buttonStyle(.plain)
-                                        .help("New Terminal")
+                                        .help("New Terminal on this Monitor")
                                     }
                                     .background(GeometryReader { innerGeo in
                                         // The extra 80 accounts for the padding and spaces around the ScrollView
@@ -91,6 +108,21 @@ struct NotchCapsuleView: View {
                                     endPoint: .trailing
                                 )
                             )
+                        }
+
+                        if model.availableScreens.count > 1 {
+                            Button(action: {
+                                if model.activeScreenIndex < model.availableScreens.count - 1 {
+                                    model.activeScreenIndex += 1
+                                }
+                            }) {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(model.activeScreenIndex < model.availableScreens.count - 1 ? .white.opacity(0.8) : .white.opacity(0.2))
+                                    .frame(width: 24, height: 28)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(model.activeScreenIndex == model.availableScreens.count - 1)
                         }
                     }
                     .opacity(showExpandedControls ? 1 : 0)
@@ -267,13 +299,15 @@ struct NotchCapsuleView: View {
                 Text("\(item.number)")
                     .font(.system(size: 11, weight: .semibold))
             }
-            .foregroundStyle(item.isMinimized ? .white.opacity(0.8) : .white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(item.isMinimized ? .white.opacity(0.12) : .white.opacity(0.24), in: Capsule())
-            .shadow(color: item.isMinimized ? .clear : .white.opacity(0.4), radius: item.isMinimized ? 0 : 4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TerminalItemButtonStyle(item: item, pendingHoverItemID: pendingHoverItemID))
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
+            hoveredMinimizedItemID = nil
+            pendingHoverItemID = nil
+            hoverActivationWorkItem?.cancel()
+            hoverActivationWorkItem = nil
+            bringBlackWindow(item.id)
+        })
         .onHover { hovering in
             if hovering {
                 pendingHoverItemID = item.id
@@ -347,6 +381,8 @@ struct NotchCapsuleView: View {
         .padding(10)
     }
 
+
+
     // MARK: - Computed Properties
 
 
@@ -384,6 +420,36 @@ struct WidthPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+// MARK: - Button Style
+
+struct TerminalItemButtonStyle: ButtonStyle {
+    let item: TerminalWindowItem
+    let pendingHoverItemID: UUID?
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(item.isMinimized ? .white.opacity(0.8) : .white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                item.isMinimized 
+                    ? .white.opacity(configuration.isPressed ? 0.45 : (pendingHoverItemID == item.id ? 0.35 : 0.24))
+                    : .white.opacity(configuration.isPressed ? 0.30 : (pendingHoverItemID == item.id ? 0.20 : 0.12)),
+                in: Capsule()
+            )
+            .shadow(color: item.isMinimized ? .clear : .white.opacity(0.4), radius: item.isMinimized ? 0 : 4)
+            .contentShape(Rectangle())
+            .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
+            .animation(.interactiveSpring(response: 0.15, dampingFraction: 0.6), value: configuration.isPressed)
+            .animation(.interactiveSpring(response: 0.15, dampingFraction: 0.6), value: pendingHoverItemID)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed {
+                    NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                }
+            }
     }
 }
 

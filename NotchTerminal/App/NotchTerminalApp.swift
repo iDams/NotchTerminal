@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var userDefaultsObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        setupEditMenu()
         applyDockIconPreference()
         userDefaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
@@ -32,7 +33,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notchController?.start()
     }
 
+    private func setupEditMenu() {
+        let mainMenu = NSMenu()
+        let editMenuItem = NSMenuItem()
+        mainMenu.addItem(editMenuItem)
+        
+        let editMenu = NSMenu(title: "Edit")
+        editMenuItem.submenu = editMenu
+        
+        // Standard macOS Edit actions. Because NotchTerminal is a LSUIElement (Accessory),
+        // we must manually provide these for Cmd+C/V/A to be routed to the focused TerminalView.
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        
+        NSApp.mainMenu = mainMenu
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
+        notchController?.stop()
         if let userDefaultsObserver {
             NotificationCenter.default.removeObserver(userDefaultsObserver)
         }
