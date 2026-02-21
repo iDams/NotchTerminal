@@ -1,10 +1,6 @@
 import SwiftUI
 import AppKit
 
-private func lang(_ trigger: Int, _ key: String) -> String {
-    LanguageManager.shared.localizedString(key)
-}
-
 private enum SettingsTab: Hashable {
     case general
     case appearance
@@ -84,9 +80,9 @@ struct GeneralSettingsView: View {
         var title: String {
             switch self {
             case .closeWindowOnly:
-                return "Close window only"
+                return "settings.closeActionMode.closeWindow".localized
             case .terminateProcessAndClose:
-                return "Terminate process and close"
+                return "settings.closeActionMode.terminateProcess".localized
             }
         }
     }
@@ -106,23 +102,26 @@ struct GeneralSettingsView: View {
     @ObservedObject private var languageManager = LanguageManager.shared
     @State private var selectedLanguage: String = LanguageManager.shared.currentLanguage
     @State private var useSystemLanguage: Bool = !LanguageManager.shared.userHasSelectedLanguage
-    @State private var languageUpdateTrigger: Int = 0
+
+    private var languageKey: String {
+        LanguageManager.shared.currentLanguage
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: languageUpdate(languageUpdateTrigger, key: "settings.language"),
-                        subtitle: languageUpdate(languageUpdateTrigger, key: "settings.language.subtitle"),
+                        title: "settings.language".localized,
+                        subtitle: "settings.language.subtitle".localized,
                         icon: "globe"
                     )
 
                     Toggle(isOn: $useSystemLanguage) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(languageUpdate(languageUpdateTrigger, key: "settings.language.system"))
+                            Text("settings.language.system".localized)
                                 .font(.body.weight(.medium))
-                            Text(languageUpdate(languageUpdateTrigger, key: "settings.language.system.subtitle"))
+                            Text("settings.language.system.subtitle".localized)
                                 .font(.footnote)
                                 .foregroundStyle(.tertiary)
                         }
@@ -131,13 +130,12 @@ struct GeneralSettingsView: View {
                         if newValue {
                             languageManager.resetToSystemLanguage()
                             selectedLanguage = languageManager.currentLanguage
-                            languageUpdateTrigger += 1
                         }
                     }
                     .padding(.vertical, 2)
 
                     if !useSystemLanguage {
-                        Picker(languageUpdate(languageUpdateTrigger, key: "settings.language"), selection: $selectedLanguage) {
+                        Picker("settings.language".localized, selection: $selectedLanguage) {
                             ForEach(languageManager.availableLanguages, id: \.code) { language in
                                 Text(language.name).tag(language.code)
                             }
@@ -146,7 +144,6 @@ struct GeneralSettingsView: View {
                         .frame(width: 210)
                         .onChange(of: selectedLanguage) { _, newValue in
                             languageManager.setLanguage(newValue)
-                            languageUpdateTrigger += 1
                         }
                     }
                 }
@@ -234,7 +231,7 @@ struct GeneralSettingsView: View {
 
                         Picker("settings.closeActionMode".localized, selection: $closeActionMode) {
                             ForEach(CloseActionDisplayMode.allCases) { mode in
-                                Text(mode.title.localized).tag(mode.rawValue)
+                                Text(mode.title).tag(mode.rawValue)
                             }
                         }
                         .pickerStyle(.menu)
@@ -246,6 +243,7 @@ struct GeneralSettingsView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
         }
+        .id(languageKey)
     }
 }
 
@@ -547,15 +545,15 @@ struct AboutSettingsView: View {
                         .padding(.top, 8)
 
                     VStack(spacing: 4) {
-                        Text("NotchTerminal")
+                        Text("settings.about.title".localized)
                             .font(.system(size: 34, weight: .bold, design: .rounded))
                         
-                        Text("Version 1.0.0")
+                        Text("settings.about.version".localized)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
 
-                    Text("A terminal emulator that lives in your notch.")
+                    Text("app.tagline".localized)
                         .font(.body)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
@@ -574,32 +572,32 @@ struct AboutSettingsView: View {
 
                 VStack(spacing: 8) {
                     AboutActionButton(
-                        title: "Check for Updates",
-                        subtitle: "Looks for newer versions",
+                        title: "settings.about.checkUpdates".localized,
+                        subtitle: "settings.about.checkUpdates.subtitle".localized,
                         systemImage: "arrow.triangle.2.circlepath"
                     ) {
                         checkForUpdatesOrOpenReleases()
                     }
 
                     AboutActionButton(
-                        title: "Release Notes",
-                        subtitle: "See what changed",
+                        title: "settings.about.releaseNotes".localized,
+                        subtitle: "settings.about.releaseNotes.subtitle".localized,
                         systemImage: "newspaper"
                     ) {
                         openURL(changelogURL)
                     }
 
                     AboutActionButton(
-                        title: "Project Website",
-                        subtitle: "Repository and documentation",
+                        title: "settings.about.website".localized,
+                        subtitle: "settings.about.website.subtitle".localized,
                         systemImage: "globe"
                     ) {
                         openURL(websiteURL)
                     }
 
                     AboutActionButton(
-                        title: "Buy Me a Coffee",
-                        subtitle: "Support development",
+                        title: "settings.about.donate".localized,
+                        subtitle: "settings.about.donate.subtitle".localized,
                         systemImage: "cup.and.saucer.fill"
                     ) {
                         openURL(donationURL)
@@ -611,14 +609,14 @@ struct AboutSettingsView: View {
                 Button {
                     showThirdPartyNotices = true
                 } label: {
-                    Label("View Third-Party Notices", systemImage: "doc.text.magnifyingglass")
+                    Label("settings.about.thirdParty".localized, systemImage: "doc.text.magnifyingglass")
                         .font(.footnote)
                 }
                 .buttonStyle(.link)
 
                 Divider()
 
-                Text("© 2026 Marco Astorga González. All rights reserved. Released as open source.")
+                Text("settings.about.copyright".localized)
                     .font(.footnote)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
@@ -728,7 +726,7 @@ struct ThirdPartyNoticesSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Third-Party Notices")
+                Text("settings.about.thirdParty".localized)
                     .font(.title3.weight(.semibold))
                 Spacer()
                 Button {
@@ -742,7 +740,7 @@ struct ThirdPartyNoticesSheet: View {
                 .help("Close")
             }
 
-            Text("Licenses and attributions used by this app.")
+            Text("settings.about.thirdParty.subtitle".localized)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
@@ -884,6 +882,7 @@ struct MarkdownTextView: NSViewRepresentable {
 struct ExperimentalSettingsView: View {
     @AppStorage("enableCRTFilter") var enableCRTFilter: Bool = false
     @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
+    @AppStorage("fakeNotchGlowTheme") var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
     @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
     @AppStorage("auroraTheme") var auroraTheme: NotchViewModel.AuroraTheme = .classic
     
@@ -928,6 +927,16 @@ struct ExperimentalSettingsView: View {
                             icon: "sun.max.trianglebadge.exclamationmark",
                             binding: $fakeNotchGlowEnabled
                         )
+                    
+                        if fakeNotchGlowEnabled {
+                            Picker("settings.fakeNotchGlowTheme".localized, selection: $fakeNotchGlowTheme) {
+                                ForEach(NotchViewModel.GlowTheme.allCases) { theme in
+                                    Text(theme.localizedName).tag(theme)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .padding(.leading, 32)
+                        }
                     }
 
                     if hasAnyNotch {
@@ -939,7 +948,7 @@ struct ExperimentalSettingsView: View {
                         )
                     
                         if auroraBackgroundEnabled {
-                            Picker("Aurora Theme", selection: $auroraTheme) {
+                            Picker("settings.auroraTheme".localized, selection: $auroraTheme) {
                                 ForEach(NotchViewModel.AuroraTheme.allCases) { theme in
                                     Text(theme.localizedName).tag(theme)
                                 }

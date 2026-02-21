@@ -3,10 +3,12 @@ import MetalKit
 struct NotchMetalEffectView: NSViewRepresentable {
     var shader: String = "notchFragment"
     var theme: NotchViewModel.AuroraTheme = .classic
+    var glowTheme: NotchViewModel.GlowTheme = .cyberpunk
 
     func makeCoordinator() -> MetalEffectRenderer {
         let renderer = MetalEffectRenderer(fragmentFunctionName: shader)
         renderer.auroraTheme = theme
+        renderer.glowTheme = glowTheme
         return renderer
     }
 
@@ -26,6 +28,7 @@ struct NotchMetalEffectView: NSViewRepresentable {
 
     func updateNSView(_ nsView: MTKView, context: Context) {
         context.coordinator.auroraTheme = theme
+        context.coordinator.glowTheme = glowTheme
     }
 }
 

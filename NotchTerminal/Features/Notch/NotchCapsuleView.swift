@@ -202,7 +202,7 @@ struct NotchCapsuleView: View {
                     // 1. Massive Inner Glow (hacia adentro)
                     // The blur creates a soft glow, but the clipShape perfectly chops off the outside
                     // so it never hits the square bounding box bounds.
-                    NotchMetalEffectView(shader: "neonBorderFragment")
+                    NotchMetalEffectView(shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme)
                         .mask {
                             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
                                 .stroke(lineWidth: model.isExpanded ? 24 : 16)
@@ -212,7 +212,7 @@ struct NotchCapsuleView: View {
                         .opacity(0.85)
 
                     // 2. The sharp neon boundary line with a gentle outward shadow
-                    NotchMetalEffectView(shader: "neonBorderFragment")
+                    NotchMetalEffectView(shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme)
                         .mask {
                             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
                                 .stroke(lineWidth: model.isExpanded ? 1.8 : 1.2)

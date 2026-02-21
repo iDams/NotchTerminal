@@ -96,7 +96,9 @@
 "settings.about.donate" = "Buy Me a Coffee";
 "settings.about.donate.subtitle" = "Support development";
 "settings.about.thirdParty" = "View Third-Party Notices";
+"settings.about.thirdParty.subtitle" = "Licenses and attributions used by this app.";
 "settings.about.copyright" = "© 2026 Marco Astorga González. All rights reserved. Released as open source.";
+"settings.auroraTheme" = "Aurora Theme";
 
 /* Actions */
 "action.restore" = "Restore";

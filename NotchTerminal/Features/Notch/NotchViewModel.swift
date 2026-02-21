@@ -43,7 +43,22 @@ final class NotchViewModel: ObservableObject {
     @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
     @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
     @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
+    @AppStorage("fakeNotchGlowTheme") var fakeNotchGlowTheme: GlowTheme = .cyberpunk
     @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
+    
+    enum GlowTheme: String, CaseIterable, Identifiable {
+        case cyberpunk, neonClassic, fire, plasma, emerald
+        var id: String { rawValue }
+        var localizedName: String {
+            switch self {
+            case .cyberpunk: return "Cyberpunk (Pink & Cyan)"
+            case .neonClassic: return "Neon Classic (Red & Blue)"
+            case .fire: return "Fire (Red & Yellow)"
+            case .plasma: return "Plasma (Purple & Blue)"
+            case .emerald: return "Emerald (Green & Yellow)"
+            }
+        }
+    }
     @AppStorage("auroraTheme") var auroraTheme: AuroraTheme = .classic
 
     enum AuroraTheme: String, CaseIterable, Identifiable {

@@ -84,32 +84,24 @@ fragment half4 blackWindowFragment(VertexOut in [[stage_in]], constant float &ti
     return half4(half3(luma), half(0.85));
 }
 
-fragment half4 neonBorderFragment(VertexOut in [[stage_in]], constant float &time [[buffer(0)]]) {
+fragment half4 neonBorderFragment(VertexOut in [[stage_in]], 
+                                  constant float &time [[buffer(0)]],
+                                  constant AuroraColors &colors [[buffer(1)]]) {
     float2 uv = in.uv;
     
-    // Increased time multiplier to make the "movimiento" much more obvious and lively
-    float t = time * 1.5;
+    // Smooth, elegant sweeping flow
+    float t = time * 0.8;
     
-    // Gradient: Orange/Red on the left, animating to Purple/Blue on the right
-    float3 colorLeft = float3(1.0, 0.35, 0.15); // Vibrant Orange/Red
-    float3 colorRight = float3(0.15, 0.45, 1.0); // Vibrant Blue
+    float flowMix = 0.5 + 0.5 * sin(uv.x * 3.1415 + t);
+    float flowMixY = 0.5 + 0.5 * cos(uv.y * 3.1415 - t * 0.5);
+    float colorMix = mix(flowMix, flowMixY, 0.5);
     
-    // Faster, wider sweep
-    float colorMix = uv.x + (sin(uv.y * 3.0 + t) * 0.3);
-    float3 baseColor = mix(colorLeft, colorRight, saturate(colorMix));
+    float3 baseColor = mix(colors.color1, colors.color2, saturate(colorMix));
     
-    // Faster moving noise/waves along the perimeter to make it feel alive
-    float wave1 = sin((uv.x * 5.0) + t * 2.0) * 0.5 + 0.5;
-    float wave2 = sin((uv.y * 6.0) - t * 1.8) * 0.5 + 0.5;
+    float pulse = 0.8 + 0.2 * sin(time * 1.5);
+    float intensityFlow = 0.8 + 0.2 * sin((uv.x * 4.0) - (time * 2.0));
     
-    // Combine waves for intensity
-    float intensity = (wave1 + wave2) * 0.5;
-    
-    // Global faster pulse
-    float pulse = 0.7 + 0.3 * sin(time * 2.0);
-    
-    // Multiply base color by the moving waves to create flowing hot-spots
-    float3 finalColor = baseColor * (0.8 + intensity * 1.2) * pulse;
+    float3 finalColor = baseColor * pulse * intensityFlow * 1.5;
     
     return half4(half3(finalColor), half(1.0));
 }

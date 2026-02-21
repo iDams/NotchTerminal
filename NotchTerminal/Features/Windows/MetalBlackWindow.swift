@@ -714,8 +714,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         if let cv = instance.panel.contentView {
             cv.wantsLayer = true
             cv.layer?.backgroundColor = .clear
-            cv.layer?.cornerRadius = isCompact ? 18 : 22
-            cv.layer?.masksToBounds = true
+            cv.layer?.cornerRadius = 0
+            cv.layer?.masksToBounds = false
         }
         instance.panel.invalidateShadow()
 
@@ -1149,6 +1149,7 @@ struct MetalBlackWindowContent: View {
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.9))
                         }
+                        .allowsHitTesting(false)
 
                         Spacer()
 

@@ -7,6 +7,7 @@ final class MetalEffectRenderer: NSObject, MTKViewDelegate {
     private var pipelineState: MTLRenderPipelineState?
     private var start = CACurrentMediaTime()
     var auroraTheme: NotchViewModel.AuroraTheme = .classic
+    var glowTheme: NotchViewModel.GlowTheme = .cyberpunk
 
     init(fragmentFunctionName: String) {
         self.fragmentFunctionName = fragmentFunctionName
@@ -58,7 +59,10 @@ final class MetalEffectRenderer: NSObject, MTKViewDelegate {
         encoder.setRenderPipelineState(pipelineState)
         encoder.setFragmentBytes([time], length: MemoryLayout<Float>.size, index: 0)
         
-        let colors = getAuroraColors(for: auroraTheme)
+        let colors = (fragmentFunctionName == "neonBorderFragment") 
+            ? getGlowColors(for: glowTheme) 
+            : getAuroraColors(for: auroraTheme)
+        
         encoder.setFragmentBytes([colors], length: MemoryLayout<AuroraColors>.stride, index: 1)
         
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
@@ -106,6 +110,21 @@ final class MetalEffectRenderer: NSObject, MTKViewDelegate {
                 color2: SIMD3(0.00, 0.40, 0.05),
                 color3: SIMD3(0.10, 0.80, 0.10)
             )
+        }
+    }
+    
+    private func getGlowColors(for theme: NotchViewModel.GlowTheme) -> AuroraColors {
+        switch theme {
+        case .cyberpunk:
+            return AuroraColors(color1: SIMD3(1.0, 0.0, 0.5), color2: SIMD3(0.0, 0.8, 1.0), color3: SIMD3(0,0,0))
+        case .neonClassic:
+            return AuroraColors(color1: SIMD3(1.0, 0.1, 0.1), color2: SIMD3(0.1, 0.2, 1.0), color3: SIMD3(0,0,0))
+        case .fire:
+            return AuroraColors(color1: SIMD3(1.0, 0.2, 0.0), color2: SIMD3(1.0, 0.8, 0.1), color3: SIMD3(0,0,0))
+        case .plasma:
+            return AuroraColors(color1: SIMD3(0.6, 0.1, 1.0), color2: SIMD3(0.1, 0.5, 1.0), color3: SIMD3(0,0,0))
+        case .emerald:
+            return AuroraColors(color1: SIMD3(0.0, 0.8, 0.4), color2: SIMD3(0.6, 1.0, 0.1), color3: SIMD3(0,0,0))
         }
     }
 }
