@@ -2,12 +2,16 @@ import Foundation
 import SwiftUI
 
 @Observable
-@MainActor
 final class LanguageManager: ObservableObject {
     static let shared = LanguageManager()
 
     private let userOverrideKey = "userLanguageOverride"
     private let supportedLanguageCodes = ["en", "es", "fr", "ja"]
+    
+    private var _updateTrigger: Int = 0
+    var updateTrigger: Int {
+        get { _updateTrigger }
+    }
 
     var currentLanguage: String {
         if let userOverride = UserDefaults.standard.string(forKey: userOverrideKey) {
@@ -32,11 +36,13 @@ final class LanguageManager: ObservableObject {
     func setLanguage(_ languageCode: String) {
         guard supportedLanguageCodes.contains(languageCode) else { return }
         UserDefaults.standard.set(languageCode, forKey: userOverrideKey)
+        _updateTrigger += 1
         objectWillChange.send()
     }
 
     func resetToSystemLanguage() {
         UserDefaults.standard.removeObject(forKey: userOverrideKey)
+        _updateTrigger += 1
         objectWillChange.send()
     }
 

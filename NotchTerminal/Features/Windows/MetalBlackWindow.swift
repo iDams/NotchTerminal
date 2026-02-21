@@ -142,7 +142,13 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
         guard !instance.isAnimatingMinimize else { return }
 
-        let targetFrame = instance.expandedFrame
+        var targetFrame = instance.expandedFrame
+        if let closedNotchFrame = notchFrame(for: instance.displayID, in: instance) {
+            // Keep restored windows a bit below the notch so they don't feel glued to it.
+            let restoreGapFromNotch: CGFloat = 22
+            let maxAllowedY = closedNotchFrame.minY - restoreGapFromNotch - targetFrame.height
+            targetFrame.origin.y = min(targetFrame.origin.y, maxAllowedY)
+        }
         // Use the displayID saved at minimize time to find the correct notch position
         let startFrame: CGRect = {
             guard let notchFrame = notchFrame(for: instance.displayID, in: instance) else {

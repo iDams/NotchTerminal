@@ -1,6 +1,10 @@
 import SwiftUI
 import AppKit
 
+private func lang(_ trigger: Int, _ key: String) -> String {
+    LanguageManager.shared.localizedString(key)
+}
+
 private enum SettingsTab: Hashable {
     case general
     case appearance
@@ -99,25 +103,26 @@ struct GeneralSettingsView: View {
     @AppStorage("confirmBeforeCloseAll") var confirmBeforeCloseAll: Bool = true
     @AppStorage("closeActionMode") var closeActionMode: String = CloseActionDisplayMode.terminateProcessAndClose.rawValue
     
-    @State private var languageManager = LanguageManager.shared
+    @ObservedObject private var languageManager = LanguageManager.shared
     @State private var selectedLanguage: String = LanguageManager.shared.currentLanguage
     @State private var useSystemLanguage: Bool = !LanguageManager.shared.userHasSelectedLanguage
+    @State private var languageUpdateTrigger: Int = 0
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
-                        title: "settings.language".localized,
-                        subtitle: "settings.language.subtitle".localized,
+                        title: languageUpdate(languageUpdateTrigger, key: "settings.language"),
+                        subtitle: languageUpdate(languageUpdateTrigger, key: "settings.language.subtitle"),
                         icon: "globe"
                     )
 
                     Toggle(isOn: $useSystemLanguage) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("settings.language.system".localized)
+                            Text(languageUpdate(languageUpdateTrigger, key: "settings.language.system"))
                                 .font(.body.weight(.medium))
-                            Text("settings.language.system.subtitle".localized)
+                            Text(languageUpdate(languageUpdateTrigger, key: "settings.language.system.subtitle"))
                                 .font(.footnote)
                                 .foregroundStyle(.tertiary)
                         }
@@ -126,12 +131,13 @@ struct GeneralSettingsView: View {
                         if newValue {
                             languageManager.resetToSystemLanguage()
                             selectedLanguage = languageManager.currentLanguage
+                            languageUpdateTrigger += 1
                         }
                     }
                     .padding(.vertical, 2)
 
                     if !useSystemLanguage {
-                        Picker("settings.language".localized, selection: $selectedLanguage) {
+                        Picker(languageUpdate(languageUpdateTrigger, key: "settings.language"), selection: $selectedLanguage) {
                             ForEach(languageManager.availableLanguages, id: \.code) { language in
                                 Text(language.name).tag(language.code)
                             }
@@ -140,6 +146,7 @@ struct GeneralSettingsView: View {
                         .frame(width: 210)
                         .onChange(of: selectedLanguage) { _, newValue in
                             languageManager.setLanguage(newValue)
+                            languageUpdateTrigger += 1
                         }
                     }
                 }
