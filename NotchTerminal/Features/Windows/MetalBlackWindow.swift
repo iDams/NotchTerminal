@@ -73,6 +73,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         var previewSnapshot: NSImage?
         var isAnimatingMinimize: Bool = false
         var currentDirectory: String = NSHomeDirectory()
+        var preferMouseReporting: Bool = false
     }
 
     private let compactSize = CGSize(width: 220, height: 220)
@@ -92,6 +93,19 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     private func defaultDisplayIcon() -> NSImage? {
         NSImage(named: "AppLogo")
+    }
+
+    private func normalizedWorkingDirectory(_ raw: String?) -> String {
+        let fallback = NSHomeDirectory()
+        let candidate = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty, candidate.hasPrefix("/"), candidate != "/" else { return fallback }
+
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: candidate, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            return fallback
+        }
+        return candidate
     }
 
     func createWindow(
@@ -130,7 +144,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             terminalFontSize: defaultTerminalFontSize(),
             previewSnapshot: nil,
             isAnimatingMinimize: false,
-            currentDirectory: session?.workingDirectory ?? NSHomeDirectory()
+            currentDirectory: normalizedWorkingDirectory(session?.workingDirectory),
+            preferMouseReporting: false
         )
 
         updateContent(for: id)
@@ -709,7 +724,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             isAnimatingMinimize: instance.isAnimatingMinimize,
             expandedFrameSize: instance.expandedFrame.size,
             previewSnapshot: instance.previewSnapshot,
-            currentDirectory: instance.currentDirectory
+            currentDirectory: instance.currentDirectory,
+            preferMouseReporting: instance.preferMouseReporting
         )
 
         if let hostingView = instance.panel.contentView as? NSHostingView<MetalBlackWindowContent> {
@@ -901,7 +917,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         windows.values.map { instance in
             TerminalSession(
                 id: instance.id,
-                workingDirectory: instance.currentDirectory,
+                workingDirectory: normalizedWorkingDirectory(instance.currentDirectory),
                 windowWidth: instance.expandedFrame.width,
                 windowHeight: instance.expandedFrame.height,
                 isDockedToNotch: instance.isMinimized,
@@ -966,11 +982,13 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             guard instance.displayTitle != newTitle || instance.displayIcon !== branding.icon else { return }
             instance.displayTitle = newTitle
             instance.displayIcon = branding.icon
+            instance.preferMouseReporting = (newTitle == "opencode")
         } else {
             // Keep branding for in-CLI slash commands, but reset when leaving the CLI.
             if trimmed == "exit" || trimmed == "quit" {
                 instance.displayTitle = "NotchTerminal"
                 instance.displayIcon = defaultDisplayIcon()
+                instance.preferMouseReporting = false
             } else if trimmed.hasPrefix("/") {
                 return
             } else if instance.displayIcon != nil {
@@ -978,6 +996,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
                 // assume we returned to the shell and clear branding.
                 instance.displayTitle = "NotchTerminal"
                 instance.displayIcon = defaultDisplayIcon()
+                instance.preferMouseReporting = false
             } else {
                 return
             }
@@ -1008,7 +1027,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         // URL decode in case of spaces etc.
         cleanPath = cleanPath.removingPercentEncoding ?? cleanPath
-        instance.currentDirectory = cleanPath
+        instance.currentDirectory = normalizedWorkingDirectory(cleanPath)
 
         windows[id] = instance
     }
@@ -1070,6 +1089,7 @@ struct MetalBlackWindowContent: View {
     let expandedFrameSize: CGSize
     let previewSnapshot: NSImage?
     let currentDirectory: String
+    let preferMouseReporting: Bool
     
     @AppStorage("enableCRTFilter") private var enableCRTFilter: Bool = false
     @Environment(\.controlActiveState) private var controlActiveState
@@ -1258,6 +1278,7 @@ struct MetalBlackWindowContent: View {
                                 windowNumber: windowNumber,
                                 fontSize: terminalFontSize,
                                 currentDirectory: currentDirectory,
+                                preferMouseReporting: preferMouseReporting,
                                 commandSubmitted: commandSubmitted,
                                 directoryChanged: directoryChanged
                             )
@@ -1284,6 +1305,7 @@ struct MetalBlackWindowContent: View {
                     .overlay {
                         RoundedRectangle(cornerRadius: isCompact ? 12 : 16, style: .continuous)
                             .stroke(.white.opacity(0.08), lineWidth: 1)
+                            .allowsHitTesting(false)
                     }
                 Spacer()
             }
@@ -1792,7 +1814,8 @@ private enum PortProcessService {
         isAnimatingMinimize: false,
         expandedFrameSize: CGSize(width: 820, height: 520),
         previewSnapshot: nil,
-        currentDirectory: "/Users/marco/project"
+        currentDirectory: "/Users/marco/project",
+        preferMouseReporting: false
     )
     .frame(width: 860, height: 560)
     .padding()
@@ -1832,6 +1855,7 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     var commandSubmitted: ((String) -> Void)?
     private var currentInputLine = ""
     private var isInLiveResize = false
+    private var wheelMonitor: Any?
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
@@ -1899,6 +1923,17 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
         isInLiveResize = true
     }
 
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        installWheelForwardMonitorIfNeeded()
+    }
+
+    deinit {
+        if let wheelMonitor {
+            NSEvent.removeMonitor(wheelMonitor)
+        }
+    }
+
     override func viewDidEndLiveResize() {
         isInLiveResize = false
         super.viewDidEndLiveResize()
@@ -1953,6 +1988,58 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     private func shellQuotedPath(_ path: String) -> String {
         // Single-quote shell escaping compatible with zsh/bash.
         "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    private func installWheelForwardMonitorIfNeeded() {
+        guard wheelMonitor == nil else { return }
+
+        wheelMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            guard let self else {
+                return event
+            }
+
+            guard self.allowMouseReporting else { return event }
+            let terminal = self.getTerminal()
+            guard terminal.mouseMode != .off else { return event }
+
+            let point: CGPoint = {
+                if event.window === self.window {
+                    return self.convert(event.locationInWindow, from: nil)
+                }
+                if let window = self.window {
+                    return self.convert(window.mouseLocationOutsideOfEventStream, from: nil)
+                }
+                return .init(x: -1, y: -1)
+            }()
+            guard self.bounds.contains(point) else { return event }
+
+            let delta = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : event.deltaY
+            guard delta != 0 else { return event }
+
+            let cols = max(1, terminal.cols)
+            let rows = max(1, terminal.rows)
+            let cellWidth = max(1.0, self.bounds.width / CGFloat(cols))
+            let cellHeight = max(1.0, self.bounds.height / CGFloat(rows))
+            let col = max(0, min(cols - 1, Int(point.x / cellWidth)))
+            let rowFromTop = Int((self.bounds.height - point.y) / cellHeight)
+            let row = max(0, min(rows - 1, rowFromTop))
+
+            let flags = event.modifierFlags
+            let button = delta > 0 ? 4 : 5
+            let buttonFlags = terminal.encodeButton(
+                button: button,
+                release: false,
+                shift: flags.contains(.shift),
+                meta: flags.contains(.option),
+                control: flags.contains(.control)
+            )
+            terminal.sendEvent(buttonFlags: buttonFlags, x: col, y: row, pixelX: Int(point.x), pixelY: Int(point.y))
+            return event
+        }
+    }
+
+    func ensureWheelForwardingMonitor() {
+        installWheelForwardMonitorIfNeeded()
     }
 
     // MARK: - Context Menu & Edit Actions
@@ -2072,6 +2159,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
     let windowNumber: Int
     let fontSize: CGFloat
     let currentDirectory: String
+    let preferMouseReporting: Bool
     let commandSubmitted: (String) -> Void
     let directoryChanged: (String) -> Void
 
@@ -2081,6 +2169,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> LocalProcessTerminalView {
         let terminal = DetectingLocalProcessTerminalView(frame: .zero)
+        terminal.ensureWheelForwardingMonitor()
         terminal.commandSubmitted = commandSubmitted
         terminal.registerForDraggedTypes([.fileURL])
         terminal.processDelegate = context.coordinator
@@ -2088,10 +2177,11 @@ struct SwiftTermContainerView: NSViewRepresentable {
         terminal.font = preferredTerminalFont(size: fontSize)
         terminal.nativeBackgroundColor = .black
         terminal.nativeForegroundColor = .white
+        terminal.allowMouseReporting = true
         terminal.wantsLayer = true
         terminal.layer?.backgroundColor = NSColor.black.cgColor
         context.coordinator.windowNumber = windowNumber
-        context.coordinator.currentDirectory = currentDirectory
+        context.coordinator.currentDirectory = Self.validatedWorkingDirectory(currentDirectory)
         context.coordinator.tryStartProcessIfNeeded(on: terminal)
         DispatchQueue.main.async {
             terminal.window?.makeFirstResponder(terminal)
@@ -2101,7 +2191,10 @@ struct SwiftTermContainerView: NSViewRepresentable {
 
     func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
         nsView.font = preferredTerminalFont(size: fontSize)
+        nsView.allowMouseReporting = true
+        (nsView as? DetectingLocalProcessTerminalView)?.ensureWheelForwardingMonitor()
         context.coordinator.windowNumber = windowNumber
+        context.coordinator.currentDirectory = Self.validatedWorkingDirectory(currentDirectory)
         context.coordinator.tryStartProcessIfNeeded(on: nsView)
         if nsView.window?.firstResponder !== nsView {
             DispatchQueue.main.async {
@@ -2129,7 +2222,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
                 terminal.startProcess(
                     executable: shell,
                     args: ["-l"],
-                    currentDirectory: currentDirectory
+                    currentDirectory: SwiftTermContainerView.validatedWorkingDirectory(currentDirectory)
                 )
                 processStarted = true
                 return
@@ -2153,6 +2246,18 @@ struct SwiftTermContainerView: NSViewRepresentable {
             }
         }
         func processTerminated(source: TerminalView, exitCode: Int32?) {}
+    }
+
+    private static func validatedWorkingDirectory(_ raw: String) -> String {
+        let fallback = NSHomeDirectory()
+        let candidate = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty, candidate.hasPrefix("/"), candidate != "/" else { return fallback }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: candidate, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            return fallback
+        }
+        return candidate
     }
 
     private func preferredTerminalFont(size: CGFloat) -> NSFont {
