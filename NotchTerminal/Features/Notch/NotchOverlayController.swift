@@ -112,31 +112,12 @@ final class NotchOverlayController {
         let descriptor = FetchDescriptor<TerminalSession>()
         if let sessions = try? modelContext.fetch(descriptor), !sessions.isEmpty {
             for session in sessions {
-                let displayIDToUse: CGDirectDisplayID = {
-                    if let parsed = UInt32(session.lastKnownDisplayID) {
-                        return CGDirectDisplayID(parsed)
-                    }
-                    return CGMainDisplayID()
-                }()
+                let displayIDToUse = displayID(from: session.lastKnownDisplayID)
                 blackWindowController.createWindow(
                     displayID: displayIDToUse,
                     anchorScreen: screen(forDisplayID: displayIDToUse),
                     session: session,
-                    notchTargetsProvider: { [weak self] in
-                        guard let self else { return [] }
-                        return self.panelsByDisplay.compactMap { key, _ in
-                            guard let screen = self.screen(forDisplayID: key),
-                                  let model = self.modelsByDisplay[key] else { return nil }
-                            
-                            let size = model.closedSize
-                            let topInset: CGFloat = model.hasPhysicalNotch ? self.notchTopInset : self.noNotchTopInset
-                            let origin = CGPoint(
-                                x: screen.frame.midX - size.width / 2.0,
-                                y: screen.frame.maxY - size.height - topInset
-                            )
-                            return MetalBlackWindowsManager.NotchTarget(displayID: key, frame: CGRect(origin: origin, size: size))
-                        }
-                    }
+                    notchTargetsProvider: { [weak self] in self?.notchTargets() ?? [] }
                 )
                 if session.isDockedToNotch {
                     blackWindowController.minimizeWindow(id: session.id)
@@ -188,10 +169,7 @@ final class NotchOverlayController {
 
         for name in names {
             let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                DispatchQueue.main.async { [weak self] in
-                    self?.rebuildPanels()
-                    self?.blackWindowController.reconcileDisplays()
-                }
+                self?.handleScreenConfigurationChange()
             }
             observers.append(token)
         }
@@ -387,7 +365,7 @@ final class NotchOverlayController {
             let visualTargetWidth = min(max(model.contentWidth + (model.contentPadding * 2), 680), 1100)
             let currentWidth = model.isExpanded ? visualTargetWidth : collapsedNoNotchSize.width
             let currentHeight = model.isExpanded ? 160.0 : collapsedNoNotchSize.height
-            let topInset = topInset(for: model, isExpanded: model.isExpanded)
+            let topInset = topInset(for: model)
             let activationPadding: CGFloat = model.isExpanded ? 10 : 20
             
             let accurateActivationRect = CGRect(
@@ -559,7 +537,7 @@ final class NotchOverlayController {
         return virtual.insetBy(dx: -18, dy: -12)
     }
 
-    private func topInset(for model: NotchViewModel, isExpanded: Bool) -> CGFloat {
+    private func topInset(for model: NotchViewModel) -> CGFloat {
         if model.hasPhysicalNotch {
             return notchTopInset
         }
@@ -583,24 +561,7 @@ final class NotchOverlayController {
         blackWindowController.createWindow(
             displayID: displayID,
             anchorScreen: screen(forDisplayID: displayID),
-            notchTargetsProvider: { [weak self] in
-                guard let self else { return [] }
-                return self.panelsByDisplay.compactMap { key, panel in
-                    guard let screen = self.screen(forDisplayID: key),
-                          let model = self.modelsByDisplay[key] else { return nil }
-                    
-                    let size = model.closedSize
-                    // Match top inset logic for unexpanded notch
-                    let topInset: CGFloat = model.hasPhysicalNotch ? self.notchTopInset : self.noNotchTopInset
-                    let origin = CGPoint(
-                        x: screen.frame.midX - size.width / 2.0,
-                        y: screen.frame.maxY - size.height - topInset
-                    )
-                    
-                    let closedFrame = CGRect(origin: origin, size: size)
-                    return MetalBlackWindowsManager.NotchTarget(displayID: key, frame: closedFrame)
-                }
-            }
+            notchTargetsProvider: { [weak self] in self?.notchTargets() ?? [] }
         )
     }
 
@@ -621,8 +582,9 @@ final class NotchOverlayController {
     }
 
     private func applyTerminalItems(_ items: [TerminalWindowItem]) {
+        let sortedItems = items.sorted { $0.number < $1.number }
         for (_, model) in modelsByDisplay {
-            model.terminalItems = items.sorted { $0.number < $1.number }
+            model.terminalItems = sortedItems
         }
     }
 
@@ -682,6 +644,33 @@ final class NotchOverlayController {
     private func unpinDisplayExpanded(_ displayID: CGDirectDisplayID) {
         pinnedExpandedDisplays.remove(displayID)
         layoutPanels(animated: false, displays: [displayID])
+    }
+
+    private func handleScreenConfigurationChange() {
+        DispatchQueue.main.async { [weak self] in
+            self?.rebuildPanels()
+            self?.blackWindowController.reconcileDisplays()
+        }
+    }
+
+    private func displayID(from raw: String) -> CGDirectDisplayID {
+        guard let parsed = UInt32(raw) else { return CGMainDisplayID() }
+        return CGDirectDisplayID(parsed)
+    }
+
+    private func notchTargets() -> [MetalBlackWindowsManager.NotchTarget] {
+        panelsByDisplay.compactMap { key, _ in
+            guard let screen = screen(forDisplayID: key),
+                  let model = modelsByDisplay[key] else { return nil }
+
+            let size = model.closedSize
+            let topInset: CGFloat = model.hasPhysicalNotch ? notchTopInset : noNotchTopInset
+            let origin = CGPoint(
+                x: screen.frame.midX - size.width / 2.0,
+                y: screen.frame.maxY - size.height - topInset
+            )
+            return MetalBlackWindowsManager.NotchTarget(displayID: key, frame: CGRect(origin: origin, size: size))
+        }
     }
 
     // MARK: - Utilities

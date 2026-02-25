@@ -110,170 +110,186 @@ struct GeneralSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.language".localized,
-                        subtitle: "settings.language.subtitle".localized,
-                        icon: "globe"
-                    )
-
-                    Toggle(isOn: $useSystemLanguage) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("settings.language.system".localized)
-                                .font(.body.weight(.medium))
-                            Text("settings.language.system.subtitle".localized)
-                                .font(.footnote)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .onChange(of: useSystemLanguage) { _, newValue in
-                        if newValue {
-                            languageManager.resetToSystemLanguage()
-                            selectedLanguage = languageManager.currentLanguage
-                        }
-                    }
-                    .padding(.vertical, 2)
-
-                    if !useSystemLanguage {
-                        Picker("settings.language".localized, selection: $selectedLanguage) {
-                            ForEach(languageManager.availableLanguages, id: \.code) { language in
-                                Text(language.name).tag(language.code)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 210)
-                        .onChange(of: selectedLanguage) { _, newValue in
-                            languageManager.setLanguage(newValue)
-                        }
-                    }
-                }
-
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.system".localized,
-                        subtitle: "settings.system.subtitle".localized,
-                        icon: "macwindow"
-                    )
-
-                    ZenithPreferenceToggleRow(
-                        title: "settings.hapticFeedback".localized,
-                        subtitle: "settings.hapticFeedback.subtitle".localized,
-                        icon: "waveform.path",
-                        binding: $hapticFeedback
-                    )
-
-                    ZenithPreferenceToggleRow(
-                        title: "settings.showDockIcon".localized,
-                        subtitle: "settings.showDockIcon.subtitle".localized,
-                        icon: "dock.rectangle",
-                        binding: $showDockIcon
-                    )
-               }
-
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.automation".localized,
-                        subtitle: "settings.automation.subtitle".localized,
-                        icon: "cursorarrow.motionlines"
-                    )
-
-                    ZenithPreferenceToggleRow(
-                        title: "settings.autoOpenOnHover".localized,
-                        subtitle: "settings.autoOpenOnHover.subtitle".localized,
-                        icon: "cursorarrow.rays",
-                        binding: $autoOpenOnHover
-                    )
-
-                    ZenithPreferenceToggleRow(
-                        title: "settings.lockWhileTyping".localized,
-                        subtitle: "settings.lockWhileTyping.subtitle".localized,
-                        icon: "keyboard",
-                        binding: $lockWhileTyping
-                    )
-                }
-
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.terminalActions".localized,
-                        subtitle: "settings.terminalActions.subtitle".localized,
-                        icon: "slider.horizontal.3"
-                    )
-
-                    ZenithPreferenceToggleRow(
-                        title: "settings.showChipCloseButton".localized,
-                        subtitle: "settings.showChipCloseButton.subtitle".localized,
-                        icon: "xmark.circle",
-                        binding: $showChipCloseButtonOnHover
-                    )
-
-                    ZenithPreferenceToggleRow(
-                        title: "settings.confirmBeforeCloseAll".localized,
-                        subtitle: "settings.confirmBeforeCloseAll.subtitle".localized,
-                        icon: "exclamationmark.triangle",
-                        binding: $confirmBeforeCloseAll
-                    )
-
-                    HStack(alignment: .center, spacing: 10) {
-                        Image(systemName: "bolt.horizontal.circle")
-                            .font(.system(size: 13, weight: .semibold))
-                            .frame(width: 20, height: 20)
-                            .foregroundStyle(.secondary)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("settings.closeActionMode".localized)
-                                .font(.body.weight(.medium))
-                            Text("settings.closeActionMode.subtitle".localized)
-                                .font(.footnote)
-                                .foregroundStyle(.tertiary)
-                        }
-
-                        Spacer(minLength: 8)
-
-                        Picker("settings.closeActionMode".localized, selection: $closeActionMode) {
-                            ForEach(CloseActionDisplayMode.allCases) { mode in
-                                Text(mode.title).tag(mode.rawValue)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 210)
-                    }
-                    .padding(.vertical, 2)
-                }
-
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.dangerZone".localized,
-                        subtitle: "settings.dangerZone.subtitle".localized,
-                        icon: "exclamationmark.octagon"
-                    )
-
-                    HStack(alignment: .center, spacing: 10) {
-                        Image(systemName: "power")
-                            .font(.system(size: 13, weight: .semibold))
-                            .frame(width: 20, height: 20)
-                            .foregroundStyle(.secondary)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("settings.quitApp".localized)
-                                .font(.body.weight(.medium))
-                            Text("settings.quitApp.subtitle".localized)
-                                .font(.footnote)
-                                .foregroundStyle(.tertiary)
-                        }
-
-                        Spacer(minLength: 8)
-
-                        Button("action.quit".localized, role: .destructive) {
-                            NSApp.terminate(nil)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
+                languageSection
+                systemSection
+                automationSection
+                terminalActionsSection
+                dangerZoneSection
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
         }
         .id(languageKey)
+    }
+
+    private var languageSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.language".localized,
+                subtitle: "settings.language.subtitle".localized,
+                icon: "globe"
+            )
+
+            Toggle(isOn: $useSystemLanguage) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("settings.language.system".localized)
+                        .font(.body.weight(.medium))
+                    Text("settings.language.system.subtitle".localized)
+                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .onChange(of: useSystemLanguage) { _, newValue in
+                if newValue {
+                    languageManager.resetToSystemLanguage()
+                    selectedLanguage = languageManager.currentLanguage
+                }
+            }
+            .padding(.vertical, 2)
+
+            if !useSystemLanguage {
+                Picker("settings.language".localized, selection: $selectedLanguage) {
+                    ForEach(languageManager.availableLanguages, id: \.code) { language in
+                        Text(language.name).tag(language.code)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 210)
+                .onChange(of: selectedLanguage) { _, newValue in
+                    languageManager.setLanguage(newValue)
+                }
+            }
+        }
+    }
+
+    private var systemSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.system".localized,
+                subtitle: "settings.system.subtitle".localized,
+                icon: "macwindow"
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.hapticFeedback".localized,
+                subtitle: "settings.hapticFeedback.subtitle".localized,
+                icon: "waveform.path",
+                binding: $hapticFeedback
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.showDockIcon".localized,
+                subtitle: "settings.showDockIcon.subtitle".localized,
+                icon: "dock.rectangle",
+                binding: $showDockIcon
+            )
+        }
+    }
+
+    private var automationSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.automation".localized,
+                subtitle: "settings.automation.subtitle".localized,
+                icon: "cursorarrow.motionlines"
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.autoOpenOnHover".localized,
+                subtitle: "settings.autoOpenOnHover.subtitle".localized,
+                icon: "cursorarrow.rays",
+                binding: $autoOpenOnHover
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.lockWhileTyping".localized,
+                subtitle: "settings.lockWhileTyping.subtitle".localized,
+                icon: "keyboard",
+                binding: $lockWhileTyping
+            )
+        }
+    }
+
+    private var terminalActionsSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.terminalActions".localized,
+                subtitle: "settings.terminalActions.subtitle".localized,
+                icon: "slider.horizontal.3"
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.showChipCloseButton".localized,
+                subtitle: "settings.showChipCloseButton.subtitle".localized,
+                icon: "xmark.circle",
+                binding: $showChipCloseButtonOnHover
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.confirmBeforeCloseAll".localized,
+                subtitle: "settings.confirmBeforeCloseAll.subtitle".localized,
+                icon: "exclamationmark.triangle",
+                binding: $confirmBeforeCloseAll
+            )
+
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: "bolt.horizontal.circle")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("settings.closeActionMode".localized)
+                        .font(.body.weight(.medium))
+                    Text("settings.closeActionMode.subtitle".localized)
+                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                }
+
+                Spacer(minLength: 8)
+
+                Picker("settings.closeActionMode".localized, selection: $closeActionMode) {
+                    ForEach(CloseActionDisplayMode.allCases) { mode in
+                        Text(mode.title).tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 210)
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private var dangerZoneSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.dangerZone".localized,
+                subtitle: "settings.dangerZone.subtitle".localized,
+                icon: "exclamationmark.octagon"
+            )
+
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: "power")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("settings.quitApp".localized)
+                        .font(.body.weight(.medium))
+                    Text("settings.quitApp.subtitle".localized)
+                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                }
+
+                Spacer(minLength: 8)
+
+                Button("action.quit".localized, role: .destructive) {
+                    NSApp.terminate(nil)
+                }
+            }
+            .padding(.vertical, 2)
+        }
     }
 }
 
@@ -298,129 +314,142 @@ struct AppearanceSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.appearance.geometry".localized,
-                        subtitle: "settings.appearance.geometry.subtitle".localized,
-                        icon: "aspectratio"
-                    )
-
-                    ZenithSliderPreferenceRow(
-                        title: "settings.contentPadding".localized,
-                        subtitle: "settings.contentPadding.subtitle".localized,
-                        icon: "arrow.up.left.and.arrow.down.right",
-                        value: $contentPadding,
-                        range: 0 ... 40,
-                        step: 1,
-                        valueFormatter: { "\(Int($0))" }
-                    )
-
-                    ZenithSliderPreferenceRow(
-                        title: "settings.notchWidthOffset".localized,
-                        subtitle: "settings.notchWidthOffset.subtitle".localized,
-                        icon: "arrow.left.and.right",
-                        value: $notchWidthOffset,
-                        range: -80 ... 80,
-                        step: 1,
-                        valueFormatter: { "\(Int($0))" }
-                    )
-
-                    ZenithSliderPreferenceRow(
-                        title: "settings.notchHeightOffset".localized,
-                        subtitle: "settings.notchHeightOffset.subtitle".localized,
-                        icon: "arrow.up.and.down",
-                        value: $notchHeightOffset,
-                        range: -48 ... 48,
-                        step: 1,
-                        valueFormatter: { "\(Int($0))" }
-                    )
-                }
-
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.appearance.terminalDefaults".localized,
-                        subtitle: "settings.appearance.terminalDefaults.subtitle".localized,
-                        icon: "macwindow.on.rectangle"
-                    )
-
-                    ZenithSliderPreferenceRow(
-                        title: "settings.terminalDefaultWidth".localized,
-                        subtitle: "settings.terminalDefaultWidth.subtitle".localized,
-                        icon: "arrow.left.and.right",
-                        value: $terminalDefaultWidth,
-                        range: 400 ... 1600,
-                        step: 10,
-                        valueFormatter: { "\(Int($0))" }
-                    )
-
-                    ZenithSliderPreferenceRow(
-                        title: "settings.terminalDefaultHeight".localized,
-                        subtitle: "settings.terminalDefaultHeight.subtitle".localized,
-                        icon: "arrow.up.and.down",
-                        value: $terminalDefaultHeight,
-                        range: 200 ... 1000,
-                        step: 10,
-                        valueFormatter: { "\(Int($0))" }
-                    )
-                }
-
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.appearance.docking".localized,
-                        subtitle: "settings.appearance.docking.subtitle".localized,
-                        icon: "magnet"
-                    )
-
-                    ZenithSliderPreferenceRow(
-                        title: "settings.notchDockingSensitivity".localized,
-                        subtitle: "settings.notchDockingSensitivity.subtitle".localized,
-                        icon: "record.circle",
-                        value: $notchDockingSensitivity,
-                        range: 0 ... 100,
-                        step: 2,
-                        valueFormatter: { "\(Int($0)) pt" }
-                    )
-                }
-
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
-                        title: "settings.appearance.compactTicker".localized,
-                        subtitle: "settings.appearance.compactTicker.subtitle".localized,
-                        icon: "rectangle.compress.vertical"
-                    )
-
-                    ZenithPreferenceToggleRow(
-                        title: "settings.compactTickerEnabled".localized,
-                        subtitle: "settings.compactTickerEnabled.subtitle".localized,
-                        icon: "text.line.first.and.arrowtriangle.forward",
-                        binding: $compactTickerEnabled
-                    )
-
-                    if compactTickerEnabled {
-                        ZenithSliderPreferenceRow(
-                            title: "settings.compactTickerInterval".localized,
-                            subtitle: "settings.compactTickerInterval.subtitle".localized,
-                            icon: "timer",
-                            value: $compactTickerInterval,
-                            range: 4 ... 20,
-                            step: 1,
-                            valueFormatter: { "\(Int($0))s" }
-                        )
-
-                        ZenithSliderPreferenceRow(
-                            title: "settings.compactTickerClosedExtraWidth".localized,
-                            subtitle: "settings.compactTickerClosedExtraWidth.subtitle".localized,
-                            icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
-                            value: $compactTickerClosedExtraWidth,
-                            range: 0 ... 260,
-                            step: 2,
-                            valueFormatter: { "\(Int($0))" }
-                        )
-                    }
-                }
+                geometrySection
+                terminalDefaultsSection
+                dockingSection
+                compactTickerSection
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+        }
+    }
+
+    private var geometrySection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.appearance.geometry".localized,
+                subtitle: "settings.appearance.geometry.subtitle".localized,
+                icon: "aspectratio"
+            )
+
+            ZenithSliderPreferenceRow(
+                title: "settings.contentPadding".localized,
+                subtitle: "settings.contentPadding.subtitle".localized,
+                icon: "arrow.up.left.and.arrow.down.right",
+                value: $contentPadding,
+                range: 0 ... 40,
+                step: 1,
+                valueFormatter: { "\(Int($0))" }
+            )
+
+            ZenithSliderPreferenceRow(
+                title: "settings.notchWidthOffset".localized,
+                subtitle: "settings.notchWidthOffset.subtitle".localized,
+                icon: "arrow.left.and.right",
+                value: $notchWidthOffset,
+                range: -80 ... 80,
+                step: 1,
+                valueFormatter: { "\(Int($0))" }
+            )
+
+            ZenithSliderPreferenceRow(
+                title: "settings.notchHeightOffset".localized,
+                subtitle: "settings.notchHeightOffset.subtitle".localized,
+                icon: "arrow.up.and.down",
+                value: $notchHeightOffset,
+                range: -48 ... 48,
+                step: 1,
+                valueFormatter: { "\(Int($0))" }
+            )
+        }
+    }
+
+    private var terminalDefaultsSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.appearance.terminalDefaults".localized,
+                subtitle: "settings.appearance.terminalDefaults.subtitle".localized,
+                icon: "macwindow.on.rectangle"
+            )
+
+            ZenithSliderPreferenceRow(
+                title: "settings.terminalDefaultWidth".localized,
+                subtitle: "settings.terminalDefaultWidth.subtitle".localized,
+                icon: "arrow.left.and.right",
+                value: $terminalDefaultWidth,
+                range: 400 ... 1600,
+                step: 10,
+                valueFormatter: { "\(Int($0))" }
+            )
+
+            ZenithSliderPreferenceRow(
+                title: "settings.terminalDefaultHeight".localized,
+                subtitle: "settings.terminalDefaultHeight.subtitle".localized,
+                icon: "arrow.up.and.down",
+                value: $terminalDefaultHeight,
+                range: 200 ... 1000,
+                step: 10,
+                valueFormatter: { "\(Int($0))" }
+            )
+        }
+    }
+
+    private var dockingSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.appearance.docking".localized,
+                subtitle: "settings.appearance.docking.subtitle".localized,
+                icon: "magnet"
+            )
+
+            ZenithSliderPreferenceRow(
+                title: "settings.notchDockingSensitivity".localized,
+                subtitle: "settings.notchDockingSensitivity.subtitle".localized,
+                icon: "record.circle",
+                value: $notchDockingSensitivity,
+                range: 0 ... 100,
+                step: 2,
+                valueFormatter: { "\(Int($0)) pt" }
+            )
+        }
+    }
+
+    private var compactTickerSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.appearance.compactTicker".localized,
+                subtitle: "settings.appearance.compactTicker.subtitle".localized,
+                icon: "rectangle.compress.vertical"
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.compactTickerEnabled".localized,
+                subtitle: "settings.compactTickerEnabled.subtitle".localized,
+                icon: "text.line.first.and.arrowtriangle.forward",
+                binding: $compactTickerEnabled
+            )
+
+            if compactTickerEnabled {
+                ZenithSliderPreferenceRow(
+                    title: "settings.compactTickerInterval".localized,
+                    subtitle: "settings.compactTickerInterval.subtitle".localized,
+                    icon: "timer",
+                    value: $compactTickerInterval,
+                    range: 4 ... 20,
+                    step: 1,
+                    valueFormatter: { "\(Int($0))s" }
+                )
+
+                ZenithSliderPreferenceRow(
+                    title: "settings.compactTickerClosedExtraWidth".localized,
+                    subtitle: "settings.compactTickerClosedExtraWidth.subtitle".localized,
+                    icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
+                    value: $compactTickerClosedExtraWidth,
+                    range: 0 ... 260,
+                    step: 2,
+                    valueFormatter: { "\(Int($0))" }
+                )
+            }
         }
     }
 }
@@ -567,91 +596,11 @@ struct AboutSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                VStack(spacing: 12) {
-                    Image("AppLogo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 92, height: 92)
-                        .padding(.top, 8)
-
-                    VStack(spacing: 4) {
-                        Text("settings.about.title".localized)
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                        
-                        Text("settings.about.version".localized)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Text("app.tagline".localized)
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 24)
-                }
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.45))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                )
-
-                VStack(spacing: 8) {
-                    AboutActionButton(
-                        title: "settings.about.checkUpdates".localized,
-                        subtitle: "settings.about.checkUpdates.subtitle".localized,
-                        systemImage: "arrow.triangle.2.circlepath"
-                    ) {
-                        checkForUpdatesOrOpenReleases()
-                    }
-
-                    AboutActionButton(
-                        title: "settings.about.releaseNotes".localized,
-                        subtitle: "settings.about.releaseNotes.subtitle".localized,
-                        systemImage: "newspaper"
-                    ) {
-                        openURL(changelogURL)
-                    }
-
-                    AboutActionButton(
-                        title: "settings.about.website".localized,
-                        subtitle: "settings.about.website.subtitle".localized,
-                        systemImage: "globe"
-                    ) {
-                        openURL(websiteURL)
-                    }
-
-                    AboutActionButton(
-                        title: "settings.about.donate".localized,
-                        subtitle: "settings.about.donate.subtitle".localized,
-                        systemImage: "cup.and.saucer.fill"
-                    ) {
-                        openURL(donationURL)
-                    }
-                }
-                .padding(.horizontal, 6)
-                .padding(.top, 2)
-
-                Button {
-                    showThirdPartyNotices = true
-                } label: {
-                    Label("settings.about.thirdParty".localized, systemImage: "doc.text.magnifyingglass")
-                        .font(.footnote)
-                }
-                .buttonStyle(.link)
-
+                headerCard
+                actionsList
+                thirdPartyButton
                 Divider()
-
-                Text("settings.about.copyright".localized)
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 4)
+                copyrightText
             }
             .padding()
             .frame(maxWidth: .infinity)
@@ -665,6 +614,98 @@ struct AboutSettingsView: View {
         } message: {
             Text(openURLErrorMessage)
         }
+    }
+
+    private var headerCard: some View {
+        VStack(spacing: 12) {
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 92, height: 92)
+                .padding(.top, 8)
+
+            VStack(spacing: 4) {
+                Text("settings.about.title".localized)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+
+                Text("settings.about.version".localized)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text("app.tagline".localized)
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 24)
+        }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.45))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private var actionsList: some View {
+        VStack(spacing: 8) {
+            AboutActionButton(
+                title: "settings.about.checkUpdates".localized,
+                subtitle: "settings.about.checkUpdates.subtitle".localized,
+                systemImage: "arrow.triangle.2.circlepath"
+            ) {
+                checkForUpdatesOrOpenReleases()
+            }
+
+            AboutActionButton(
+                title: "settings.about.releaseNotes".localized,
+                subtitle: "settings.about.releaseNotes.subtitle".localized,
+                systemImage: "newspaper"
+            ) {
+                openURL(changelogURL)
+            }
+
+            AboutActionButton(
+                title: "settings.about.website".localized,
+                subtitle: "settings.about.website.subtitle".localized,
+                systemImage: "globe"
+            ) {
+                openURL(websiteURL)
+            }
+
+            AboutActionButton(
+                title: "settings.about.donate".localized,
+                subtitle: "settings.about.donate.subtitle".localized,
+                systemImage: "cup.and.saucer.fill"
+            ) {
+                openURL(donationURL)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.top, 2)
+    }
+
+    private var thirdPartyButton: some View {
+        Button {
+            showThirdPartyNotices = true
+        } label: {
+            Label("settings.about.thirdParty".localized, systemImage: "doc.text.magnifyingglass")
+                .font(.footnote)
+        }
+        .buttonStyle(.link)
+    }
+
+    private var copyrightText: some View {
+        Text("settings.about.copyright".localized)
+            .font(.footnote)
+            .foregroundStyle(.tertiary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 4)
     }
 
     private func checkForUpdatesOrOpenReleases() {
@@ -915,6 +956,30 @@ struct ExperimentalSettingsView: View {
     @AppStorage("fakeNotchGlowTheme") var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
     @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
     @AppStorage("auroraTheme") var auroraTheme: NotchViewModel.AuroraTheme = .classic
+
+    private var hasAnyNotch: Bool {
+        NSScreen.screens.contains { screen in
+            if #available(macOS 12.0, *) {
+                let left = screen.auxiliaryTopLeftArea ?? .zero
+                let right = screen.auxiliaryTopRightArea ?? .zero
+                let blockedWidth = screen.frame.width - left.width - right.width
+                return blockedWidth > 20 && min(left.height, right.height) > 0
+            }
+            return false
+        }
+    }
+
+    private var hasAnyNoNotch: Bool {
+        NSScreen.screens.contains { screen in
+            if #available(macOS 12.0, *) {
+                let left = screen.auxiliaryTopLeftArea ?? .zero
+                let right = screen.auxiliaryTopRightArea ?? .zero
+                let blockedWidth = screen.frame.width - left.width - right.width
+                return !(blockedWidth > 20 && min(left.height, right.height) > 0)
+            }
+            return true
+        }
+    }
     
     var body: some View {
         ScrollView {
@@ -929,26 +994,6 @@ struct ExperimentalSettingsView: View {
                     Text("settings.experimental.warning".localized)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-
-                    let hasAnyNotch = NSScreen.screens.contains { screen in
-                        if #available(macOS 12.0, *) {
-                            let left = screen.auxiliaryTopLeftArea ?? .zero
-                            let right = screen.auxiliaryTopRightArea ?? .zero
-                            let blockedWidth = screen.frame.width - left.width - right.width
-                            return blockedWidth > 20 && min(left.height, right.height) > 0
-                        }
-                        return false
-                    }
-                    
-                    let hasAnyNoNotch = NSScreen.screens.contains { screen in
-                        if #available(macOS 12.0, *) {
-                            let left = screen.auxiliaryTopLeftArea ?? .zero
-                            let right = screen.auxiliaryTopRightArea ?? .zero
-                            let blockedWidth = screen.frame.width - left.width - right.width
-                            return !(blockedWidth > 20 && min(left.height, right.height) > 0)
-                        }
-                        return true
-                    }
 
                     if hasAnyNoNotch {
                         ZenithPreferenceToggleRow(

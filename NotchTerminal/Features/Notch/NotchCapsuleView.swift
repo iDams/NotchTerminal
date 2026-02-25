@@ -80,118 +80,8 @@ struct NotchCapsuleView: View {
             }
 
             if model.isExpanded {
-                VStack {
-                    Spacer(minLength: 0)
-                    HStack(spacing: 8) {
-                        if model.availableScreens.count > 1 {
-                            Button(action: {
-                                if model.activeScreenIndex > 0 {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                                        model.activeScreenIndex -= 1
-                                    }
-                                }
-                            }) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(model.activeScreenIndex > 0 ? .white.opacity(0.8) : .white.opacity(0.2))
-                                    .frame(width: 24, height: 28)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(model.activeScreenIndex == 0)
-                        }
-
-                        GeometryReader { scrollGeo in
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    Spacer(minLength: 0) // Flexible spacer to push items to center
-
-                                    // Inner HStack: terminal items + the "New" button together
-                                    HStack(spacing: 8) {
-                                        ForEach(model.visibleTerminalItems) { item in
-                                            terminalItemButton(for: item)
-                                                .transition(.scale(scale: 0.8).combined(with: .opacity))
-                                        }
-
-                                        if model.activeDisplayID == model.ownDisplayID {
-                                            Button(action: openBlackWindow) {
-                                                Image(systemName: "plus")
-                                                    .font(.system(size: 14, weight: .bold))
-                                                    .foregroundStyle(.white.opacity(isHoveringPlus ? 1.0 : 0.7))
-                                                    .frame(width: 28, height: 28)
-                                                    .background(Color.white.opacity(isHoveringPlus ? 0.25 : 0.1), in: Circle())
-                                                    .scaleEffect(isHoveringPlus ? 1.1 : 1.0)
-                                                    .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.6), value: isHoveringPlus)
-                                            }
-                                            .buttonStyle(.plain)
-                                            .help("New Terminal")
-                                            .onHover { hovering in
-                                                isHoveringPlus = hovering
-                                            }
-                                        }
-                                    }
-                                    .padding(.vertical, 12)
-                                    .background(GeometryReader { innerGeo in
-                                        // The extra 80 accounts for the padding and spaces around the ScrollView
-                                        Color.clear.preference(key: WidthPreferenceKey.self, value: innerGeo.size.width + 80)
-                                    })
-
-                                    Spacer(minLength: 0) // Flexible spacer to push items to center
-                                }
-                                .padding(.horizontal, 16) // Extra padding to keep items away from the fading edges
-                                // Force the internal HStack to fill the ScrollView so the Spacers work correctly
-                                .frame(minWidth: scrollGeo.size.width)
-                                .transaction { transaction in
-                                    transaction.animation = nil
-                                }
-                            }
-                            .mask(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: .clear, location: 0),
-                                        .init(color: Color(red: 0, green: 0, blue: 0), location: 0.08),
-                                        .init(color: Color(red: 0, green: 0, blue: 0), location: 0.92),
-                                        .init(color: .clear, location: 1)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                        }
-
-                        if model.availableScreens.count > 1 {
-                            Button(action: {
-                                if model.activeScreenIndex < model.availableScreens.count - 1 {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                                        model.activeScreenIndex += 1
-                                    }
-                                }
-                            }) {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(model.activeScreenIndex < model.availableScreens.count - 1 ? .white.opacity(0.8) : .white.opacity(0.2))
-                                    .frame(width: 24, height: 28)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(model.activeScreenIndex == model.availableScreens.count - 1)
-                        }
-                    }
-                    .opacity(showExpandedControls ? 1 : 0)
-                    .allowsHitTesting(showExpandedControls)
-                    .padding(.horizontal, model.contentPadding)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity)
-                    .onPreferenceChange(WidthPreferenceKey.self) { width in
-                        DispatchQueue.main.async {
-                            model.contentWidth = width
-                        }
-                    }
-                    if model.hasPhysicalNotch {
-                        Spacer().frame(height: 24)
-                    } else {
-                        Spacer().frame(height: 30)
-                    }
-                }
-                .transition(.opacity)
+                expandedTerminalControls
+                    .transition(.opacity)
             }
         }
         .mask(notchBackgroundMaskGroup)
@@ -225,78 +115,8 @@ struct NotchCapsuleView: View {
                 .allowsHitTesting(false)
             }
         }
-        .overlay(alignment: .topLeading) {
-            if showExpandedControls {
-                HStack(spacing: 6) {
-                    Button(action: reorganizeBlackWindows) {
-                        Image(systemName: "square.grid.2x2.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.8))
-                            .padding(8)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Reorganize Terminals")
-
-                    if !model.terminalItems.isEmpty {
-                        Menu {
-                            Button("Restore All", systemImage: "arrow.up.right.square") {
-                                restoreAllWindows()
-                            }
-                            Button("Minimize All", systemImage: "rectangle.bottomthird.inset.filled") {
-                                minimizeAllWindows()
-                            }
-                            Divider()
-                            Button("Close All on This Display", systemImage: "xmark.square") {
-                                closeAllWindowsOnDisplay()
-                            }
-                            Button("Close All", systemImage: "xmark.circle", role: .destructive) {
-                                requestCloseAll()
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle.fill")
-                                .font(.system(size: 13, weight: .semibold))
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundColor(.white.opacity(0.8))
-                                .padding(8)
-                                .contentShape(Circle())
-                        }
-                        .menuStyle(.borderlessButton)
-                        .menuIndicator(.hidden)
-                        .tint(.white)
-                        .help("Bulk actions")
-                    }
-                }
-                .padding(.leading, 10)
-                .padding(.top, model.hasPhysicalNotch ? 10 : (model.closedSize.height - 24) / 2)
-                .transition(.opacity)
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if showExpandedControls {
-                Button(action: {
-                    NSApp.activate(ignoringOtherApps: true)
-                    for window in NSApp.windows where window.title == "Settings" || window.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" {
-                        window.makeKeyAndOrderFront(nil)
-                    }
-                    if #available(macOS 14.0, *) {
-                        openSettingsNative()
-                    } else {
-                        openSettings()
-                    }
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .padding(8)
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, 10)
-                .padding(.top, model.hasPhysicalNotch ? 10 : (model.closedSize.height - 24) / 2)
-                .transition(.opacity)
-            }
-        }
+        .overlay(alignment: .topLeading) { topLeadingControls }
+        .overlay(alignment: .topTrailing) { topTrailingControls }
         .onAppear {
             showExpandedControls = model.isExpanded
         }
@@ -337,9 +157,7 @@ struct NotchCapsuleView: View {
             }
         }
         .frame(
-            width: model.isExpanded 
-                ? expandedWidth + (model.hasPhysicalNotch ? 28 : 0) // 28 = 14 * 2 (shoulder radius expanded) 
-                : model.closedSize.width + (model.hasPhysicalNotch ? 12 : 0), // 12 = 6 * 2 (shoulder radius collapsed)
+            width: capsuleWidth,
             height: model.isExpanded ? 160 : model.closedSize.height,
             alignment: .top
         )
@@ -531,6 +349,192 @@ struct NotchCapsuleView: View {
         closeAllWindows()
     }
 
+    @ViewBuilder
+    private var expandedTerminalControls: some View {
+        VStack {
+            Spacer(minLength: 0)
+            HStack(spacing: 8) {
+                if model.availableScreens.count > 1 {
+                    Button(action: { shiftActiveScreen(delta: -1) }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(model.activeScreenIndex > 0 ? .white.opacity(0.8) : .white.opacity(0.2))
+                            .frame(width: 24, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(model.activeScreenIndex == 0)
+                }
+
+                expandedScrollContent
+
+                if model.availableScreens.count > 1 {
+                    Button(action: { shiftActiveScreen(delta: 1) }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(model.activeScreenIndex < model.availableScreens.count - 1 ? .white.opacity(0.8) : .white.opacity(0.2))
+                            .frame(width: 24, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(model.activeScreenIndex == model.availableScreens.count - 1)
+                }
+            }
+            .opacity(showExpandedControls ? 1 : 0)
+            .allowsHitTesting(showExpandedControls)
+            .padding(.horizontal, model.contentPadding)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .onPreferenceChange(WidthPreferenceKey.self) { width in
+                DispatchQueue.main.async {
+                    model.contentWidth = width
+                }
+            }
+
+            Spacer().frame(height: bottomExpandedSpacerHeight)
+        }
+    }
+
+    private var expandedScrollContent: some View {
+        GeometryReader { scrollGeo in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    Spacer(minLength: 0)
+
+                    HStack(spacing: 8) {
+                        ForEach(model.visibleTerminalItems) { item in
+                            terminalItemButton(for: item)
+                                .transition(.scale(scale: 0.8).combined(with: .opacity))
+                        }
+
+                        if model.activeDisplayID == model.ownDisplayID {
+                            Button(action: openBlackWindow) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(.white.opacity(isHoveringPlus ? 1.0 : 0.7))
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.white.opacity(isHoveringPlus ? 0.25 : 0.1), in: Circle())
+                                    .scaleEffect(isHoveringPlus ? 1.1 : 1.0)
+                                    .animation(.interactiveSpring(response: 0.25, dampingFraction: 0.6), value: isHoveringPlus)
+                            }
+                            .buttonStyle(.plain)
+                            .help("New Terminal")
+                            .onHover { hovering in
+                                isHoveringPlus = hovering
+                            }
+                        }
+                    }
+                    .padding(.vertical, 12)
+                    .background(GeometryReader { innerGeo in
+                        Color.clear.preference(key: WidthPreferenceKey.self, value: innerGeo.size.width + 80)
+                    })
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 16)
+                .frame(minWidth: scrollGeo.size.width)
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
+            }
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: Color(red: 0, green: 0, blue: 0), location: 0.08),
+                        .init(color: Color(red: 0, green: 0, blue: 0), location: 0.92),
+                        .init(color: .clear, location: 1)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var topLeadingControls: some View {
+        if showExpandedControls {
+            HStack(spacing: 6) {
+                Button(action: reorganizeBlackWindows) {
+                    Image(systemName: "square.grid.2x2.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .padding(8)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Reorganize Terminals")
+
+                if !model.terminalItems.isEmpty {
+                    Menu {
+                        Button("Restore All", systemImage: "arrow.up.right.square") {
+                            restoreAllWindows()
+                        }
+                        Button("Minimize All", systemImage: "rectangle.bottomthird.inset.filled") {
+                            minimizeAllWindows()
+                        }
+                        Divider()
+                        Button("Close All on This Display", systemImage: "xmark.square") {
+                            closeAllWindowsOnDisplay()
+                        }
+                        Button("Close All", systemImage: "xmark.circle", role: .destructive) {
+                            requestCloseAll()
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(8)
+                            .contentShape(Circle())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .tint(.white)
+                    .help("Bulk actions")
+                }
+            }
+            .padding(.leading, 10)
+            .padding(.top, topControlsPaddingTop)
+            .transition(.opacity)
+        }
+    }
+
+    @ViewBuilder
+    private var topTrailingControls: some View {
+        if showExpandedControls {
+            Button(action: openSettingsWindow) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.8))
+                    .padding(8)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 10)
+            .padding(.top, topControlsPaddingTop)
+            .transition(.opacity)
+        }
+    }
+
+    private func shiftActiveScreen(delta: Int) {
+        let targetIndex = model.activeScreenIndex + delta
+        guard targetIndex >= 0, targetIndex < model.availableScreens.count else { return }
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+            model.activeScreenIndex = targetIndex
+        }
+    }
+
+    private func openSettingsWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        for window in NSApp.windows where window.title == "Settings" || window.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" {
+            window.makeKeyAndOrderFront(nil)
+        }
+        if #available(macOS 14.0, *) {
+            openSettingsNative()
+        } else {
+            openSettings()
+        }
+    }
 
 
     // MARK: - Computed Properties
@@ -538,6 +542,13 @@ struct NotchCapsuleView: View {
 
 
     private var shadowPadding: CGFloat { 42 }
+
+    private var capsuleWidth: CGFloat {
+        if model.isExpanded {
+            return expandedWidth + (model.hasPhysicalNotch ? 28 : 0)
+        }
+        return model.closedSize.width + (model.hasPhysicalNotch ? 12 : 0)
+    }
 
     private var notchCornerRadius: CGFloat {
         if model.isExpanded { return 32 }
@@ -550,6 +561,14 @@ struct NotchCapsuleView: View {
 
     private var expansionAnimation: Animation {
         .spring(response: 0.35, dampingFraction: 0.82)
+    }
+
+    private var topControlsPaddingTop: CGFloat {
+        model.hasPhysicalNotch ? 10 : (model.closedSize.height - 24) / 2
+    }
+
+    private var bottomExpandedSpacerHeight: CGFloat {
+        model.hasPhysicalNotch ? 24 : 30
     }
 
     @ViewBuilder

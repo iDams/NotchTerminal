@@ -108,6 +108,36 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         return candidate
     }
 
+    private func displayID(for screen: NSScreen) -> CGDirectDisplayID? {
+        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+            return nil
+        }
+        return CGDirectDisplayID(number.uint32Value)
+    }
+
+    private func screen(for displayID: CGDirectDisplayID) -> NSScreen? {
+        NSScreen.screens.first { screen in
+            self.displayID(for: screen) == displayID
+        }
+    }
+
+    private func dockThumbnailFrame(from sourceFrame: CGRect, notchFrame: CGRect?) -> CGRect {
+        let size = CGSize(width: 54, height: 54)
+        let origin: CGPoint
+        if let notchFrame {
+            origin = CGPoint(
+                x: notchFrame.midX - size.width / 2,
+                y: notchFrame.maxY - size.height
+            )
+        } else {
+            origin = CGPoint(
+                x: sourceFrame.midX - size.width / 2,
+                y: sourceFrame.maxY - size.height
+            )
+        }
+        return CGRect(origin: origin, size: size)
+    }
+
     func createWindow(
         displayID: CGDirectDisplayID,
         anchorScreen: NSScreen?,
@@ -122,8 +152,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         nextNumber += 1
 
         let panel = makePanel()
-        let size = session != nil ? CGSize(width: session!.windowWidth, height: session!.windowHeight) : expandedSize
-        let frame = session != nil ? frameForInitialShow(on: screen, size: size) : frameForInitialShow(on: screen, size: expandedSize)
+        let initialSize = session.map { CGSize(width: $0.windowWidth, height: $0.windowHeight) } ?? expandedSize
+        let frame = frameForInitialShow(on: screen, size: initialSize)
         panel.setFrame(frame, display: true)
 
         windows[id] = WindowInstance(
@@ -173,19 +203,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             targetFrame.origin.y = min(targetFrame.origin.y, maxAllowedY)
         }
         // Use the displayID saved at minimize time to find the correct notch position
-        let startFrame: CGRect = {
-            guard let notchFrame = notchFrame(for: instance.displayID, in: instance) else {
-                let size = CGSize(width: 54, height: 54)
-                let origin = CGPoint(x: targetFrame.midX - 27, y: targetFrame.maxY - size.height)
-                return CGRect(origin: origin, size: size)
-            }
-            let size = CGSize(width: 54, height: 54)
-            let origin = CGPoint(
-                x: notchFrame.midX - size.width / 2,
-                y: notchFrame.maxY - size.height
-            )
-            return CGRect(origin: origin, size: size)
-        }()
+        let startFrame = dockThumbnailFrame(
+            from: targetFrame,
+            notchFrame: notchFrame(for: instance.displayID, in: instance)
+        )
         instance.panel.setFrame(startFrame, display: false)
 
         instance.isAnimatingMinimize = true
@@ -242,41 +263,27 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     func restoreAllWindows() {
-        let ids = windows.values
-            .sorted { $0.number < $1.number }
-            .map(\.id)
-        for id in ids {
+        for id in orderedWindowIDs() {
             restoreWindow(id: id)
         }
     }
 
     func minimizeAllWindows() {
-        let ids = windows.values
-            .filter { !$0.isMinimized }
-            .sorted { $0.number < $1.number }
-            .map(\.id)
-        for id in ids {
+        for id in orderedWindowIDs(where: { !$0.isMinimized }) {
             minimizeWindowInternal(id: id)
         }
     }
 
     func closeAllWindows(mode: CloseActionMode? = nil) {
         let actionMode = mode ?? preferredCloseActionMode()
-        let ids = windows.values
-            .sorted { $0.number < $1.number }
-            .map(\.id)
-        for id in ids {
+        for id in orderedWindowIDs() {
             closeWindowInternal(id: id, mode: actionMode)
         }
     }
 
     func closeAllWindows(on displayID: CGDirectDisplayID, mode: CloseActionMode? = nil) {
         let actionMode = mode ?? preferredCloseActionMode()
-        let ids = windows.values
-            .filter { $0.displayID == displayID }
-            .sorted { $0.number < $1.number }
-            .map(\.id)
-        for id in ids {
+        for id in orderedWindowIDs(where: { $0.displayID == displayID }) {
             closeWindowInternal(id: id, mode: actionMode)
         }
     }
@@ -284,13 +291,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     func bringWindow(id: UUID, to displayID: CGDirectDisplayID) {
         guard var instance = windows[id] else { return }
         
-        let screens = NSScreen.screens
-        guard let targetScreen = screens.first(where: {
-            if let number = $0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
-                return CGDirectDisplayID(number.uint32Value) == displayID
-            }
-            return false
-        }) else { return }
+        guard let targetScreen = screen(for: displayID) else { return }
         
         instance.displayID = displayID
         instance.originalDisplayID = displayID
@@ -317,15 +318,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     func reconcileDisplays() {
         let screens = NSScreen.screens
-        let activeDisplayIDs = Set(screens.compactMap { screen -> CGDirectDisplayID? in
-            if let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
-                return CGDirectDisplayID(number.uint32Value)
-            }
-            return nil
-        })
+        let activeDisplayIDs = Set(screens.compactMap(displayID(for:)))
         
         guard let mainScreen = NSScreen.main ?? screens.first,
-              let mainDisplayID = (mainScreen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber).map({ CGDirectDisplayID($0.uint32Value) }) else {
+              let mainDisplayID = displayID(for: mainScreen) else {
             return
         }
 
@@ -561,19 +557,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         if let preferredTarget {
             instance.displayID = preferredTarget.displayID
         }
-        let targetFrame: CGRect = {
-            guard let notchFrame = preferredTarget?.frame ?? notchFrame(for: instance.displayID, in: instance) else {
-                let size = CGSize(width: 54, height: 54)
-                let origin = CGPoint(x: instance.panel.frame.midX - 27, y: instance.panel.frame.maxY - size.height)
-                return CGRect(origin: origin, size: size)
-            }
-            let size = CGSize(width: 54, height: 54)
-            let origin = CGPoint(
-                x: notchFrame.midX - size.width / 2,
-                y: notchFrame.maxY - size.height
-            )
-            return CGRect(origin: origin, size: size)
-        }()
+        let targetFrame = dockThumbnailFrame(
+            from: instance.panel.frame,
+            notchFrame: preferredTarget?.frame ?? notchFrame(for: instance.displayID, in: instance)
+        )
         
         instance.isAnimatingMinimize = true
         windows[id] = instance
@@ -619,12 +606,17 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         publishTerminalItems()
     }
 
+    private func orderedWindowIDs(where predicate: ((WindowInstance) -> Bool)? = nil) -> [UUID] {
+        windows.values
+            .filter { predicate?($0) ?? true }
+            .sorted { $0.number < $1.number }
+            .map(\.id)
+    }
+
     /// Re-assigns sequential numbers (1, 2, 3…) to all remaining windows
     /// sorted by their current number, so there are never gaps.
     private func renumberWindows() {
-        let sortedIDs = windows.values
-            .sorted { $0.number < $1.number }
-            .map(\.id)
+        let sortedIDs = orderedWindowIDs()
 
         for (index, id) in sortedIDs.enumerated() {
             windows[id]?.number = index + 1
@@ -635,24 +627,23 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     private func publishTerminalItems() {
         let items = windows.values
-            .map { instance in
-                // If it's not minimized, take a fresh snapshot right now
-                // so the notch preview is always up to date.
-                let currentPreview = instance.isMinimized ? instance.previewSnapshot : capturePreview(from: instance.panel)
-                
-                return TerminalWindowItem(
-                    id: instance.id,
-                    number: instance.number,
-                    displayID: instance.displayID,
-                    title: instance.displayTitle,
-                    icon: instance.displayIcon,
-                    preview: currentPreview,
-                    isMinimized: instance.isMinimized,
-                    isAlwaysOnTop: instance.isAlwaysOnTop
-                )
-            }
+            .map(makeTerminalItem(from:))
             .sorted { $0.number < $1.number }
         onTerminalItemsChanged?(items)
+    }
+
+    private func makeTerminalItem(from instance: WindowInstance) -> TerminalWindowItem {
+        let currentPreview = instance.isMinimized ? instance.previewSnapshot : capturePreview(from: instance.panel)
+        return TerminalWindowItem(
+            id: instance.id,
+            number: instance.number,
+            displayID: instance.displayID,
+            title: instance.displayTitle,
+            icon: instance.displayIcon,
+            preview: currentPreview,
+            isMinimized: instance.isMinimized,
+            isAlwaysOnTop: instance.isAlwaysOnTop
+        )
     }
 
     private func makePanel() -> NSPanel {
@@ -1010,26 +1001,24 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func handleDirectoryChanged(id: UUID, directory: String) {
         guard var instance = windows[id] else { return }
 
-        // Clean up the directory path
-        // OSC 7 often sends "file://hostname/path/to/dir"
-        var cleanPath = directory
-        if cleanPath.hasPrefix("file://") {
-             if let url = URL(string: cleanPath) {
-                 cleanPath = url.path
-             } else {
-                 // Fallback manual cleanup if URL parsing fails
-                 cleanPath = String(cleanPath.dropFirst(7))
-                 if let hostEnd = cleanPath.firstIndex(of: "/") {
-                     cleanPath = String(cleanPath[hostEnd...])
-                 }
-             }
-        }
-
-        // URL decode in case of spaces etc.
-        cleanPath = cleanPath.removingPercentEncoding ?? cleanPath
-        instance.currentDirectory = normalizedWorkingDirectory(cleanPath)
+        instance.currentDirectory = normalizedWorkingDirectory(parseDirectoryPath(directory))
 
         windows[id] = instance
+    }
+
+    private func parseDirectoryPath(_ rawDirectory: String) -> String {
+        var cleanPath = rawDirectory
+        if cleanPath.hasPrefix("file://") {
+            if let url = URL(string: cleanPath) {
+                cleanPath = url.path
+            } else {
+                cleanPath = String(cleanPath.dropFirst(7))
+                if let hostEnd = cleanPath.firstIndex(of: "/") {
+                    cleanPath = String(cleanPath[hostEnd...])
+                }
+            }
+        }
+        return cleanPath.removingPercentEncoding ?? cleanPath
     }
 
     private func preferredCloseActionMode() -> CloseActionMode {
@@ -1099,6 +1088,7 @@ struct MetalBlackWindowContent: View {
     @State private var portsMessage: String?
 
     private var cornerRadius: CGFloat { isCompact ? 18 : 22 }
+    private var terminalCornerRadius: CGFloat { isCompact ? 12 : 16 }
     private var isRunningInPreview: Bool {
         ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
     }
@@ -1117,196 +1107,12 @@ struct MetalBlackWindowContent: View {
 
             VStack(spacing: 0) {
                 if isCompact {
-                    // Compact mode: centered badge with minimal controls
-                    HStack(spacing: 6) {
-                        Button(action: closeWindow) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .frame(width: 16, height: 16)
-                                .background(.white.opacity(0.1), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Spacer()
-
-                        // Center badge: icon or name
-                        HStack(spacing: 5) {
-                            if let displayIcon {
-                                Image(nsImage: displayIcon)
-                                    .resizable()
-                                    .interpolation(.high)
-                                    .scaledToFit()
-                                    .frame(width: 16, height: 16)
-                            }
-                            Text(displayIcon != nil ? displayTitle : "NT")
-                                .font(.system(size: 10, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.85))
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(.white.opacity(0.1), in: Capsule())
-
-                        Spacer()
-
-                        Button(action: toggleCompact) {
-                            Image(systemName: "pip.exit")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .frame(width: 16, height: 16)
-                                .background(.white.opacity(0.1), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.bottom, 4)
+                    compactHeader
                 } else {
-                    // Normal mode: full controls
-                    HStack(spacing: 8) {
-                        // Left: window controls
-                        Button(action: closeWindow) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 20, height: 20)
-                                .background(.white.opacity(0.14), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Button(action: minimize) {
-                            Image(systemName: "minus")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 20, height: 20)
-                                .background(.white.opacity(0.14), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Button(action: maximize) {
-                            Image(systemName: isMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 20, height: 20)
-                                .background(.white.opacity(0.14), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Spacer()
-
-                        // Center: title
-                        HStack(spacing: 6) {
-                            if let displayIcon {
-                                Image(nsImage: displayIcon)
-                                    .resizable()
-                                    .interpolation(.high)
-                                    .scaledToFit()
-                                    .frame(width: 14, height: 14)
-                            }
-                            Text(displayTitle)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.9))
-                        }
-                        .allowsHitTesting(false)
-
-                        Spacer()
-
-                        // Right: ports + pin + compact
-                        Button {
-                            showOpenPortsPopover.toggle()
-                            if showOpenPortsPopover {
-                                refreshOpenPorts()
-                            }
-                        } label: {
-                            Image(systemName: "network")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 20, height: 20)
-                                .background(.white.opacity(0.14), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showOpenPortsPopover, arrowEdge: .bottom) {
-                            OpenPortsPopoverView(
-                                ports: openPorts,
-                                isLoading: isLoadingOpenPorts,
-                                message: portsMessage,
-                                onRefresh: { refreshOpenPorts() },
-                                onKill: { port in killPortProcess(port) }
-                            )
-                        }
-
-                        Button(action: toggleAlwaysOnTop) {
-                            Image(systemName: isAlwaysOnTop ? "pin.fill" : "pin.slash")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(isAlwaysOnTop ? .yellow : .white)
-                                .frame(width: 20, height: 20)
-                                .background((isAlwaysOnTop ? Color.yellow.opacity(0.2) : .white.opacity(0.14)), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Button(action: toggleCompact) {
-                            Image(systemName: "pip")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 20, height: 20)
-                                .background(.white.opacity(0.14), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 6)
-                    .background {
-                        WindowDragRegionView()
-                            .background(Color.white.opacity(0.001))
-                            .onTapGesture(count: 2) {
-                                maximize()
-                            }
-                    }
+                    regularHeader
                 }
 
-                Group {
-                    if isRunningInPreview {
-                        RoundedRectangle(cornerRadius: isCompact ? 12 : 16, style: .continuous)
-                            .fill(Color.black.opacity(0.94))
-                            .overlay(alignment: .topLeading) {
-                                Text("Preview Terminal")
-                                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.7))
-                                    .padding(12)
-                            }
-                    } else {
-                        ZStack {
-                            SwiftTermContainerView(
-                                windowNumber: windowNumber,
-                                fontSize: terminalFontSize,
-                                currentDirectory: currentDirectory,
-                                preferMouseReporting: preferMouseReporting,
-                                commandSubmitted: commandSubmitted,
-                                directoryChanged: directoryChanged
-                            )
-                            .modifier(CRTFilterModifier(enabled: enableCRTFilter))
-                            .opacity(isAnimatingMinimize ? 0 : 1)
-                            
-                            if isAnimatingMinimize, let previewSnapshot {
-                                GeometryReader { geo in
-                                    Image(nsImage: previewSnapshot)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: geo.size.width, height: geo.size.height)
-                                        .clipped()
-                                }
-                            }
-                        }
-                    }
-                }
-                    .clipped()
-                    .padding(.top, isCompact ? 8 : 14)
-                    .padding(.horizontal, isCompact ? 6 : 10)
-                    .padding(.bottom, isCompact ? 6 : 8)
-                    .clipShape(.rect(cornerRadius: isCompact ? 12 : 16))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: isCompact ? 12 : 16, style: .continuous)
-                            .stroke(.white.opacity(0.08), lineWidth: 1)
-                            .allowsHitTesting(false)
-                    }
+                terminalBody
                 Spacer()
             }
             .padding(10)
@@ -1314,6 +1120,184 @@ struct MetalBlackWindowContent: View {
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .background(Color.black.opacity(0.001))
         .animation(.spring(response: 0.22, dampingFraction: 0.85), value: isCompact)
+    }
+
+    private var compactHeader: some View {
+        HStack(spacing: 6) {
+            Button(action: closeWindow) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .frame(width: 16, height: 16)
+                    .background(.white.opacity(0.1), in: Circle())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            HStack(spacing: 5) {
+                if let displayIcon {
+                    Image(nsImage: displayIcon)
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                }
+                Text(displayIcon != nil ? displayTitle : "NT")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(.white.opacity(0.1), in: Capsule())
+
+            Spacer()
+
+            Button(action: toggleCompact) {
+                Image(systemName: "pip.exit")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .frame(width: 16, height: 16)
+                    .background(.white.opacity(0.1), in: Circle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.bottom, 4)
+    }
+
+    private var regularHeader: some View {
+        HStack(spacing: 8) {
+            headerButton(systemName: "xmark", action: closeWindow)
+            headerButton(systemName: "minus", action: minimize)
+            headerButton(
+                systemName: isMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
+                action: maximize
+            )
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                if let displayIcon {
+                    Image(nsImage: displayIcon)
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: 14, height: 14)
+                }
+                Text(displayTitle)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .allowsHitTesting(false)
+
+            Spacer()
+
+            networkButton
+
+            Button(action: toggleAlwaysOnTop) {
+                Image(systemName: isAlwaysOnTop ? "pin.fill" : "pin.slash")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(isAlwaysOnTop ? .yellow : .white)
+                    .frame(width: 20, height: 20)
+                    .background((isAlwaysOnTop ? Color.yellow.opacity(0.2) : .white.opacity(0.14)), in: Circle())
+            }
+            .buttonStyle(.plain)
+
+            headerButton(systemName: "pip", action: toggleCompact)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 6)
+        .background {
+            WindowDragRegionView()
+                .background(Color.white.opacity(0.001))
+                .onTapGesture(count: 2) {
+                    maximize()
+                }
+        }
+    }
+
+    private var networkButton: some View {
+        Button {
+            showOpenPortsPopover.toggle()
+            if showOpenPortsPopover {
+                refreshOpenPorts()
+            }
+        } label: {
+            Image(systemName: "network")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 20, height: 20)
+                .background(.white.opacity(0.14), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showOpenPortsPopover, arrowEdge: .bottom) {
+            OpenPortsPopoverView(
+                ports: openPorts,
+                isLoading: isLoadingOpenPorts,
+                message: portsMessage,
+                onRefresh: { refreshOpenPorts() },
+                onKill: { port in killPortProcess(port) }
+            )
+        }
+    }
+
+    private var terminalBody: some View {
+        Group {
+            if isRunningInPreview {
+                RoundedRectangle(cornerRadius: terminalCornerRadius, style: .continuous)
+                    .fill(Color.black.opacity(0.94))
+                    .overlay(alignment: .topLeading) {
+                        Text("Preview Terminal")
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .padding(12)
+                    }
+            } else {
+                ZStack {
+                    SwiftTermContainerView(
+                        windowNumber: windowNumber,
+                        fontSize: terminalFontSize,
+                        currentDirectory: currentDirectory,
+                        preferMouseReporting: preferMouseReporting,
+                        commandSubmitted: commandSubmitted,
+                        directoryChanged: directoryChanged
+                    )
+                    .modifier(CRTFilterModifier(enabled: enableCRTFilter))
+                    .opacity(isAnimatingMinimize ? 0 : 1)
+
+                    if isAnimatingMinimize, let previewSnapshot {
+                        GeometryReader { geo in
+                            Image(nsImage: previewSnapshot)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .clipped()
+                        }
+                    }
+                }
+            }
+        }
+        .clipped()
+        .padding(.top, isCompact ? 8 : 14)
+        .padding(.horizontal, isCompact ? 6 : 10)
+        .padding(.bottom, isCompact ? 6 : 8)
+        .clipShape(.rect(cornerRadius: terminalCornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: terminalCornerRadius, style: .continuous)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private func headerButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 20, height: 20)
+                .background(.white.opacity(0.14), in: Circle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func refreshOpenPorts() {
