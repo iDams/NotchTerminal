@@ -23,6 +23,8 @@
 "settings.automation.subtitle" = "Controls how and when the notch opens and closes.";
 "settings.autoOpenOnHover" = "Open notch on hover";
 "settings.autoOpenOnHover.subtitle" = "Automatically expands the notch when the cursor reaches it.";
+"settings.autoOpenOnHoverDelay" = "Hover open delay";
+"settings.autoOpenOnHoverDelay.subtitle" = "How long the cursor must remain near the notch before opening.";
 "settings.lockWhileTyping" = "Keep open while typing";
 "settings.lockWhileTyping.subtitle" = "Avoid auto-close while you are actively typing.";
 

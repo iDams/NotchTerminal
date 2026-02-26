@@ -23,8 +23,8 @@ struct NotchCapsuleView: View {
     @State private var controlsRevealWorkItem: DispatchWorkItem?
     @State private var hoveredChipID: UUID?
     @State private var isHoveringPlus = false
-    @AppStorage("showChipCloseButtonOnHover") private var showChipCloseButtonOnHover = true
-    @AppStorage("confirmBeforeCloseAll") private var confirmBeforeCloseAll = true
+    @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) private var showChipCloseButtonOnHover = AppPreferences.Defaults.showChipCloseButtonOnHover
+    @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) private var confirmBeforeCloseAll = AppPreferences.Defaults.confirmBeforeCloseAll
 
     private var expandedWidth: CGFloat {
         let minWidth: CGFloat = 680

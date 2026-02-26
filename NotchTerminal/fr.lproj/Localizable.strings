@@ -23,6 +23,8 @@
 "settings.automation.subtitle" = "Contrôle comment et quand le notch s'ouvre et se ferme.";
 "settings.autoOpenOnHover" = "Ouvrir le notch au survol";
 "settings.autoOpenOnHover.subtitle" = "Développe automatiquement le notch lorsque le curseur l'atteint.";
+"settings.autoOpenOnHoverDelay" = "Délai d'ouverture au survol";
+"settings.autoOpenOnHoverDelay.subtitle" = "Durée pendant laquelle le curseur doit rester près du notch avant l'ouverture.";
 "settings.lockWhileTyping" = "Garder ouvert pendant la saisie";
 "settings.lockWhileTyping.subtitle" = "Évite la fermeture automatique pendant que vous tapez activement.";
 

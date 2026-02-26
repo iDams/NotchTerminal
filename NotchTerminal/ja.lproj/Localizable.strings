@@ -23,6 +23,8 @@
 "settings.automation.subtitle" = "ノッチが開閉するタイミングと方法を制御します。";
 "settings.autoOpenOnHover" = "ホバー時にノッチを開く";
 "settings.autoOpenOnHover.subtitle" = "カーソルが到達すると自動的にノッチを展開します。";
+"settings.autoOpenOnHoverDelay" = "ホバー開閉ディレイ";
+"settings.autoOpenOnHoverDelay.subtitle" = "ノッチを開く前にカーソルが近くに留まる必要がある時間。";
 "settings.lockWhileTyping" = "入力中に開いたままにする";
 "settings.lockWhileTyping.subtitle" = "入力中に自動的に閉じることを防ぎます。";
 

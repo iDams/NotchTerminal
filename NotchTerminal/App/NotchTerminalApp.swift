@@ -67,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applyDockIconPreference() {
-        let showDockIcon = UserDefaults.standard.bool(forKey: "showDockIcon")
+        let showDockIcon = UserDefaults.standard.bool(forKey: AppPreferences.Keys.showDockIcon)
         _ = NSApp.setActivationPolicy(showDockIcon ? .regular : .accessory)
         if showDockIcon {
             if let appLogo = NSImage(named: "AppLogo") {

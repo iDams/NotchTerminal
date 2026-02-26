@@ -87,17 +87,18 @@ struct GeneralSettingsView: View {
         }
     }
 
-    @AppStorage("hapticFeedback") var hapticFeedback: Bool = true
-    @AppStorage("showDockIcon") var showDockIcon: Bool = false
-    @AppStorage("showCostSummary") var showCostSummary: Bool = false
-    @AppStorage("backgroundRefreshCadenceMinutes") var backgroundRefreshCadenceMinutes: Int = 5
-    @AppStorage("checkProviderStatus") var checkProviderStatus: Bool = true
-    @AppStorage("autoOpenOnHover") var autoOpenOnHover: Bool = true
-    @AppStorage("lockWhileTyping") var lockWhileTyping: Bool = true
-    @AppStorage("preventCloseOnMouseLeave") var preventCloseOnMouseLeave: Bool = false
-    @AppStorage("showChipCloseButtonOnHover") var showChipCloseButtonOnHover: Bool = true
-    @AppStorage("confirmBeforeCloseAll") var confirmBeforeCloseAll: Bool = true
-    @AppStorage("closeActionMode") var closeActionMode: String = CloseActionDisplayMode.terminateProcessAndClose.rawValue
+    @AppStorage(AppPreferences.Keys.hapticFeedback) var hapticFeedback: Bool = AppPreferences.Defaults.hapticFeedback
+    @AppStorage(AppPreferences.Keys.showDockIcon) var showDockIcon: Bool = AppPreferences.Defaults.showDockIcon
+    @AppStorage(AppPreferences.Keys.showCostSummary) var showCostSummary: Bool = AppPreferences.Defaults.showCostSummary
+    @AppStorage(AppPreferences.Keys.backgroundRefreshCadenceMinutes) var backgroundRefreshCadenceMinutes: Int = AppPreferences.Defaults.backgroundRefreshCadenceMinutes
+    @AppStorage(AppPreferences.Keys.checkProviderStatus) var checkProviderStatus: Bool = AppPreferences.Defaults.checkProviderStatus
+    @AppStorage(AppPreferences.Keys.autoOpenOnHover) var autoOpenOnHover: Bool = AppPreferences.Defaults.autoOpenOnHover
+    @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
+    @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
+    @AppStorage(AppPreferences.Keys.preventCloseOnMouseLeave) var preventCloseOnMouseLeave: Bool = AppPreferences.Defaults.preventCloseOnMouseLeave
+    @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) var showChipCloseButtonOnHover: Bool = AppPreferences.Defaults.showChipCloseButtonOnHover
+    @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) var confirmBeforeCloseAll: Bool = AppPreferences.Defaults.confirmBeforeCloseAll
+    @AppStorage(AppPreferences.Keys.closeActionMode) var closeActionMode: String = AppPreferences.Defaults.closeActionMode
     
     @ObservedObject private var languageManager = LanguageManager.shared
     @State private var selectedLanguage: String = LanguageManager.shared.currentLanguage
@@ -201,6 +202,18 @@ struct GeneralSettingsView: View {
                 binding: $autoOpenOnHover
             )
 
+            if autoOpenOnHover {
+                ZenithSliderPreferenceRow(
+                    title: "settings.autoOpenOnHoverDelay".localized,
+                    subtitle: "settings.autoOpenOnHoverDelay.subtitle".localized,
+                    icon: "timer",
+                    value: $autoOpenOnHoverDelay,
+                    range: 0.1 ... 2.0,
+                    step: 0.1,
+                    valueFormatter: { String(format: "%.1fs", $0) }
+                )
+            }
+
             ZenithPreferenceToggleRow(
                 title: "settings.lockWhileTyping".localized,
                 subtitle: "settings.lockWhileTyping.subtitle".localized,
@@ -294,17 +307,17 @@ struct GeneralSettingsView: View {
 }
 
 struct AppearanceSettingsView: View {
-    @AppStorage("contentPadding") var contentPadding: Double = 14
-    @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
-    @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
+    @AppStorage(AppPreferences.Keys.contentPadding) var contentPadding: Double = AppPreferences.Defaults.contentPadding
+    @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
+    @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
     
-    @AppStorage("terminalDefaultWidth") var terminalDefaultWidth: Double = 640
-    @AppStorage("terminalDefaultHeight") var terminalDefaultHeight: Double = 400
-    @AppStorage("notchDockingSensitivity") var notchDockingSensitivity: Double = 20
+    @AppStorage(AppPreferences.Keys.terminalDefaultWidth) var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
+    @AppStorage(AppPreferences.Keys.terminalDefaultHeight) var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
+    @AppStorage(AppPreferences.Keys.notchDockingSensitivity) var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
     
-    @AppStorage("compactTickerEnabled") var compactTickerEnabled: Bool = true
-    @AppStorage("compactTickerInterval") var compactTickerInterval: Double = 20
-    @AppStorage("compactTickerClosedExtraWidth") var compactTickerClosedExtraWidth: Double = 216
+    @AppStorage(AppPreferences.Keys.compactTickerEnabled) var compactTickerEnabled: Bool = AppPreferences.Defaults.compactTickerEnabled
+    @AppStorage(AppPreferences.Keys.compactTickerInterval) var compactTickerInterval: Double = AppPreferences.Defaults.compactTickerInterval
+    @AppStorage(AppPreferences.Keys.compactTickerClosedExtraWidth) var compactTickerClosedExtraWidth: Double = AppPreferences.Defaults.compactTickerClosedExtraWidth
     // @AppStorage does not support Codable enum RawRepresentable directly in some iOS/macOS versions easily without extension, 
     // but typically standard types work. For enums, we often cast to raw values or use specific wrappers. 
     // Since we added these as AppStorage in ViewModel, let's use the same keys but bind to local state or just use raw strings/ints if needed.
@@ -951,11 +964,11 @@ struct MarkdownTextView: NSViewRepresentable {
 }
 
 struct ExperimentalSettingsView: View {
-    @AppStorage("enableCRTFilter") var enableCRTFilter: Bool = false
-    @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
-    @AppStorage("fakeNotchGlowTheme") var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
-    @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
-    @AppStorage("auroraTheme") var auroraTheme: NotchViewModel.AuroraTheme = .classic
+    @AppStorage(AppPreferences.Keys.enableCRTFilter) var enableCRTFilter: Bool = AppPreferences.Defaults.enableCRTFilter
+    @AppStorage(AppPreferences.Keys.fakeNotchGlowEnabled) var fakeNotchGlowEnabled: Bool = AppPreferences.Defaults.fakeNotchGlowEnabled
+    @AppStorage(AppPreferences.Keys.fakeNotchGlowTheme) var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
+    @AppStorage(AppPreferences.Keys.auroraBackgroundEnabled) var auroraBackgroundEnabled: Bool = AppPreferences.Defaults.auroraBackgroundEnabled
+    @AppStorage(AppPreferences.Keys.auroraTheme) var auroraTheme: NotchViewModel.AuroraTheme = .classic
 
     private var hasAnyNotch: Bool {
         NSScreen.screens.contains { screen in

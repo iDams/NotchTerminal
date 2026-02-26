@@ -65,6 +65,7 @@ final class NotchOverlayController {
     private var globalKeyMonitor: Any?
     private var localKeyMonitor: Any?
     private var closeWorkItem: DispatchWorkItem?
+    private var pendingExpandWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
     private var pendingShrinkWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
     private var pinnedExpandedDisplays: Set<CGDirectDisplayID> = []
 
@@ -100,6 +101,8 @@ final class NotchOverlayController {
 
         closeWorkItem?.cancel()
         closeWorkItem = nil
+        pendingExpandWorkItems.values.forEach { $0.cancel() }
+        pendingExpandWorkItems.removeAll()
         pendingShrinkWorkItems.values.forEach { $0.cancel() }
         pendingShrinkWorkItems.removeAll()
         pinnedExpandedDisplays.removeAll()
@@ -355,6 +358,8 @@ final class NotchOverlayController {
                   let model = modelsByDisplay[displayID] else { continue }
 
             if pinnedExpandedDisplays.contains(displayID) {
+                pendingExpandWorkItems[displayID]?.cancel()
+                pendingExpandWorkItems.removeValue(forKey: displayID)
                 if !model.isExpanded {
                     model.isExpanded = true
                     changedDisplays.insert(displayID)
@@ -362,27 +367,23 @@ final class NotchOverlayController {
                 continue
             }
 
-            let visualTargetWidth = min(max(model.contentWidth + (model.contentPadding * 2), 680), 1100)
-            let currentWidth = model.isExpanded ? visualTargetWidth : collapsedNoNotchSize.width
-            let currentHeight = model.isExpanded ? 160.0 : collapsedNoNotchSize.height
-            let topInset = topInset(for: model)
-            let activationPadding: CGFloat = model.isExpanded ? 10 : 20
-            
-            let accurateActivationRect = CGRect(
-                x: screen.frame.midX - (currentWidth / 2) - activationPadding,
-                y: screen.frame.maxY - currentHeight - topInset - activationPadding,
-                width: currentWidth + (activationPadding * 2),
-                height: currentHeight + topInset + (activationPadding * 2)
-            )
+            let accurateActivationRect = notchActivationRect(for: screen, model: model)
 
             let isHovering = accurateActivationRect.contains(cursor)
             var shouldExpand = model.isExpanded
 
             if isHovering {
                 if model.autoOpenOnHover || model.isExpanded {
-                    shouldExpand = true
+                    if model.hasPhysicalNotch && !model.isExpanded {
+                        scheduleDelayedExpandIfNeeded(displayID: displayID, screen: screen, model: model)
+                        shouldExpand = false
+                    } else {
+                        shouldExpand = true
+                    }
                 }
             } else {
+                pendingExpandWorkItems[displayID]?.cancel()
+                pendingExpandWorkItems.removeValue(forKey: displayID)
                 if model.isExpanded {
                     let isTyping = model.lockWhileTyping &&
                                    (lastKeyTime?.timeIntervalSinceNow ?? -10) > -1.5
@@ -432,12 +433,37 @@ final class NotchOverlayController {
             } else if shouldExpand {
                 closeWorkItem?.cancel()
                 closeWorkItem = nil
+                pendingExpandWorkItems[displayID]?.cancel()
+                pendingExpandWorkItems.removeValue(forKey: displayID)
             }
         }
 
         if !changedDisplays.isEmpty {
             layoutPanels(animated: true, displays: changedDisplays)
         }
+    }
+
+    private func scheduleDelayedExpandIfNeeded(displayID: CGDirectDisplayID, screen: NSScreen, model: NotchViewModel) {
+        guard pendingExpandWorkItems[displayID] == nil else { return }
+
+        let workItem = DispatchWorkItem { [weak self, weak model] in
+            guard let self, let model else { return }
+            guard !model.isExpanded else { return }
+
+            let cursor = NSEvent.mouseLocation
+            let rect = self.notchActivationRect(for: screen, model: model)
+            guard rect.contains(cursor) else { return }
+            guard model.autoOpenOnHover else { return }
+
+            model.isExpanded = true
+            model.triggerHaptic()
+            self.layoutPanels(animated: true, displays: [displayID])
+            self.pendingExpandWorkItems.removeValue(forKey: displayID)
+        }
+
+        pendingExpandWorkItems[displayID] = workItem
+        let delay = max(0.1, min(3.0, model.autoOpenOnHoverDelay))
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
     }
 
     // MARK: - Layout
@@ -522,9 +548,9 @@ final class NotchOverlayController {
 
         let notchRect = hardwareNotchRect(for: screen)
         if hasNotch && notchRect != .zero {
-            // Tight hover region to avoid accidental expansions when the cursor
-            // passes near the top edge (browser tabs/menu bar area).
-            return notchRect.insetBy(dx: -22, dy: -14)
+            // Real-notch screens should open only when the cursor is very close
+            // to the notch/top edge to avoid accidental expansion while browsing.
+            return notchRect.insetBy(dx: -6, dy: -1)
         }
 
         let virtual = CGRect(
@@ -624,7 +650,7 @@ final class NotchOverlayController {
         let response = alert.runModal()
 
         if alert.suppressionButton?.state == .on {
-            UserDefaults.standard.set(false, forKey: "confirmBeforeCloseAll")
+            UserDefaults.standard.set(false, forKey: AppPreferences.Keys.confirmBeforeCloseAll)
         }
         if response == .alertFirstButtonReturn {
             blackWindowController.closeAllWindows()

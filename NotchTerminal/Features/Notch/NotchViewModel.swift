@@ -39,12 +39,12 @@ final class NotchViewModel: ObservableObject {
     @Published var physicalNotchHeight: CGFloat = 38
 
     // Appearance
-    @AppStorage("contentPadding") var contentPadding: Double = 14
-    @AppStorage("notchWidthOffset") var notchWidthOffset: Double = -80
-    @AppStorage("notchHeightOffset") var notchHeightOffset: Double = -8
-    @AppStorage("fakeNotchGlowEnabled") var fakeNotchGlowEnabled: Bool = false
-    @AppStorage("fakeNotchGlowTheme") var fakeNotchGlowTheme: GlowTheme = .cyberpunk
-    @AppStorage("auroraBackgroundEnabled") var auroraBackgroundEnabled: Bool = false
+    @AppStorage(AppPreferences.Keys.contentPadding) var contentPadding: Double = AppPreferences.Defaults.contentPadding
+    @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
+    @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
+    @AppStorage(AppPreferences.Keys.fakeNotchGlowEnabled) var fakeNotchGlowEnabled: Bool = AppPreferences.Defaults.fakeNotchGlowEnabled
+    @AppStorage(AppPreferences.Keys.fakeNotchGlowTheme) var fakeNotchGlowTheme: GlowTheme = .cyberpunk
+    @AppStorage(AppPreferences.Keys.auroraBackgroundEnabled) var auroraBackgroundEnabled: Bool = AppPreferences.Defaults.auroraBackgroundEnabled
     
     enum GlowTheme: String, CaseIterable, Identifiable {
         case cyberpunk, neonClassic, fire, plasma, emerald
@@ -59,7 +59,7 @@ final class NotchViewModel: ObservableObject {
             }
         }
     }
-    @AppStorage("auroraTheme") var auroraTheme: AuroraTheme = .classic
+    @AppStorage(AppPreferences.Keys.auroraTheme) var auroraTheme: AuroraTheme = .classic
 
     enum AuroraTheme: String, CaseIterable, Identifiable {
         case classic, neon, sunset, crimson, matrix
@@ -76,30 +76,31 @@ final class NotchViewModel: ObservableObject {
     }
 
     // Usage
-    @AppStorage("hapticFeedback") var hapticFeedback: Bool = true
-    @AppStorage("showCostSummary") var showCostSummary: Bool = false
+    @AppStorage(AppPreferences.Keys.hapticFeedback) var hapticFeedback: Bool = AppPreferences.Defaults.hapticFeedback
+    @AppStorage(AppPreferences.Keys.showCostSummary) var showCostSummary: Bool = AppPreferences.Defaults.showCostSummary
 
     // Compact Ticker
-    @AppStorage("compactTickerEnabled") var compactTickerEnabled: Bool = true
-    @AppStorage("compactTickerInterval") var compactTickerInterval: Double = 20
-    @AppStorage("compactTickerClosedExtraWidth") var compactTickerClosedExtraWidth: Double = 216
-    @AppStorage("compactTickerMetricMode") var compactTickerMetricMode: CompactTickerMetricMode = .percent
-    @AppStorage("compactTickerPriorityMode") var compactTickerPriorityMode: CompactTickerPriorityMode = .criticalFirst
-    @AppStorage("compactTickerBackgroundMode") var compactTickerBackgroundMode: CompactTickerBackgroundMode = .solid
-    @AppStorage("compactTickerShowAntigravity") var compactTickerShowAntigravity: Bool = true
-    @AppStorage("compactTickerShowGeminiCLI") var compactTickerShowGeminiCLI: Bool = true
-    @AppStorage("compactTickerShowZia") var compactTickerShowZia: Bool = true
+    @AppStorage(AppPreferences.Keys.compactTickerEnabled) var compactTickerEnabled: Bool = AppPreferences.Defaults.compactTickerEnabled
+    @AppStorage(AppPreferences.Keys.compactTickerInterval) var compactTickerInterval: Double = AppPreferences.Defaults.compactTickerInterval
+    @AppStorage(AppPreferences.Keys.compactTickerClosedExtraWidth) var compactTickerClosedExtraWidth: Double = AppPreferences.Defaults.compactTickerClosedExtraWidth
+    @AppStorage(AppPreferences.Keys.compactTickerMetricMode) var compactTickerMetricMode: CompactTickerMetricMode = .percent
+    @AppStorage(AppPreferences.Keys.compactTickerPriorityMode) var compactTickerPriorityMode: CompactTickerPriorityMode = .criticalFirst
+    @AppStorage(AppPreferences.Keys.compactTickerBackgroundMode) var compactTickerBackgroundMode: CompactTickerBackgroundMode = .solid
+    @AppStorage(AppPreferences.Keys.compactTickerShowAntigravity) var compactTickerShowAntigravity: Bool = AppPreferences.Defaults.compactTickerShowAntigravity
+    @AppStorage(AppPreferences.Keys.compactTickerShowGeminiCLI) var compactTickerShowGeminiCLI: Bool = AppPreferences.Defaults.compactTickerShowGeminiCLI
+    @AppStorage(AppPreferences.Keys.compactTickerShowZia) var compactTickerShowZia: Bool = AppPreferences.Defaults.compactTickerShowZia
 
     // Automation
-    @AppStorage("backgroundRefreshCadenceMinutes") var backgroundRefreshCadenceMinutes: Int = 5
-    @AppStorage("checkProviderStatus") var checkProviderStatus: Bool = true
-    @AppStorage("sessionQuotaNotificationsEnabled") var sessionQuotaNotificationsEnabled: Bool = true
-    @AppStorage("autoOpenOnHover") var autoOpenOnHover: Bool = true
-    @AppStorage("lockWhileTyping") var lockWhileTyping: Bool = true
-    @AppStorage("preventCloseOnMouseLeave") var preventCloseOnMouseLeave: Bool = false
-    @AppStorage("showChipCloseButtonOnHover") var showChipCloseButtonOnHover: Bool = true
-    @AppStorage("confirmBeforeCloseAll") var confirmBeforeCloseAll: Bool = true
-    @AppStorage("closeActionMode") var closeActionMode: String = "terminateProcessAndClose"
+    @AppStorage(AppPreferences.Keys.backgroundRefreshCadenceMinutes) var backgroundRefreshCadenceMinutes: Int = AppPreferences.Defaults.backgroundRefreshCadenceMinutes
+    @AppStorage(AppPreferences.Keys.checkProviderStatus) var checkProviderStatus: Bool = AppPreferences.Defaults.checkProviderStatus
+    @AppStorage(AppPreferences.Keys.sessionQuotaNotificationsEnabled) var sessionQuotaNotificationsEnabled: Bool = AppPreferences.Defaults.sessionQuotaNotificationsEnabled
+    @AppStorage(AppPreferences.Keys.autoOpenOnHover) var autoOpenOnHover: Bool = AppPreferences.Defaults.autoOpenOnHover
+    @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
+    @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
+    @AppStorage(AppPreferences.Keys.preventCloseOnMouseLeave) var preventCloseOnMouseLeave: Bool = AppPreferences.Defaults.preventCloseOnMouseLeave
+    @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) var showChipCloseButtonOnHover: Bool = AppPreferences.Defaults.showChipCloseButtonOnHover
+    @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) var confirmBeforeCloseAll: Bool = AppPreferences.Defaults.confirmBeforeCloseAll
+    @AppStorage(AppPreferences.Keys.closeActionMode) var closeActionMode: String = AppPreferences.Defaults.closeActionMode
 
     enum CompactTickerMetricMode: String, CaseIterable, Identifiable {
         case percent, dot
