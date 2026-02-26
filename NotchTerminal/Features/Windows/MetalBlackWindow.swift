@@ -218,12 +218,12 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         // Let WindowServer register the start frame first; otherwise restore can jump/freeze.
         DispatchQueue.main.async {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.24
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                instance.panel.animator().setFrame(targetFrame, display: true)
-                instance.panel.animator().alphaValue = 1.0
-            } completionHandler: { [weak self] in
+            self.animatePanel(
+                instance.panel,
+                to: targetFrame,
+                duration: 0.24,
+                alpha: 1.0
+            ) { [weak self] in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     var updated = self.windows[id]
@@ -423,11 +423,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         for id in visibleIDs {
             guard var instance = windows[id], let targetFrame = placements[id] else { continue }
 
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.24
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                instance.panel.animator().setFrame(targetFrame, display: true)
-            }
+            animatePanel(instance.panel, to: targetFrame, duration: 0.24)
 
             instance.expandedFrame = targetFrame
             windows[id] = instance
@@ -448,11 +444,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         updateContent(for: id, isCompactOverride: instance.isCompact)
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            instance.panel.animator().setFrame(targetFrame, display: true)
-        }
+        animatePanel(instance.panel, to: targetFrame, duration: 0.22)
 
         instance.expandedFrame = targetFrame
         windows[id] = instance
@@ -472,11 +464,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         updateContent(for: id, isCompactOverride: false)
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            instance.panel.animator().setFrame(targetFrame, display: true)
-        }
+        animatePanel(instance.panel, to: targetFrame, duration: 0.22)
 
         instance.expandedFrame = targetFrame
         windows[id] = instance
@@ -494,11 +482,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
                 ),
                 size: expandedSize
             )
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.22
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                instance.panel.animator().setFrame(restoreFrame, display: true)
-            }
+            animatePanel(instance.panel, to: restoreFrame, duration: 0.22)
             instance.isMaximized = false
             instance.preMaximizeFrame = nil
             instance.expandedFrame = restoreFrame
@@ -507,11 +491,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             guard let screen = instance.panel.screen ?? NSScreen.main else { return }
             instance.preMaximizeFrame = instance.panel.frame
             let targetFrame = screen.visibleFrame
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.22
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                instance.panel.animator().setFrame(targetFrame, display: true)
-            }
+            animatePanel(instance.panel, to: targetFrame, duration: 0.22)
             instance.isMaximized = true
             instance.expandedFrame = targetFrame
         }
@@ -526,13 +506,32 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.isAlwaysOnTop.toggle()
         if instance.isAlwaysOnTop {
             instance.panel.level = .floating
-            instance.panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .transient]
+            instance.panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         } else {
             instance.panel.level = .normal
-            instance.panel.collectionBehavior = [.managed, .fullScreenAuxiliary, .transient]
+            instance.panel.collectionBehavior = [.managed, .fullScreenAuxiliary]
         }
         windows[id] = instance
         updateContent(for: id)
+    }
+
+    private func animatePanel(
+        _ panel: NSPanel,
+        to frame: CGRect,
+        duration: Double,
+        alpha: CGFloat? = nil,
+        completion: (() -> Void)? = nil
+    ) {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().setFrame(frame, display: true)
+            if let alpha {
+                panel.animator().alphaValue = alpha
+            }
+        } completionHandler: {
+            completion?()
+        }
     }
 
     private func adjustTerminalFontSize(id: UUID, delta: CGFloat) {
@@ -567,12 +566,12 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         updateContent(for: id)
         dockingPreviewOriginalFrames.removeValue(forKey: id)
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.20
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            instance.panel.animator().setFrame(targetFrame, display: true)
-            instance.panel.animator().alphaValue = 0.0
-        } completionHandler: { [weak self] in
+        animatePanel(
+            instance.panel,
+            to: targetFrame,
+            duration: 0.20,
+            alpha: 0.0
+        ) { [weak self] in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 var updated = self.windows[id]
@@ -661,7 +660,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         panel.showsResizeIndicator = true
         panel.level = .normal
         panel.minSize = CGSize(width: 360, height: 240)
-        panel.collectionBehavior = [.managed, .fullScreenAuxiliary, .transient]
+        // Do not mark terminal panels as transient; transient windows disappear in Mission Control.
+        panel.collectionBehavior = [.managed, .fullScreenAuxiliary]
         panel.hidesOnDeactivate = false
         panel.isMovableByWindowBackground = false
         panel.delegate = self
@@ -797,29 +797,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
               let instance = windows[id],
               !instance.isMinimized else { return }
 
-        let isDraggingWithMouse = (NSEvent.pressedMouseButtons & 0x1) != 0
-
-        let nearTarget = closestDockTarget(for: panel.frame, in: instance)
-
-        if let nearTarget, isDraggingWithMouse {
-            pendingDockTargets[id] = nearTarget
-            applyDockPreviewIfNeeded(id: id)
-        } else {
-            pendingDockTargets.removeValue(forKey: id)
-            restoreDockPreviewIfNeeded(id: id)
-        }
-
-        // Install a one-shot mouse-up monitor to detect end of drag.
-        // Use global monitor because the window server manages the drag loop
-        // and local monitors may not fire during window drags.
-        if dragMonitor == nil {
-            dragMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
-                guard let self else { return }
-                DispatchQueue.main.async {
-                    self.handleDragEnd()
-                }
-            }
-        }
+        updateDockPreviewState(for: id, panelFrame: panel.frame, instance: instance)
+        installDragEndMonitorIfNeeded()
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -847,8 +826,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         // Check all pending dock targets
         for (id, target) in pendingDockTargets {
             guard let instance = windows[id], !instance.isMinimized else { continue }
-            let currentTarget = closestDockTarget(for: instance.panel.frame, in: instance)
-            if let currentTarget, currentTarget.displayID == target.displayID {
+            if matchesPendingDockTarget(target, for: instance) {
                 pendingDockTargets.removeValue(forKey: id)
                 minimizeWindow(id: id)
                 return
@@ -858,6 +836,35 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             restoreDockPreviewIfNeeded(id: id)
         }
         pendingDockTargets.removeAll()
+    }
+
+    private func updateDockPreviewState(for id: UUID, panelFrame: CGRect, instance: WindowInstance) {
+        let isDraggingWithMouse = (NSEvent.pressedMouseButtons & 0x1) != 0
+        let nearTarget = closestDockTarget(for: panelFrame, in: instance)
+
+        if let nearTarget, isDraggingWithMouse {
+            pendingDockTargets[id] = nearTarget
+            applyDockPreviewIfNeeded(id: id)
+            return
+        }
+
+        pendingDockTargets.removeValue(forKey: id)
+        restoreDockPreviewIfNeeded(id: id)
+    }
+
+    private func installDragEndMonitorIfNeeded() {
+        guard dragMonitor == nil else { return }
+        dragMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                self.handleDragEnd()
+            }
+        }
+    }
+
+    private func matchesPendingDockTarget(_ target: NotchTarget, for instance: WindowInstance) -> Bool {
+        guard let currentTarget = closestDockTarget(for: instance.panel.frame, in: instance) else { return false }
+        return currentTarget.displayID == target.displayID
     }
 
     private func applyDockPreviewIfNeeded(id: UUID) {
@@ -882,11 +889,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         )
         let previewFrame = CGRect(origin: previewOrigin, size: previewSize)
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.12
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            instance.panel.animator().setFrame(previewFrame, display: true)
-        }
+        animatePanel(instance.panel, to: previewFrame, duration: 0.12)
     }
 
     private func restoreDockPreviewIfNeeded(id: UUID) {
@@ -895,11 +898,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
               !instance.isAnimatingMinimize,
               !instance.isMinimized else { return }
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.12
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            instance.panel.animator().setFrame(originalFrame, display: true)
-        }
+        animatePanel(instance.panel, to: originalFrame, duration: 0.12)
         publishTerminalItems()
         applyBaseLevel(for: instance)
     }
@@ -1415,6 +1414,21 @@ private struct OpenPortsPopoverView: View {
 
     private var popoverBody: some View {
         ZStack {
+            popoverBackground
+
+            VStack(alignment: .leading, spacing: 12) {
+                headerRow
+                scopeRow
+                searchRow
+                contentStateView
+            }
+            .padding(12)
+        }
+        .frame(width: 420, height: 320)
+    }
+
+    private var popoverBackground: some View {
+        ZStack {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(.ultraThinMaterial)
             RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -1430,126 +1444,131 @@ private struct OpenPortsPopoverView: View {
                     ),
                     lineWidth: 1
                 )
+        }
+    }
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 8) {
-                    Image(systemName: "network")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(primaryText.opacity(0.9))
-                        .frame(width: 24, height: 24)
-                        .background(primaryText.opacity(0.1), in: Circle())
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Open Ports")
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(primaryText)
-                        Text("Inspect and terminate occupied ports quickly")
-                            .font(.caption)
-                            .foregroundStyle(subtleText)
+    private var headerRow: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: "network")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(primaryText.opacity(0.9))
+                .frame(width: 24, height: 24)
+                .background(primaryText.opacity(0.1), in: Circle())
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Open Ports")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(primaryText)
+                Text("Inspect and terminate occupied ports quickly")
+                    .font(.caption)
+                    .foregroundStyle(subtleText)
+            }
+            Spacer()
+            Menu {
+                Picker("Theme", selection: $themeMode) {
+                    ForEach(ThemeMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
                     }
-                    Spacer()
-                    Menu {
-                        Picker("Theme", selection: $themeMode) {
-                            ForEach(ThemeMode.allCases) { mode in
-                                Text(mode.rawValue).tag(mode)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "circle.lefthalf.filled")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(primaryText.opacity(0.9))
-                            .frame(width: 24, height: 24)
-                            .background(primaryText.opacity(0.12), in: Circle())
-                    }
-                    .menuStyle(.borderlessButton)
-                    .buttonStyle(.plain)
-
-                    Text("\(visiblePorts.count)")
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(secondaryText)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(primaryText.opacity(0.1), in: Capsule())
-                    Button(action: onRefresh) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(primaryText.opacity(0.9))
-                            .frame(width: 24, height: 24)
-                            .background(primaryText.opacity(0.12), in: Circle())
-                    }
-                    .buttonStyle(.plain)
                 }
+            } label: {
+                Image(systemName: "circle.lefthalf.filled")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(primaryText.opacity(0.9))
+                    .frame(width: 24, height: 24)
+                    .background(primaryText.opacity(0.12), in: Circle())
+            }
+            .menuStyle(.borderlessButton)
+            .buttonStyle(.plain)
 
-                HStack(spacing: 8) {
-                    scopeButton(.dev)
-                    scopeButton(.all)
-                    Spacer()
-                    metricPill(label: "Dev", value: devPorts.count)
-                    metricPill(label: "Other", value: otherPorts.count)
-                }
+            Text("\(visiblePorts.count)")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(secondaryText)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(primaryText.opacity(0.1), in: Capsule())
+            Button(action: onRefresh) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(primaryText.opacity(0.9))
+                    .frame(width: 24, height: 24)
+                    .background(primaryText.opacity(0.12), in: Circle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
 
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
+    private var scopeRow: some View {
+        HStack(spacing: 8) {
+            scopeButton(.dev)
+            scopeButton(.all)
+            Spacer()
+            metricPill(label: "Dev", value: devPorts.count)
+            metricPill(label: "Other", value: otherPorts.count)
+        }
+    }
+
+    private var searchRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(subtleText)
+            TextField("Filter by port, process or PID", text: $searchText)
+                .textFieldStyle(.plain)
+                .foregroundStyle(primaryText)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(subtleText)
-                    TextField("Filter by port, process or PID", text: $searchText)
-                        .textFieldStyle(.plain)
-                        .foregroundStyle(primaryText)
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(subtleText)
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(cardStroke, lineWidth: 1)
-                )
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(cardStroke, lineWidth: 1)
+        )
+    }
 
-                if isLoading {
-                    ProgressView("Scanning ports...")
-                        .controlSize(.small)
-                        .tint(primaryText)
-                } else if let message {
-                    Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ScrollView {
-                        VStack(spacing: 8) {
-                            if !devPorts.isEmpty {
-                                sectionLabel("Dev")
-                                ForEach(devPorts) { port in
-                                    portRow(port)
-                                }
-                            }
-
-                            if scope == .all, !otherPorts.isEmpty {
-                                sectionLabel("Other")
-                                ForEach(otherPorts) { port in
-                                    portRow(port)
-                                }
-                            }
-
-                            if visiblePorts.isEmpty {
-                                Text(scope == .all ? "No open ports match this filter." : "No dev ports match this filter.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.top, 10)
-                            }
+    @ViewBuilder
+    private var contentStateView: some View {
+        if isLoading {
+            ProgressView("Scanning ports...")
+                .controlSize(.small)
+                .tint(primaryText)
+        } else if let message {
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        } else {
+            ScrollView {
+                VStack(spacing: 8) {
+                    if !devPorts.isEmpty {
+                        sectionLabel("Dev")
+                        ForEach(devPorts) { port in
+                            portRow(port)
                         }
+                    }
+
+                    if scope == .all, !otherPorts.isEmpty {
+                        sectionLabel("Other")
+                        ForEach(otherPorts) { port in
+                            portRow(port)
+                        }
+                    }
+
+                    if visiblePorts.isEmpty {
+                        Text(scope == .all ? "No open ports match this filter." : "No dev ports match this filter.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 10)
                     }
                 }
             }
-            .padding(12)
         }
-        .frame(width: 420, height: 320)
     }
 
     @ViewBuilder
