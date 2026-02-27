@@ -366,6 +366,7 @@ struct NotchCapsuleView: View {
                 }
 
                 expandedScrollContent
+                    .frame(height: 56)
 
                 if model.availableScreens.count > 1 {
                     Button(action: { shiftActiveScreen(delta: 1) }) {
