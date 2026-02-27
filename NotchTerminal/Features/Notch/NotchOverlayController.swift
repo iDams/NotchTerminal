@@ -51,6 +51,7 @@ final class NotchOverlayController {
     private var modelsByDisplay: [CGDirectDisplayID: NotchViewModel] = [:]
     private let blackWindowController = MetalBlackWindowsManager()
     private var timer: Timer?
+    private var trackingFPS: Int = 60
     private var observers: [NSObjectProtocol] = []
     private var lastCursorLocation: CGPoint?
     private var cancellables = Set<AnyCancellable>()
@@ -154,13 +155,37 @@ final class NotchOverlayController {
     }
 
     private func startMouseTracking() {
-        let timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+        trackingFPS = preferredTrackingFPS()
+        let interval = 1.0 / Double(trackingFPS)
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             DispatchQueue.main.async { [weak self] in
                 self?.updateExpansionAndLayout()
             }
         }
+        // Let the system coalesce timer wakeups a bit for better efficiency.
+        timer.tolerance = interval * 0.15
         self.timer = timer
         RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func restartMouseTrackingIfNeeded() {
+        let newFPS = preferredTrackingFPS()
+        guard newFPS != trackingFPS else { return }
+        timer?.invalidate()
+        timer = nil
+        startMouseTracking()
+    }
+
+    private func preferredTrackingFPS() -> Int {
+        let screenRates = NSScreen.screens.map { screen -> Int in
+            if #available(macOS 12.0, *) {
+                return max(30, screen.maximumFramesPerSecond)
+            }
+            return 60
+        }
+        let maxRate = screenRates.max() ?? 60
+        // Bound to a sane range for pointer-tracking work.
+        return min(max(maxRate, 30), 120)
     }
 
     private func registerObservers() {
@@ -676,6 +701,7 @@ final class NotchOverlayController {
         DispatchQueue.main.async { [weak self] in
             self?.rebuildPanels()
             self?.blackWindowController.reconcileDisplays()
+            self?.restartMouseTrackingIfNeeded()
         }
     }
 
