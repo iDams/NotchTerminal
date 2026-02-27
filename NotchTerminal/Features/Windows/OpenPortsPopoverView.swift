@@ -316,7 +316,7 @@ struct OpenPortsPopoverView: View {
     @ViewBuilder
     private func portRow(_ port: OpenPortEntry) -> some View {
         HStack(spacing: 10) {
-            Text(":\(port.port)")
+            Text(":\(String(port.port))")
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(primaryText.opacity(0.95))
                 .padding(.horizontal, 8)
@@ -421,7 +421,7 @@ enum PortProcessService {
         }
     }
 
-    private static func parseLsofMachineOutput(_ output: String) -> [OpenPortEntry] {
+    static func parseLsofMachineOutput(_ output: String) -> [OpenPortEntry] {
         var entries: [OpenPortEntry] = []
         var seen = Set<String>()
         var currentPID: Int?
@@ -449,7 +449,7 @@ enum PortProcessService {
         return entries
     }
 
-    private static func parsePort(from endpoint: String) -> Int? {
+    static func parsePort(from endpoint: String) -> Int? {
         let normalized = endpoint.replacingOccurrences(of: "->", with: " ")
         guard let first = normalized.split(separator: " ").first,
               let colon = first.lastIndex(of: ":") else { return nil }
