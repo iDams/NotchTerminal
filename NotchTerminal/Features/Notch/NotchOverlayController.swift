@@ -197,7 +197,9 @@ final class NotchOverlayController {
 
         for name in names {
             let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                self?.handleScreenConfigurationChange()
+                Task { @MainActor [weak self] in
+                    self?.handleScreenConfigurationChange()
+                }
             }
             observers.append(token)
         }

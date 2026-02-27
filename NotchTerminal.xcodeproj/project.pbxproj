@@ -10,14 +10,30 @@
 		A97FDD022F452B9A000CB036 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = A97FDD012F452B9A000CB036 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		B14A9A352F90000100C0DE01 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A97FDC992F452B9A000CB036 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A97FDC9E2F452B9A000CB036;
+			remoteInfo = NotchTerminal;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotchTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A97FDCA12F452B9A000CB036 /* NotchTerminal */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = NotchTerminal;
+			sourceTree = "<group>";
+		};
+		B14A9A2F2F90000100C0DE01 /* NotchTerminalTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = NotchTerminalTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -31,6 +47,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B14A9A302F90000100C0DE01 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -38,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				A97FDCA12F452B9A000CB036 /* NotchTerminal */,
+				B14A9A2F2F90000100C0DE01 /* NotchTerminalTests */,
 				A97FDCA02F452B9A000CB036 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */,
+				B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +101,28 @@
 			productReference = A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B14A9A312F90000100C0DE01 /* NotchTerminalTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B14A9A342F90000100C0DE01 /* Build configuration list for PBXNativeTarget "NotchTerminalTests" */;
+			buildPhases = (
+				B14A9A302F90000100C0DE01 /* Frameworks */,
+				B14A9A332F90000100C0DE01 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B14A9A372F90000100C0DE01 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B14A9A2F2F90000100C0DE01 /* NotchTerminalTests */,
+			);
+			name = NotchTerminalTests;
+			packageProductDependencies = (
+			);
+			productName = NotchTerminalTests;
+			productReference = B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -83,10 +130,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					A97FDC9E2F452B9A000CB036 = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					B14A9A312F90000100C0DE01 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = A97FDC9E2F452B9A000CB036;
 					};
 				};
 			};
@@ -111,6 +162,7 @@
 			projectRoot = "";
 			targets = (
 				A97FDC9E2F452B9A000CB036 /* NotchTerminal */,
+				B14A9A312F90000100C0DE01 /* NotchTerminalTests */,
 			);
 		};
 /* End PBXProject section */
@@ -133,18 +185,65 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B14A9A332F90000100C0DE01 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B14A9A372F90000100C0DE01 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A97FDC9E2F452B9A000CB036 /* NotchTerminal */;
+			targetProxy = B14A9A352F90000100C0DE01 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A97FDCA42F452B9A000CB036 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Debug;
 		};
@@ -152,11 +251,42 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
 		};
@@ -165,7 +295,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = TGU3UHC7C7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -188,7 +320,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = TGU3UHC7C7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -203,6 +337,44 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "";
+			};
+			name = Release;
+		};
+		B14A9A382F90000100C0DE01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = marco.NotchTerminalTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NotchTerminal.app/Contents/MacOS/NotchTerminal";
+				TEST_TARGET_NAME = NotchTerminal;
+			};
+			name = Debug;
+		};
+		B14A9A392F90000100C0DE01 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = marco.NotchTerminalTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NotchTerminal.app/Contents/MacOS/NotchTerminal";
+				TEST_TARGET_NAME = NotchTerminal;
 			};
 			name = Release;
 		};
@@ -223,6 +395,15 @@
 			buildConfigurations = (
 				A97FDCA72F452B9A000CB036 /* Debug */,
 				A97FDCA82F452B9A000CB036 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B14A9A342F90000100C0DE01 /* Build configuration list for PBXNativeTarget "NotchTerminalTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B14A9A382F90000100C0DE01 /* Debug */,
+				B14A9A392F90000100C0DE01 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
