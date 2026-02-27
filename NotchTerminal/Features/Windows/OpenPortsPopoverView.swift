@@ -2,17 +2,30 @@ import SwiftUI
 import AppKit
 
 struct OpenPortsPopoverView: View {
-    private enum PortScope: String, CaseIterable, Identifiable {
-        case dev = "Dev"
-        case all = "All"
-        var id: String { rawValue }
+    private enum PortScope: CaseIterable, Identifiable {
+        case dev
+        case all
+        var id: Self { self }
+        var localizedTitle: String {
+            switch self {
+            case .dev: return "openPorts.scope.dev".localized
+            case .all: return "openPorts.scope.all".localized
+            }
+        }
     }
 
-    private enum ThemeMode: String, CaseIterable, Identifiable {
-        case system = "System"
-        case dark = "Dark"
-        case light = "Light"
-        var id: String { rawValue }
+    private enum ThemeMode: CaseIterable, Identifiable {
+        case system
+        case dark
+        case light
+        var id: Self { self }
+        var localizedTitle: String {
+            switch self {
+            case .system: return "openPorts.theme.system".localized
+            case .dark: return "openPorts.theme.dark".localized
+            case .light: return "openPorts.theme.light".localized
+            }
+        }
     }
 
     let ports: [OpenPortEntry]
@@ -121,18 +134,18 @@ struct OpenPortsPopoverView: View {
                 .frame(width: 24, height: 24)
                 .background(primaryText.opacity(0.1), in: Circle())
             VStack(alignment: .leading, spacing: 1) {
-                Text("Open Ports")
+                Text("openPorts.title".localized)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(primaryText)
-                Text("Inspect and terminate occupied ports quickly")
+                Text("openPorts.subtitle".localized)
                     .font(.caption)
                     .foregroundStyle(subtleText)
             }
             Spacer()
             Menu {
-                Picker("Theme", selection: $themeMode) {
+                Picker("openPorts.theme".localized, selection: $themeMode) {
                     ForEach(ThemeMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.localizedTitle).tag(mode)
                     }
                 }
             } label: {
@@ -167,8 +180,8 @@ struct OpenPortsPopoverView: View {
             scopeButton(.dev)
             scopeButton(.all)
             Spacer()
-            metricPill(label: "Dev", value: devPorts.count)
-            metricPill(label: "Other", value: otherPorts.count)
+            metricPill(label: "openPorts.scope.dev".localized, value: devPorts.count)
+            metricPill(label: "openPorts.scope.other".localized, value: otherPorts.count)
         }
     }
 
@@ -176,7 +189,7 @@ struct OpenPortsPopoverView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(subtleText)
-            TextField("Filter by port, process or PID", text: $searchText)
+            TextField("openPorts.search.placeholder".localized, text: $searchText)
                 .textFieldStyle(.plain)
                 .foregroundStyle(primaryText)
             if !searchText.isEmpty {
@@ -201,7 +214,7 @@ struct OpenPortsPopoverView: View {
     @ViewBuilder
     private var contentStateView: some View {
         if isLoading {
-            ProgressView("Scanning ports...")
+            ProgressView("openPorts.scanning".localized)
                 .controlSize(.small)
                 .tint(primaryText)
         } else if let message {
@@ -212,21 +225,21 @@ struct OpenPortsPopoverView: View {
             ScrollView {
                 VStack(spacing: 8) {
                     if !devPorts.isEmpty {
-                        sectionLabel("Dev")
+                        sectionLabel("openPorts.scope.dev".localized)
                         ForEach(devPorts) { port in
                             portRow(port)
                         }
                     }
 
                     if scope == .all, !otherPorts.isEmpty {
-                        sectionLabel("Other")
+                        sectionLabel("openPorts.scope.other".localized)
                         ForEach(otherPorts) { port in
                             portRow(port)
                         }
                     }
 
                     if visiblePorts.isEmpty {
-                        Text(scope == .all ? "No open ports match this filter." : "No dev ports match this filter.")
+                        Text(scope == .all ? "openPorts.empty.all".localized : "openPorts.empty.dev".localized)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -244,7 +257,7 @@ struct OpenPortsPopoverView: View {
                 scope = value
             }
         } label: {
-            Text(value.rawValue)
+            Text(value.localizedTitle)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(scope == value ? (isDarkMode ? .black : .white) : primaryText.opacity(0.8))
                 .padding(.horizontal, 12)
@@ -314,7 +327,7 @@ struct OpenPortsPopoverView: View {
                 Text(port.command)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(primaryText)
-                Text("PID \(String(port.pid)) • \(port.endpoint)")
+                Text(String(format: "openPorts.row.pidAndEndpoint".localized, String(port.pid), port.endpoint))
                     .font(.system(size: 11))
                     .foregroundStyle(secondaryText)
             }
@@ -322,7 +335,7 @@ struct OpenPortsPopoverView: View {
             Button {
                 onKill(port)
             } label: {
-                Label("Kill", systemImage: "xmark")
+                Label("openPorts.kill".localized, systemImage: "xmark")
                     .labelStyle(.iconOnly)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)

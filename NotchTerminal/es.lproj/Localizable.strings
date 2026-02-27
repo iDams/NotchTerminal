@@ -122,3 +122,23 @@
 /* Misc */
 "menu.bulkActions" = "Acciones masivas";
 "menu.closeAllOnThisDisplay" = "Cerrar todo en esta pantalla";
+
+/* Open Ports */
+"openPorts.title" = "Puertos abiertos";
+"openPorts.subtitle" = "Inspecciona y termina puertos ocupados rápidamente";
+"openPorts.theme" = "Tema";
+"openPorts.theme.system" = "Sistema";
+"openPorts.theme.dark" = "Oscuro";
+"openPorts.theme.light" = "Claro";
+"openPorts.scope.dev" = "Dev";
+"openPorts.scope.all" = "Todos";
+"openPorts.scope.other" = "Otros";
+"openPorts.search.placeholder" = "Filtrar por puerto, proceso o PID";
+"openPorts.scanning" = "Escaneando puertos...";
+"openPorts.empty.all" = "No hay puertos abiertos que coincidan con este filtro.";
+"openPorts.empty.dev" = "No hay puertos de desarrollo que coincidan con este filtro.";
+"openPorts.row.pidAndEndpoint" = "PID %@ • %@";
+"openPorts.kill" = "Terminar";
+"openPorts.message.noListening" = "No se encontraron puertos TCP en escucha.";
+"openPorts.message.loadFailed" = "No se pudieron cargar los puertos abiertos.";
+"openPorts.message.terminateFailed" = "No se pudo terminar el PID %@.";

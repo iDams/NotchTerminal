@@ -122,3 +122,23 @@
 /* Misc */
 "menu.bulkActions" = "Actions groupées";
 "menu.closeAllOnThisDisplay" = "Tout fermer sur cet écran";
+
+/* Open Ports */
+"openPorts.title" = "Ports ouverts";
+"openPorts.subtitle" = "Inspecter et arrêter rapidement les ports occupés";
+"openPorts.theme" = "Thème";
+"openPorts.theme.system" = "Système";
+"openPorts.theme.dark" = "Sombre";
+"openPorts.theme.light" = "Clair";
+"openPorts.scope.dev" = "Dev";
+"openPorts.scope.all" = "Tous";
+"openPorts.scope.other" = "Autres";
+"openPorts.search.placeholder" = "Filtrer par port, processus ou PID";
+"openPorts.scanning" = "Analyse des ports...";
+"openPorts.empty.all" = "Aucun port ouvert ne correspond à ce filtre.";
+"openPorts.empty.dev" = "Aucun port dev ne correspond à ce filtre.";
+"openPorts.row.pidAndEndpoint" = "PID %@ • %@";
+"openPorts.kill" = "Arrêter";
+"openPorts.message.noListening" = "Aucun port TCP en écoute trouvé.";
+"openPorts.message.loadFailed" = "Impossible de charger les ports ouverts.";
+"openPorts.message.terminateFailed" = "Impossible d'arrêter le PID %@.";

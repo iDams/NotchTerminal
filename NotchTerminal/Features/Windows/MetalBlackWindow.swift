@@ -1309,12 +1309,12 @@ struct MetalBlackWindowContent: View {
                 await MainActor.run {
                     openPorts = ports
                     isLoadingOpenPorts = false
-                    portsMessage = ports.isEmpty ? "No listening TCP ports found." : nil
+                    portsMessage = ports.isEmpty ? "openPorts.message.noListening".localized : nil
                 }
             } catch {
                 await MainActor.run {
                     isLoadingOpenPorts = false
-                    portsMessage = "Could not load open ports."
+                    portsMessage = "openPorts.message.loadFailed".localized
                 }
             }
         }
@@ -1326,9 +1326,9 @@ struct MetalBlackWindowContent: View {
             await MainActor.run {
                 if terminated {
                     openPorts.removeAll { $0.id == port.id }
-                    portsMessage = openPorts.isEmpty ? "No listening TCP ports found." : nil
+                    portsMessage = openPorts.isEmpty ? "openPorts.message.noListening".localized : nil
                 } else {
-                    portsMessage = "Could not terminate PID \(port.pid)."
+                    portsMessage = String(format: "openPorts.message.terminateFailed".localized, String(port.pid))
                 }
             }
         }

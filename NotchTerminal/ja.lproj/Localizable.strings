@@ -122,3 +122,23 @@
 /* Misc */
 "menu.bulkActions" = "一括アクション";
 "menu.closeAllOnThisDisplay" = "このディスプレイですべて閉じる";
+
+/* Open Ports */
+"openPorts.title" = "オープンポート";
+"openPorts.subtitle" = "使用中のポートをすばやく確認して終了します";
+"openPorts.theme" = "テーマ";
+"openPorts.theme.system" = "システム";
+"openPorts.theme.dark" = "ダーク";
+"openPorts.theme.light" = "ライト";
+"openPorts.scope.dev" = "開発";
+"openPorts.scope.all" = "すべて";
+"openPorts.scope.other" = "その他";
+"openPorts.search.placeholder" = "ポート、プロセス、PIDで絞り込み";
+"openPorts.scanning" = "ポートをスキャン中...";
+"openPorts.empty.all" = "このフィルターに一致するオープンポートはありません。";
+"openPorts.empty.dev" = "このフィルターに一致する開発用ポートはありません。";
+"openPorts.row.pidAndEndpoint" = "PID %@ • %@";
+"openPorts.kill" = "終了";
+"openPorts.message.noListening" = "待ち受け中のTCPポートは見つかりませんでした。";
+"openPorts.message.loadFailed" = "オープンポートを読み込めませんでした。";
+"openPorts.message.terminateFailed" = "PID %@ を終了できませんでした。";
