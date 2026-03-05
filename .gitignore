@@ -80,3 +80,7 @@ vendor/
 # Local scratch/debug files
 output.log
 test_canvas.swift
+
+# Private planning notes (keep local only)
+TERMINAL_ACTIONS_UX_IDEA.md
+UPDATE_FEATURES.md

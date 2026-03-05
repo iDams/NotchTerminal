@@ -252,48 +252,7 @@ final class NotchOverlayController {
                     .store(in: &cancellables)
             } else {
                 hostsByDisplay[displayID]?.rootView = AnyView(
-                    NotchCapsuleView(
-                        openBlackWindow: { [weak self] in
-                            self?.openBlackWindow(for: displayID)
-                        },
-                        reorganizeBlackWindows: { [weak self] in
-                            self?.reorganizeBlackWindows(for: displayID)
-                        },
-                        restoreBlackWindow: { [weak self] windowID in
-                            self?.blackWindowController.restoreWindow(id: windowID)
-                        },
-                        bringBlackWindow: { [weak self] windowID in
-                            self?.blackWindowController.bringWindow(id: windowID, to: displayID)
-                        },
-                        minimizeBlackWindow: { [weak self] windowID in
-                            self?.blackWindowController.minimizeWindow(id: windowID)
-                        },
-                        closeBlackWindow: { [weak self] windowID in
-                            self?.blackWindowController.closeWindow(id: windowID)
-                        },
-                        toggleAlwaysOnTop: { [weak self] windowID in
-                            self?.blackWindowController.toggleAlwaysOnTopWindow(id: windowID)
-                        },
-                        restoreAllWindows: { [weak self] in
-                            self?.blackWindowController.restoreAllWindows()
-                        },
-                        minimizeAllWindows: { [weak self] in
-                            self?.blackWindowController.minimizeAllWindows()
-                        },
-                        closeAllWindows: { [weak self] in
-                            self?.blackWindowController.closeAllWindows()
-                        },
-                        closeAllWindowsOnDisplay: { [weak self] in
-                            self?.blackWindowController.closeAllWindows(on: displayID)
-                        },
-                        requestCloseAllConfirmation: { [weak self] sourceDisplayID in
-                            self?.presentSystemCloseAllAlert(for: sourceDisplayID)
-                        },
-                        openSettings: { [weak self] in
-                            self?.openSettings(for: displayID)
-                        }
-                    )
-                        .environmentObject(model)
+                    makeNotchCapsuleView(for: displayID).environmentObject(model)
                 )
             }
         }
@@ -318,54 +277,59 @@ final class NotchOverlayController {
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .transient]
         panel.contentView = PassthroughHostingView(
-            rootView: AnyView(
-                NotchCapsuleView(
-                    openBlackWindow: { [weak self] in
-                        self?.openBlackWindow(for: displayID)
-                    },
-                    reorganizeBlackWindows: { [weak self] in
-                        self?.reorganizeBlackWindows(for: displayID)
-                    },
-                    restoreBlackWindow: { [weak self] windowID in
-                        self?.blackWindowController.restoreWindow(id: windowID)
-                    },
-                    bringBlackWindow: { [weak self] windowID in
-                        self?.blackWindowController.bringWindow(id: windowID, to: displayID)
-                    },
-                    minimizeBlackWindow: { [weak self] windowID in
-                        self?.blackWindowController.minimizeWindow(id: windowID)
-                    },
-                    closeBlackWindow: { [weak self] windowID in
-                        self?.blackWindowController.closeWindow(id: windowID)
-                    },
-                    toggleAlwaysOnTop: { [weak self] windowID in
-                        self?.blackWindowController.toggleAlwaysOnTopWindow(id: windowID)
-                    },
-                    restoreAllWindows: { [weak self] in
-                        self?.blackWindowController.restoreAllWindows()
-                    },
-                    minimizeAllWindows: { [weak self] in
-                        self?.blackWindowController.minimizeAllWindows()
-                    },
-                    closeAllWindows: { [weak self] in
-                        self?.blackWindowController.closeAllWindows()
-                    },
-                    closeAllWindowsOnDisplay: { [weak self] in
-                        self?.blackWindowController.closeAllWindows(on: displayID)
-                    },
-                    requestCloseAllConfirmation: { [weak self] sourceDisplayID in
-                        self?.presentSystemCloseAllAlert(for: sourceDisplayID)
-                    },
-                    openSettings: { [weak self] in
-                        self?.openSettings(for: displayID)
-                    }
-                )
-                    .environmentObject(model)
-            )
+            rootView: AnyView(makeNotchCapsuleView(for: displayID).environmentObject(model))
         )
         (panel.contentView as? PassthroughHostingView<AnyView>)?.model = model
         panel.orderFrontRegardless()
         return panel
+    }
+
+    // MARK: - View Factory
+
+    private func makeNotchCapsuleView(for displayID: CGDirectDisplayID) -> AnyView {
+        AnyView(
+            NotchCapsuleView(
+                openBlackWindow: { [weak self] in
+                    self?.openBlackWindow(for: displayID)
+                },
+                reorganizeBlackWindows: { [weak self] in
+                    self?.reorganizeBlackWindows(for: displayID)
+                },
+                restoreBlackWindow: { [weak self] windowID in
+                    self?.blackWindowController.restoreWindow(id: windowID)
+                },
+                bringBlackWindow: { [weak self] windowID in
+                    self?.blackWindowController.bringWindow(id: windowID, to: displayID)
+                },
+                minimizeBlackWindow: { [weak self] windowID in
+                    self?.blackWindowController.minimizeWindow(id: windowID)
+                },
+                closeBlackWindow: { [weak self] windowID in
+                    self?.blackWindowController.closeWindow(id: windowID)
+                },
+                toggleAlwaysOnTop: { [weak self] windowID in
+                    self?.blackWindowController.toggleAlwaysOnTopWindow(id: windowID)
+                },
+                restoreAllWindows: { [weak self] in
+                    self?.blackWindowController.restoreAllWindows()
+                },
+                minimizeAllWindows: { [weak self] in
+                    self?.blackWindowController.minimizeAllWindows()
+                },
+                closeAllWindows: { [weak self] in
+                    self?.blackWindowController.closeAllWindows()
+                },
+                closeAllWindowsOnDisplay: { [weak self] in
+                    self?.blackWindowController.closeAllWindows(on: displayID)
+                },
+                requestCloseAllConfirmation: { [weak self] sourceDisplayID in
+                    self?.presentSystemCloseAllAlert(for: sourceDisplayID)
+                },
+                openSettings: { [weak self] in
+                    self?.openSettings(for: displayID)
+                }
+            )
+        )
     }
 
     // MARK: - Expansion Logic
