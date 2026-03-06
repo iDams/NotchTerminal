@@ -318,6 +318,20 @@ struct AppearanceSettingsView: View {
     @AppStorage(AppPreferences.Keys.compactTickerEnabled) var compactTickerEnabled: Bool = AppPreferences.Defaults.compactTickerEnabled
     @AppStorage(AppPreferences.Keys.compactTickerInterval) var compactTickerInterval: Double = AppPreferences.Defaults.compactTickerInterval
     @AppStorage(AppPreferences.Keys.compactTickerClosedExtraWidth) var compactTickerClosedExtraWidth: Double = AppPreferences.Defaults.compactTickerClosedExtraWidth
+    @AppStorage(AppPreferences.Keys.auroraBackgroundEnabled) var auroraBackgroundEnabled: Bool = AppPreferences.Defaults.auroraBackgroundEnabled
+    @AppStorage(AppPreferences.Keys.auroraTheme) var auroraTheme: NotchViewModel.AuroraTheme = .classic
+
+    private var hasAnyNotch: Bool {
+        NSScreen.screens.contains { screen in
+            if #available(macOS 12.0, *) {
+                let left = screen.auxiliaryTopLeftArea ?? .zero
+                let right = screen.auxiliaryTopRightArea ?? .zero
+                let blockedWidth = screen.frame.width - left.width - right.width
+                return blockedWidth > 20 && min(left.height, right.height) > 0
+            }
+            return false
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -326,6 +340,8 @@ struct AppearanceSettingsView: View {
                 terminalDefaultsSection
                 dockingSection
                 compactTickerSection
+                effectsSection
+                resetSection
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -459,6 +475,82 @@ struct AppearanceSettingsView: View {
                 )
             }
         }
+    }
+
+    private var effectsSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.appearance.effects".localized,
+                subtitle: "settings.appearance.effects.subtitle".localized,
+                icon: "sparkles"
+            )
+
+            if hasAnyNotch {
+                ZenithPreferenceToggleRow(
+                    title: "settings.auroraBackground".localized,
+                    subtitle: "settings.auroraBackground.subtitle".localized,
+                    icon: "waveform.circle",
+                    binding: $auroraBackgroundEnabled
+                )
+
+                if auroraBackgroundEnabled {
+                    Picker("settings.auroraTheme".localized, selection: $auroraTheme) {
+                        ForEach(NotchViewModel.AuroraTheme.allCases) { theme in
+                            Text(theme.localizedName).tag(theme)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .padding(.leading, 32)
+                }
+            }
+        }
+    }
+
+    private var resetSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("settings.appearance.reset".localized)
+                        .font(.body.weight(.medium))
+                    Text("settings.appearance.reset.subtitle".localized)
+                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer(minLength: 8)
+                Button("action.resetDefaults".localized) {
+                    resetAppearanceDefaults()
+                }
+                .disabled(isUsingAppearanceDefaults)
+            }
+        }
+    }
+
+    private var isUsingAppearanceDefaults: Bool {
+        contentPadding == AppPreferences.Defaults.contentPadding &&
+        notchWidthOffset == AppPreferences.Defaults.notchWidthOffset &&
+        notchHeightOffset == AppPreferences.Defaults.notchHeightOffset &&
+        terminalDefaultWidth == AppPreferences.Defaults.terminalDefaultWidth &&
+        terminalDefaultHeight == AppPreferences.Defaults.terminalDefaultHeight &&
+        notchDockingSensitivity == AppPreferences.Defaults.notchDockingSensitivity &&
+        compactTickerEnabled == AppPreferences.Defaults.compactTickerEnabled &&
+        compactTickerInterval == AppPreferences.Defaults.compactTickerInterval &&
+        compactTickerClosedExtraWidth == AppPreferences.Defaults.compactTickerClosedExtraWidth &&
+        auroraBackgroundEnabled == AppPreferences.Defaults.auroraBackgroundEnabled &&
+        auroraTheme == .classic
+    }
+
+    private func resetAppearanceDefaults() {
+        contentPadding = AppPreferences.Defaults.contentPadding
+        notchWidthOffset = AppPreferences.Defaults.notchWidthOffset
+        notchHeightOffset = AppPreferences.Defaults.notchHeightOffset
+        terminalDefaultWidth = AppPreferences.Defaults.terminalDefaultWidth
+        terminalDefaultHeight = AppPreferences.Defaults.terminalDefaultHeight
+        notchDockingSensitivity = AppPreferences.Defaults.notchDockingSensitivity
+        compactTickerEnabled = AppPreferences.Defaults.compactTickerEnabled
+        compactTickerInterval = AppPreferences.Defaults.compactTickerInterval
+        compactTickerClosedExtraWidth = AppPreferences.Defaults.compactTickerClosedExtraWidth
+        auroraBackgroundEnabled = AppPreferences.Defaults.auroraBackgroundEnabled
+        auroraTheme = .classic
     }
 }
 

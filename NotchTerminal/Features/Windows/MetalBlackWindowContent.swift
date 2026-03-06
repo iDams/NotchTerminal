@@ -313,6 +313,10 @@ struct MetalBlackWindowContent: View {
 struct BlackWindowMetalEffectView: NSViewRepresentable {
     var isActive: Bool = true
 
+    private var effectivePreferredFramesPerSecond: Int {
+        isActive ? 0 : 30
+    }
+
     func makeCoordinator() -> Renderer {
         Renderer()
     }
@@ -321,7 +325,7 @@ struct BlackWindowMetalEffectView: NSViewRepresentable {
         let view = MTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
         view.isPaused = !isActive
         view.enableSetNeedsDisplay = true
-        view.preferredFramesPerSecond = 30
+        view.preferredFramesPerSecond = effectivePreferredFramesPerSecond
         view.sampleCount = 1
         view.framebufferOnly = true
         view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
@@ -333,6 +337,7 @@ struct BlackWindowMetalEffectView: NSViewRepresentable {
 
     func updateNSView(_ nsView: MTKView, context: Context) {
         nsView.isPaused = !isActive
+        nsView.preferredFramesPerSecond = effectivePreferredFramesPerSecond
     }
 
     final class Renderer: NSObject, MTKViewDelegate {

@@ -66,6 +66,10 @@
 
 "settings.appearance.compactTicker" = "Ticker compacto";
 "settings.appearance.compactTicker.subtitle" = "Estado del proveedor en modo notch cerrado.";
+"settings.appearance.effects" = "Efectos";
+"settings.appearance.effects.subtitle" = "Efectos visuales para la superficie del notch.";
+"settings.appearance.reset" = "Restablecer ajustes de apariencia";
+"settings.appearance.reset.subtitle" = "Restaura los valores por defecto de esta pestaña.";
 "settings.compactTickerEnabled" = "Mostrar ticker de proveedor compacto";
 "settings.compactTickerEnabled.subtitle" = "Cuando el notch está cerrado, rota el estado del proveedor en una fila compacta.";
 "settings.compactTickerInterval" = "Intervalo de rotación";
@@ -77,8 +81,9 @@
 "settings.experimental.effects" = "Efectos experimentales";
 "settings.experimental.effects.subtitle" = "Visuales opcionales que pueden variar según pantalla/GPU.";
 "settings.experimental.warning" = "Estos efectos visuales son altamente experimentales y consumen batería.";
-"settings.fakeNotchGlow" = "Brillo de notch simulado";
+"settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Efecto de brillo néon morado para notches simulados.";
+"settings.fakeNotchGlowTheme" = "Tema de brillo";
 "settings.auroraBackground" = "Fondo Aurora";
 "settings.auroraBackground.subtitle" = "Shader de Metal animado detrás del contenido del terminal.";
 "settings.crtFilter" = "Filtro de monitor CRT";
@@ -118,6 +123,7 @@
 "action.settings" = "Configuración";
 "action.newTerminal" = "Nueva terminal";
 "action.quit" = "Salir";
+"action.resetDefaults" = "Restablecer por defecto";
 
 /* Misc */
 "menu.bulkActions" = "Acciones masivas";

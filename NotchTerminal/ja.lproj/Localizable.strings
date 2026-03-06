@@ -66,6 +66,10 @@
 
 "settings.appearance.compactTicker" = "コンパクトティッカー";
 "settings.appearance.compactTicker.subtitle" = "ノッチ閉じた状態でのプロバイダー状態。";
+"settings.appearance.effects" = "エフェクト";
+"settings.appearance.effects.subtitle" = "ノッチ表面のビジュアルエフェクト。";
+"settings.appearance.reset" = "外観設定をリセット";
+"settings.appearance.reset.subtitle" = "このタブのデフォルト値に戻します。";
 "settings.compactTickerEnabled" = "コンパクトプロバイダーティッカーを表示";
 "settings.compactTickerEnabled.subtitle" = "ノッチが閉じているとき、プロバイダー状態コンパクトな行でローテーションします。";
 "settings.compactTickerInterval" = "ローテーション間隔";
@@ -77,8 +81,9 @@
 "settings.experimental.effects" = "実験的エフェクト";
 "settings.experimental.effects.subtitle" = "画面/GPUによって異なる場合があります。";
 "settings.experimental.warning" = "これらの視覚エフェクトはバッテリーを消費します。";
-"settings.fakeNotchGlow" = "フェイクノッチグロー";
+"settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "シミュレートされたノッチのネオン紫グローエフェクト。";
+"settings.fakeNotchGlowTheme" = "グローテーマ";
 "settings.auroraBackground" = "オーロラ背景";
 "settings.auroraBackground.subtitle" = "ターミナルコンテンツの後ろにアニメーション付きMetalシェーダー。";
 "settings.crtFilter" = "CRTモニターフィルター";
@@ -118,6 +123,7 @@
 "action.settings" = "設定";
 "action.newTerminal" = "新しいターミナル";
 "action.quit" = "終了";
+"action.resetDefaults" = "デフォルトに戻す";
 
 /* Misc */
 "menu.bulkActions" = "一括アクション";

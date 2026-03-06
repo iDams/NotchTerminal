@@ -1,9 +1,19 @@
 import SwiftUI
 import MetalKit
 struct NotchMetalEffectView: NSViewRepresentable {
+    var isActive: Bool = true
     var shader: String = "notchFragment"
     var theme: NotchViewModel.AuroraTheme = .classic
     var glowTheme: NotchViewModel.GlowTheme = .cyberpunk
+    var preferredFramesPerSecond: Int? = nil // FPS preferido opcional para casos concretos
+
+    private var effectivePreferredFramesPerSecond: Int {
+        if let preferredFramesPerSecond {
+            return preferredFramesPerSecond
+        }
+        let displayFPS = NSScreen.main?.maximumFramesPerSecond ?? 60
+        return max(30, min(displayFPS, 120))
+    }
 
     func makeCoordinator() -> MetalEffectRenderer {
         let renderer = MetalEffectRenderer(fragmentFunctionName: shader)
@@ -14,9 +24,9 @@ struct NotchMetalEffectView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> MTKView {
         let view = MTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
-        view.isPaused = false
-        view.enableSetNeedsDisplay = false
-        view.preferredFramesPerSecond = 45
+        view.isPaused = !isActive
+        view.enableSetNeedsDisplay = true
+        view.preferredFramesPerSecond = effectivePreferredFramesPerSecond
         view.sampleCount = 1
         view.framebufferOnly = true
         view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
@@ -29,6 +39,11 @@ struct NotchMetalEffectView: NSViewRepresentable {
     func updateNSView(_ nsView: MTKView, context: Context) {
         context.coordinator.auroraTheme = theme
         context.coordinator.glowTheme = glowTheme
+        nsView.isPaused = !isActive
+        nsView.preferredFramesPerSecond = effectivePreferredFramesPerSecond
+        if isActive {
+            nsView.setNeedsDisplay(nsView.bounds)
+        }
     }
 }
 

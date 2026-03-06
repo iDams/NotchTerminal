@@ -66,6 +66,10 @@
 
 "settings.appearance.compactTicker" = "Compact Ticker";
 "settings.appearance.compactTicker.subtitle" = "Provider status in closed-notch mode.";
+"settings.appearance.effects" = "Effects";
+"settings.appearance.effects.subtitle" = "Visual effects for the notch surface.";
+"settings.appearance.reset" = "Reset appearance settings";
+"settings.appearance.reset.subtitle" = "Restore the default values for this tab.";
 "settings.compactTickerEnabled" = "Show compact provider ticker";
 "settings.compactTickerEnabled.subtitle" = "When the notch is closed, rotate provider status in a compact row.";
 "settings.compactTickerInterval" = "Rotation interval";
@@ -77,8 +81,9 @@
 "settings.experimental.effects" = "Experimental Effects";
 "settings.experimental.effects.subtitle" = "Optional visuals that may vary by screen/GPU.";
 "settings.experimental.warning" = "These visual effects are highly experimental and cost battery life.";
-"settings.fakeNotchGlow" = "Fake Notch Glow";
+"settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Neon purple glow effect for simulated notches.";
+"settings.fakeNotchGlowTheme" = "Glow Theme";
 "settings.auroraBackground" = "Aurora Background";
 "settings.auroraBackground.subtitle" = "Animated Metal shader behind the terminal contents.";
 "settings.crtFilter" = "CRT Monitor Filter";
@@ -120,6 +125,7 @@
 "action.settings" = "Settings";
 "action.newTerminal" = "New Terminal";
 "action.quit" = "Quit";
+"action.resetDefaults" = "Reset Defaults";
 
 /* Misc */
 "menu.bulkActions" = "Bulk actions";

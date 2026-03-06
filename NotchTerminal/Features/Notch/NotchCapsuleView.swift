@@ -31,6 +31,21 @@ struct NotchCapsuleView: View {
         let maxWidth: CGFloat = 1100
         return min(max(model.contentWidth + (model.contentPadding * 2), minWidth), maxWidth)
     }
+
+    private var baseBackgroundOpacity: Double {
+        if model.hasPhysicalNotch {
+            return (model.isExpanded || model.isHoveringPreview) ? 1.0 : 0.0
+        }
+        return 1.0
+    }
+
+    private var backgroundStateKey: Int {
+        var key = 0
+        if model.isExpanded { key += 1 }
+        if model.isHoveringPreview { key += 2 }
+        if model.hasPhysicalNotch { key += 4 }
+        return key
+    }
     
     init(
         openBlackWindow: @escaping () -> Void = {},
@@ -66,19 +81,17 @@ struct NotchCapsuleView: View {
         ZStack {
             Rectangle()
                 .fill(Color(red: 0, green: 0, blue: 0))
-                .opacity(
-                    model.hasPhysicalNotch 
-                        ? (model.isExpanded ? 1.0 : (model.isHoveringPreview ? 1.0 : 0.0))
-                        : 1.0
-                )
-                .animation(.easeInOut(duration: 0.2), value: model.isHoveringPreview)
-            
+                .opacity(baseBackgroundOpacity)
+                .animation(.easeInOut(duration: 0.22), value: backgroundStateKey)
+
+            // Aurora background is a static overlay - move out of conditionals that depend on animatable state to avoid unnecessary rebuilds
             if model.auroraBackgroundEnabled && model.isExpanded {
-                NotchMetalEffectView(theme: model.auroraTheme)
+                NotchMetalEffectView(isActive: model.isExpanded, theme: model.auroraTheme)
                     .opacity(0.85) // Allow some black to bleed through
                     .transition(.opacity)
             }
 
+            // Expanded terminal controls only appear when expanded
             if model.isExpanded {
                 expandedTerminalControls
                     .transition(.opacity)
@@ -89,36 +102,38 @@ struct NotchCapsuleView: View {
         .overlay {
             if !model.hasPhysicalNotch && model.fakeNotchGlowEnabled {
                 ZStack {
-                    // 1. Massive Inner Glow (hacia adentro)
-                    // The blur creates a soft glow, but the clipShape perfectly chops off the outside
-                    // so it never hits the square bounding box bounds.
-                    NotchMetalEffectView(shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme)
+                    // Inner glow: keep it subtle when closed, broader when expanded.
+                    NotchMetalEffectView(isActive: model.isExpanded, shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme, preferredFramesPerSecond: nil)
                         .mask {
                             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                                .stroke(lineWidth: model.isExpanded ? 24 : 16)
-                                .blur(radius: model.isExpanded ? 12 : 8)
+                                .stroke(lineWidth: model.isExpanded ? 18 : 7)
+                                .blur(radius: model.isExpanded ? 10 : 3)
                         }
                         .clipShape(RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous))
-                        .opacity(0.85)
+                        .opacity(model.isExpanded ? 0.82 : 0.52)
 
-                    // 2. The sharp neon boundary line with a gentle outward shadow
-                    NotchMetalEffectView(shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme)
+                    // Sharp boundary line.
+                    NotchMetalEffectView(isActive: model.isExpanded, shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme, preferredFramesPerSecond: nil)
                         .mask {
                             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                                .stroke(lineWidth: model.isExpanded ? 1.8 : 1.2)
+                                .stroke(lineWidth: model.isExpanded ? 1.5 : 0.9)
                         }
                         .shadow(
-                            color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.9 : 0.7),
-                            radius: model.isExpanded ? 10 : 6
+                            color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.82 : 0.48),
+                            radius: model.isExpanded ? 8 : 3
                         )
                 }
+                .animation(expansionAnimation, value: model.isExpanded)
                 .allowsHitTesting(false)
             }
         }
         .overlay(alignment: .topLeading) { topLeadingControls }
         .overlay(alignment: .topTrailing) { topTrailingControls }
         .onAppear {
-            showExpandedControls = model.isExpanded
+            // Use withAnimation explicitly to animate the initial showExpandedControls state
+            withAnimation(expansionAnimation) {
+                showExpandedControls = model.isExpanded
+            }
         }
         .onChange(of: model.isExpanded) { _, isExpanded in
             controlsRevealWorkItem?.cancel()
@@ -127,6 +142,7 @@ struct NotchCapsuleView: View {
             if isExpanded {
                 let workItem = DispatchWorkItem {
                     guard model.isExpanded else { return }
+                    // Animate showing expanded controls explicitly
                     withAnimation(.easeOut(duration: 0.15)) {
                         showExpandedControls = true
                     }
@@ -134,7 +150,10 @@ struct NotchCapsuleView: View {
                 controlsRevealWorkItem = workItem
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
             } else {
-                showExpandedControls = false
+                // Animate hiding expanded controls explicitly
+                withAnimation(.easeOut(duration: 0.15)) {
+                    showExpandedControls = false
+                }
                 hoveredMinimizedItemID = nil
                 pendingHoverItemID = nil
                 hoverActivationWorkItem?.cancel()
@@ -171,7 +190,7 @@ struct NotchCapsuleView: View {
         .padding(shadowPadding)
         // Ensure the entire Notch expanding structure is anchored to the top of the NSPanel
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(expansionAnimation, value: model.isExpanded)
+        // Removed implicit animation modifier here to avoid repeated implicit animations during state changes
     }
 
     // MARK: - Subviews
@@ -397,7 +416,7 @@ struct NotchCapsuleView: View {
     private var expandedScrollContent: some View {
         GeometryReader { scrollGeo in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                LazyHStack(spacing: 8) {
                     Spacer(minLength: 0)
 
                     HStack(spacing: 8) {
@@ -432,6 +451,7 @@ struct NotchCapsuleView: View {
                 }
                 .padding(.horizontal, 16)
                 .frame(minWidth: scrollGeo.size.width)
+                // Disable implicit animations during scrolling to improve performance and prevent unwanted animations.
                 .transaction { transaction in
                     transaction.animation = nil
                 }
@@ -581,10 +601,11 @@ struct NotchCapsuleView: View {
                 overshoot: 6.0
             )
                 .foregroundStyle(Color(red: 0, green: 0, blue: 0).opacity(model.isExpanded || model.isHoveringPreview ? 1.0 : 0.01))
-                .animation(.easeInOut(duration: 0.2), value: model.isHoveringPreview)
+                .animation(.easeInOut(duration: 0.22), value: model.isExpanded || model.isHoveringPreview)
         } else {
             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
                 .foregroundStyle(Color(red: 0, green: 0, blue: 0))
+                .animation(.easeInOut(duration: 0.22), value: model.isExpanded || model.isHoveringPreview)
         }
     }
 }
@@ -659,3 +680,6 @@ private struct NotchCapsulePreviewHarness: View {
 #Preview("Notch - Collapsed (Fake)") {
     NotchCapsulePreviewHarness(expanded: false, physicalNotch: false)
 }
+
+
+
