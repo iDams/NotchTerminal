@@ -81,6 +81,12 @@ vendor/
 output.log
 test_canvas.swift
 
+# Local signing overrides
+Config/Signing.local.xcconfig
+
 # Private planning notes (keep local only)
 TERMINAL_ACTIONS_UX_IDEA.md
 UPDATE_FEATURES.md
+
+*.swp
+*.swo
