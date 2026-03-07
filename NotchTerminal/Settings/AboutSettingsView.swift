@@ -42,10 +42,10 @@ struct AboutSettingsView: View {
                 .padding(.top, 8)
 
             VStack(spacing: 4) {
-                Text("settings.about.title".localized)
+                Text(AppMetadata.displayName)
                     .font(.system(size: 34, weight: .bold, design: .rounded))
 
-                Text("settings.about.version".localized)
+                Text(AppMetadata.versionDisplay)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

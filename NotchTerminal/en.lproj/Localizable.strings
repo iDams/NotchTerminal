@@ -96,8 +96,7 @@
 "settings.language.system.subtitle" = "Uses your system's language setting.";
 
 /* Settings - About */
-"settings.about.title" = "NotchTerminal";
-"settings.about.version" = "Version 1.0.0";
+"settings.about.versionFormat" = "Version %@ (%@)";
 "settings.about.checkUpdates" = "Check for Updates";
 "settings.about.checkUpdates.subtitle" = "Looks for newer versions";
 "settings.about.releaseNotes" = "Release Notes";
