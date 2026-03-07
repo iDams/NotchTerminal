@@ -402,6 +402,7 @@ struct NotchCapsuleView: View {
             }
             .opacity(showExpandedControls ? 1 : 0)
             .allowsHitTesting(showExpandedControls)
+            .padding(.top, model.hasPhysicalNotch ? 8 : 6)
             .padding(.horizontal, model.contentPadding)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity)
@@ -475,7 +476,7 @@ struct NotchCapsuleView: View {
 
     @ViewBuilder
     private var topLeadingControls: some View {
-        if showExpandedControls {
+        if model.isExpanded && showExpandedControls {
             HStack(spacing: 6) {
                 Button(action: reorganizeBlackWindows) {
                     Image(systemName: "square.grid.2x2.fill")
@@ -516,15 +517,15 @@ struct NotchCapsuleView: View {
                     .help("Bulk actions")
                 }
             }
-            .padding(.leading, 10)
-            .padding(.top, topControlsPaddingTop)
+            .padding(.leading, 16)
+            .padding(.top, topControlsPaddingTop + 4)
             .transition(.opacity)
         }
     }
 
     @ViewBuilder
     private var topTrailingControls: some View {
-        if showExpandedControls {
+        if model.isExpanded && showExpandedControls {
             Button(action: openSettingsWindow) {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 12, weight: .semibold))
@@ -533,8 +534,8 @@ struct NotchCapsuleView: View {
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .padding(.trailing, 10)
-            .padding(.top, topControlsPaddingTop)
+            .padding(.trailing, 16)
+            .padding(.top, topControlsPaddingTop + 4)
             .transition(.opacity)
         }
     }
