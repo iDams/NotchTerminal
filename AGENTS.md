@@ -47,6 +47,7 @@ Requirements:
 ## Safe Change Guidelines
 - Prefer focused, minimal patches.
 - Do not commit secrets, keys, tokens, or private notes.
+- Do not commit personal Xcode signing settings such as `DEVELOPMENT_TEAM`; use `Config/Signing.local.xcconfig` for local-only signing overrides.
 - Do not add personal planning docs to version control.
 - Keep user-facing copy localized where appropriate.
 - For UI/state changes, validate behavior in both notch and non-notch screens.

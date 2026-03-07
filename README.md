@@ -69,6 +69,18 @@ Runtime note:
 2. Select scheme `NotchTerminal`
 3. Build and run
 
+### Local Code Signing for Contributors
+
+This repository does not commit a personal Apple `DEVELOPMENT_TEAM`.
+
+If you need local signing to run or archive the app:
+
+1. Copy `Config/Signing.local.example.xcconfig` to `Config/Signing.local.xcconfig`
+2. Replace `YOURTEAMID` with your own Apple Developer team ID
+3. Keep `Config/Signing.local.xcconfig` local only
+
+The shared `Config/Signing.xcconfig` includes that file optionally, so collaborators can sign locally without rewriting shared project settings.
+
 ## Settings Overview
 
 - `General`
