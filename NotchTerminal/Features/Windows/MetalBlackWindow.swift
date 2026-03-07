@@ -38,6 +38,7 @@ struct TerminalWindowItem: Identifiable {
     let preview: NSImage?
     let isMinimized: Bool
     let isAlwaysOnTop: Bool
+    let isActive: Bool
 }
 
 @MainActor
@@ -86,6 +87,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         CGSize(width: terminalDefaultWidth, height: terminalDefaultHeight)
     }
     private var windows: [UUID: WindowInstance] = [:]
+    private var activeWindowID: UUID?
     private var pendingDockTargets: [UUID: NotchTarget] = [:]
     private var dockingPreviewOriginalFrames: [UUID: CGRect] = [:]
     private var closingWithoutTerminate = Set<UUID>()
@@ -641,7 +643,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             icon: instance.displayIcon,
             preview: currentPreview,
             isMinimized: instance.isMinimized,
-            isAlwaysOnTop: instance.isAlwaysOnTop
+            isAlwaysOnTop: instance.isAlwaysOnTop,
+            isActive: instance.id == activeWindowID
         )
     }
 
@@ -805,6 +808,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard let panel = notification.object as? NSWindow,
               let id = windowID(for: panel) else { return }
 
+        if activeWindowID == id {
+            activeWindowID = nil
+        }
         let skipTerminate = closingWithoutTerminate.contains(id)
         closingWithoutTerminate.remove(id)
         if !skipTerminate, let contentView = panel.contentView {
@@ -850,6 +856,24 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         pendingDockTargets.removeValue(forKey: id)
         restoreDockPreviewIfNeeded(id: id)
+    }
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        guard let panel = notification.object as? NSWindow,
+              let id = windowID(for: panel) else { return }
+        if activeWindowID != id {
+            activeWindowID = id
+            publishTerminalItems()
+        }
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        guard let panel = notification.object as? NSWindow,
+              let id = windowID(for: panel) else { return }
+        if activeWindowID == id {
+            activeWindowID = nil
+            publishTerminalItems()
+        }
     }
 
     private func installDragEndMonitorIfNeeded() {
@@ -1055,4 +1079,3 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         return candidate?.0
     }
 }
-

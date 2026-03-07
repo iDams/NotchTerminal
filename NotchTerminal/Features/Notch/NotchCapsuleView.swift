@@ -197,30 +197,30 @@ struct NotchCapsuleView: View {
 
     @ViewBuilder
     private func terminalItemButton(for item: TerminalWindowItem) -> some View {
-        Button(action: {
-            if let event = NSApp.currentEvent {
-                if event.modifierFlags.contains(.option) {
-                    closeBlackWindow(item.id)
-                    return
+        ZStack(alignment: .topTrailing) {
+            Button(action: {
+                if let event = NSApp.currentEvent {
+                    if event.modifierFlags.contains(.option) {
+                        closeBlackWindow(item.id)
+                        return
+                    }
+                    
+                    if event.clickCount == 2 {
+                        hoveredMinimizedItemID = nil
+                        pendingHoverItemID = nil
+                        hoverActivationWorkItem?.cancel()
+                        hoverActivationWorkItem = nil
+                        bringBlackWindow(item.id)
+                        return
+                    }
                 }
                 
-                if event.clickCount == 2 {
-                    hoveredMinimizedItemID = nil
-                    pendingHoverItemID = nil
-                    hoverActivationWorkItem?.cancel()
-                    hoverActivationWorkItem = nil
-                    bringBlackWindow(item.id)
-                    return
-                }
-            }
-            
-            hoveredMinimizedItemID = nil
-            pendingHoverItemID = nil
-            hoverActivationWorkItem?.cancel()
-            hoverActivationWorkItem = nil
-            restoreBlackWindow(item.id)
-        }) {
-            ZStack(alignment: .topTrailing) {
+                hoveredMinimizedItemID = nil
+                pendingHoverItemID = nil
+                hoverActivationWorkItem?.cancel()
+                hoverActivationWorkItem = nil
+                restoreBlackWindow(item.id)
+            }) {
                 HStack(spacing: 4) {
                     if let icon = item.icon {
                         Image(nsImage: icon)
@@ -234,23 +234,25 @@ struct NotchCapsuleView: View {
                     Text("\(item.number)")
                         .font(.system(size: 11, weight: .semibold))
                 }
-                if showChipCloseButtonOnHover && hoveredChipID == item.id {
-                    Button {
-                        closeBlackWindow(item.id)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 8, weight: .black))
-                            .foregroundStyle(.black)
-                            .padding(3)
-                            .background(.white, in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .offset(x: 8, y: -8)
-                    .zIndex(2)
+            }
+            .buttonStyle(TerminalItemButtonStyle(item: item, pendingHoverItemID: pendingHoverItemID))
+
+            if showChipCloseButtonOnHover && hoveredChipID == item.id {
+                Button {
+                    hoveredChipID = nil
+                    closeBlackWindow(item.id)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(.black)
+                        .padding(3)
+                        .background(Color.white, in: Circle())
                 }
+                .buttonStyle(.plain)
+                .offset(x: 8, y: -7)
+                .zIndex(3)
             }
         }
-        .buttonStyle(TerminalItemButtonStyle(item: item, pendingHoverItemID: pendingHoverItemID))
         .contextMenu {
             Button("Restore", systemImage: "arrow.up.right.square") {
                 restoreBlackWindow(item.id)
@@ -631,11 +633,25 @@ struct TerminalItemButtonStyle: ButtonStyle {
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
             .background(
-                item.isMinimized 
+                item.isMinimized
                     ? .white.opacity(configuration.isPressed ? 0.45 : (pendingHoverItemID == item.id ? 0.35 : 0.24))
                     : .white.opacity(configuration.isPressed ? 0.30 : (pendingHoverItemID == item.id ? 0.20 : 0.12)),
                 in: Capsule()
             )
+            .background(
+                item.isAlwaysOnTop
+                    ? Color(red: 1.0, green: 0.86, blue: 0.25).opacity(0.18)
+                    : Color.clear,
+                in: Capsule()
+            )
+            .overlay {
+                if item.isActive {
+                    Capsule()
+                        .stroke(.white.opacity(0.9), lineWidth: 1.5)
+                        .shadow(color: .white.opacity(0.55), radius: 6)
+                        .allowsHitTesting(false)
+                }
+            }
             .shadow(color: item.isMinimized ? .clear : .white.opacity(0.4), radius: item.isMinimized ? 0 : 4)
             .contentShape(Rectangle())
             .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
@@ -659,8 +675,8 @@ private struct NotchCapsulePreviewHarness: View {
         previewModel.contentPadding = 14
         previewModel.fakeNotchGlowEnabled = true
         previewModel.terminalItems = [
-            TerminalWindowItem(id: UUID(), number: 1, displayID: 0, title: "NotchTerminal · ~/project", icon: nil, preview: nil, isMinimized: false, isAlwaysOnTop: false),
-            TerminalWindowItem(id: UUID(), number: 2, displayID: 0, title: "NotchTerminal · ~/docs", icon: nil, preview: nil, isMinimized: true, isAlwaysOnTop: false)
+            TerminalWindowItem(id: UUID(), number: 1, displayID: 0, title: "NotchTerminal · ~/project", icon: nil, preview: nil, isMinimized: false, isAlwaysOnTop: false, isActive: true),
+            TerminalWindowItem(id: UUID(), number: 2, displayID: 0, title: "NotchTerminal · ~/docs", icon: nil, preview: nil, isMinimized: true, isAlwaysOnTop: false, isActive: false)
         ]
         _model = StateObject(wrappedValue: previewModel)
     }
@@ -680,6 +696,3 @@ private struct NotchCapsulePreviewHarness: View {
 #Preview("Notch - Collapsed (Fake)") {
     NotchCapsulePreviewHarness(expanded: false, physicalNotch: false)
 }
-
-
-

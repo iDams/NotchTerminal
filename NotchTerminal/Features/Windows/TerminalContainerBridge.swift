@@ -37,6 +37,10 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     private var currentInputLine = ""
     private var isInLiveResize = false
     private var wheelMonitor: Any?
+    private var selectionMonitor: Any?
+    private var selectionAutoScrollTimer: Timer?
+    private var selectionAutoScrollDelta = 0
+    private var lastSelectionDragEvent: NSEvent?
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
@@ -107,12 +111,17 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         installWheelForwardMonitorIfNeeded()
+        installSelectionMonitorIfNeeded()
     }
 
     deinit {
         if let wheelMonitor {
             NSEvent.removeMonitor(wheelMonitor)
         }
+        if let selectionMonitor {
+            NSEvent.removeMonitor(selectionMonitor)
+        }
+        selectionAutoScrollTimer?.invalidate()
     }
 
     override func viewDidEndLiveResize() {
@@ -282,6 +291,99 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
         let reverseSearch: [UInt8] = [0x12]
         send(source: self, data: reverseSearch[...])
         window?.makeFirstResponder(self)
+    }
+
+    private func installSelectionMonitorIfNeeded() {
+        guard selectionMonitor == nil else { return }
+
+        selectionMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
+            guard let self else { return event }
+            guard event.window === self.window else { return event }
+
+            switch event.type {
+            case .leftMouseDown:
+                if self.isSelectionEventInsideTerminal(event) {
+                    self.stopSelectionAutoScroll()
+                    self.lastSelectionDragEvent = nil
+                }
+            case .leftMouseDragged:
+                guard self.lastSelectionDragEvent != nil || self.isSelectionEventInsideTerminal(event) else {
+                    return event
+                }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    guard self.terminal.mouseMode == .off else {
+                        self.stopSelectionAutoScroll()
+                        return
+                    }
+                    self.lastSelectionDragEvent = event
+                    self.updateSelectionAutoScroll(for: event)
+                }
+            case .leftMouseUp:
+                if self.lastSelectionDragEvent != nil || self.isSelectionEventInsideTerminal(event) {
+                    self.stopSelectionAutoScroll()
+                    self.lastSelectionDragEvent = nil
+                }
+            default:
+                break
+            }
+
+            return event
+        }
+    }
+
+    private func updateSelectionAutoScroll(for event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let overflowTop = max(0, point.y - bounds.maxY)
+        let overflowBottom = max(0, bounds.minY - point.y)
+
+        if overflowTop > 0 {
+            selectionAutoScrollDelta = -selectionScrollVelocity(for: overflowTop)
+            ensureSelectionAutoScrollTimer()
+        } else if overflowBottom > 0 {
+            selectionAutoScrollDelta = selectionScrollVelocity(for: overflowBottom)
+            ensureSelectionAutoScrollTimer()
+        } else {
+            stopSelectionAutoScroll()
+        }
+    }
+
+    private func ensureSelectionAutoScrollTimer() {
+        guard selectionAutoScrollTimer == nil else { return }
+        selectionAutoScrollTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+            self?.performSelectionAutoScrollTick()
+        }
+    }
+
+    private func performSelectionAutoScrollTick() {
+        guard selectionAutoScrollDelta != 0 else { return }
+
+        if selectionAutoScrollDelta < 0 {
+            scrollUp(lines: abs(selectionAutoScrollDelta))
+        } else {
+            scrollDown(lines: selectionAutoScrollDelta)
+        }
+
+        guard let lastSelectionDragEvent else { return }
+        super.mouseDragged(with: lastSelectionDragEvent)
+    }
+
+    private func stopSelectionAutoScroll() {
+        selectionAutoScrollDelta = 0
+        selectionAutoScrollTimer?.invalidate()
+        selectionAutoScrollTimer = nil
+    }
+
+    private func selectionScrollVelocity(for overflow: CGFloat) -> Int {
+        if overflow > 36 { return max(terminal.rows, 20) }
+        if overflow > 20 { return 10 }
+        if overflow > 8 { return 3 }
+        return 1
+    }
+
+    private func isSelectionEventInsideTerminal(_ event: NSEvent) -> Bool {
+        let point = convert(event.locationInWindow, from: nil)
+        return bounds.contains(point)
     }
 
     func terminateProcessTree() {
