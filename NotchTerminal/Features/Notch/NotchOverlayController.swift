@@ -52,6 +52,7 @@ final class NotchOverlayController {
     private let blackWindowController = MetalBlackWindowsManager()
     private var timer: Timer?
     private var trackingFPS: Int = 60
+    private var trackingTickCount: Int = 0
     private var observers: [NSObjectProtocol] = []
     private var lastCursorLocation: CGPoint?
     private var cancellables = Set<AnyCancellable>()
@@ -159,7 +160,15 @@ final class NotchOverlayController {
         let interval = 1.0 / Double(trackingFPS)
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             DispatchQueue.main.async { [weak self] in
-                self?.updateExpansionAndLayout()
+                guard let self else { return }
+                self.updateExpansionAndLayout()
+                
+                self.trackingTickCount += 1
+                // Check full screen state roughly every 1 seconds (e.g. at 60fps -> 60 ticks)
+                if self.trackingTickCount >= self.trackingFPS {
+                    self.trackingTickCount = 0
+                    self.updateFullScreenStatus()
+                }
             }
         }
         // Let the system coalesce timer wakeups a bit for better efficiency.
@@ -347,6 +356,17 @@ final class NotchOverlayController {
         for screen in NSScreen.screens {
             guard let displayID = displayID(for: screen),
                   let model = modelsByDisplay[displayID] else { continue }
+                  
+            // If full screen app is active on this monitor, do not allow expansion on hover
+            if model.isFullScreenAppActive {
+                if model.isExpanded {
+                    model.isExpanded = false
+                    changedDisplays.insert(displayID)
+                }
+                pendingExpandWorkItems[displayID]?.cancel()
+                pendingExpandWorkItems.removeValue(forKey: displayID)
+                continue
+            }
 
             if pinnedExpandedDisplays.contains(displayID) {
                 pendingExpandWorkItems[displayID]?.cancel()
@@ -478,6 +498,14 @@ final class NotchOverlayController {
                 panel.setFrame(frame, display: true)
             } else {
                 panel.setFrame(frame, display: true)
+            }
+            
+            // Adjust visibility / hit testing if a full screen app hides the notch
+            if model.isFullScreenAppActive {
+                panel.alphaValue = 0.0
+                panel.ignoresMouseEvents = true
+            } else {
+                panel.alphaValue = 1.0
             }
         }
     }
@@ -661,6 +689,70 @@ final class NotchOverlayController {
     private func unpinDisplayExpanded(_ displayID: CGDirectDisplayID) {
         pinnedExpandedDisplays.remove(displayID)
         layoutPanels(animated: false, displays: [displayID])
+    }
+    
+    // MARK: - Full Screen Detection
+    
+    private func updateFullScreenStatus() {
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        guard let windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
+            return
+        }
+
+        let myPID = ProcessInfo.processInfo.processIdentifier
+        var pidToBounds = [Int32: CGRect]()
+        
+        for window in windowList {
+            guard let pid = window[kCGWindowOwnerPID as String] as? Int32,
+                  pid != myPID, // Don't hide for our own terminal windows
+                  let boundsDict = window[kCGWindowBounds as String] as? [String: Any],
+                  let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) else {
+                continue
+            }
+            
+            let layer = window[kCGWindowLayer as String] as? Int ?? 0
+            if layer < 0 { continue } // Ignore desktop backdrops naturally
+            
+            // Accumulate coverage for this PID
+            if let existing = pidToBounds[pid] {
+                pidToBounds[pid] = existing.union(bounds)
+            } else {
+                pidToBounds[pid] = bounds
+            }
+        }
+        
+        var layoutNeeded = false
+        
+        let screens = NSScreen.screens
+        for screen in screens {
+            guard let displayID = displayID(for: screen),
+                  let model = modelsByDisplay[displayID] else { continue }
+            
+            let displayBounds = CGDisplayBounds(displayID)
+            var isCovered = false
+            let tolerance: CGFloat = 5.0
+            
+            for (_, rect) in pidToBounds {
+                let intersection = rect.intersection(displayBounds)
+                if intersection.width >= displayBounds.width - tolerance &&
+                   intersection.height >= displayBounds.height - tolerance {
+                    isCovered = true
+                    break
+                }
+            }
+            
+            if model.isFullScreenAppActive != isCovered {
+                model.isFullScreenAppActive = isCovered
+                layoutNeeded = true
+                if isCovered && model.isExpanded {
+                    model.isExpanded = false
+                }
+            }
+        }
+        
+        if layoutNeeded {
+            layoutPanels(animated: true)
+        }
     }
 
     private func handleScreenConfigurationChange() {
