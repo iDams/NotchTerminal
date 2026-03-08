@@ -4,6 +4,10 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.enableCRTFilter) var enableCRTFilter: Bool = AppPreferences.Defaults.enableCRTFilter
     @AppStorage(AppPreferences.Keys.fakeNotchGlowEnabled) var fakeNotchGlowEnabled: Bool = AppPreferences.Defaults.fakeNotchGlowEnabled
     @AppStorage(AppPreferences.Keys.fakeNotchGlowTheme) var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
+    @AppStorage(AppPreferences.Keys.experimentalDragToNotchEnabled) var experimentalDragToNotchEnabled: Bool = AppPreferences.Defaults.experimentalDragToNotchEnabled
+    @AppStorage(AppPreferences.Keys.experimentalStartupOrbEnabled) var experimentalStartupOrbEnabled: Bool = AppPreferences.Defaults.experimentalStartupOrbEnabled
+    @AppStorage(AppPreferences.Keys.hitTestDebugOverlayEnabled) var hitTestDebugOverlayEnabled: Bool = AppPreferences.Defaults.hitTestDebugOverlayEnabled
+    @AppStorage(AppPreferences.Keys.notchDockingSensitivity) var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
     @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
     @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
 
@@ -35,6 +39,8 @@ struct ExperimentalSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 geometrySection
+                dockingSection
+                debugSection
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
                         title: "settings.experimental.effects".localized,
@@ -47,6 +53,13 @@ struct ExperimentalSettingsView: View {
                         .foregroundStyle(.tertiary)
 
                     if hasAnyNoNotch {
+                        ZenithPreferenceToggleRow(
+                            title: "settings.experimental.startupOrb".localized,
+                            subtitle: "settings.experimental.startupOrb.subtitle".localized,
+                            icon: "circle.grid.2x1.right.filled",
+                            binding: $experimentalStartupOrbEnabled
+                        )
+
                         ZenithPreferenceToggleRow(
                             title: "settings.fakeNotchGlow".localized,
                             subtitle: "settings.fakeNotchGlow.subtitle".localized,
@@ -75,6 +88,52 @@ struct ExperimentalSettingsView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+        }
+    }
+
+    private var dockingSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.appearance.docking".localized,
+                subtitle: "settings.appearance.docking.subtitle".localized,
+                icon: "magnet"
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.experimental.dragToNotch".localized,
+                subtitle: "settings.experimental.dragToNotch.subtitle".localized,
+                icon: "arrow.down.to.line.compact",
+                binding: $experimentalDragToNotchEnabled
+            )
+
+            if experimentalDragToNotchEnabled {
+                ZenithSliderPreferenceRow(
+                    title: "settings.notchDockingSensitivity".localized,
+                    subtitle: "settings.notchDockingSensitivity.subtitle".localized,
+                    icon: "record.circle",
+                    value: $notchDockingSensitivity,
+                    range: 0 ... 100,
+                    step: 2,
+                    valueFormatter: { "\(Int($0)) pt" }
+                )
+            }
+        }
+    }
+
+    private var debugSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.experimental.debug".localized,
+                subtitle: "settings.experimental.debug.subtitle".localized,
+                icon: "ladybug"
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.experimental.hitTestDebugOverlay".localized,
+                subtitle: "settings.experimental.hitTestDebugOverlay.subtitle".localized,
+                icon: "viewfinder.circle",
+                binding: $hitTestDebugOverlayEnabled
+            )
         }
     }
 

@@ -25,6 +25,8 @@ struct NotchCapsuleView: View {
     @State private var isHoveringPlus = false
     @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) private var showChipCloseButtonOnHover = AppPreferences.Defaults.showChipCloseButtonOnHover
     @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) private var confirmBeforeCloseAll = AppPreferences.Defaults.confirmBeforeCloseAll
+    @AppStorage(AppPreferences.Keys.experimentalStartupOrbEnabled) private var experimentalStartupOrbEnabled = AppPreferences.Defaults.experimentalStartupOrbEnabled
+    @AppStorage(AppPreferences.Keys.hitTestDebugOverlayEnabled) private var hitTestDebugOverlayEnabled = AppPreferences.Defaults.hitTestDebugOverlayEnabled
 
     private var expandedWidth: CGFloat {
         let minWidth: CGFloat = 680
@@ -78,57 +80,10 @@ struct NotchCapsuleView: View {
     }
 
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(Color(red: 0, green: 0, blue: 0))
-                .opacity(baseBackgroundOpacity)
-                .animation(.easeInOut(duration: 0.22), value: backgroundStateKey)
-
-            // Aurora background is a static overlay - move out of conditionals that depend on animatable state to avoid unnecessary rebuilds
-            if model.auroraBackgroundEnabled && model.isExpanded {
-                NotchMetalEffectView(isActive: model.isExpanded, theme: model.auroraTheme)
-                    .opacity(0.85) // Allow some black to bleed through
-                    .transition(.opacity)
-            }
-
-            // Expanded terminal controls only appear when expanded
-            if model.isExpanded {
-                expandedTerminalControls
-                    .transition(.opacity)
-            }
+        ZStack(alignment: .top) {
+            notchSurface
+            startupOrbOverlay
         }
-        .mask(notchBackgroundMaskGroup)
-        .contentShape(RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous))
-        .overlay {
-            if !model.hasPhysicalNotch && model.fakeNotchGlowEnabled {
-                ZStack {
-                    // Inner glow: keep it subtle when closed, broader when expanded.
-                    NotchMetalEffectView(isActive: model.isExpanded, shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme, preferredFramesPerSecond: nil)
-                        .mask {
-                            RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                                .stroke(lineWidth: model.isExpanded ? 18 : 7)
-                                .blur(radius: model.isExpanded ? 10 : 3)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous))
-                        .opacity(model.isExpanded ? 0.82 : 0.52)
-
-                    // Sharp boundary line.
-                    NotchMetalEffectView(isActive: model.isExpanded, shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme, preferredFramesPerSecond: nil)
-                        .mask {
-                            RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                                .stroke(lineWidth: model.isExpanded ? 1.5 : 0.9)
-                        }
-                        .shadow(
-                            color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.82 : 0.48),
-                            radius: model.isExpanded ? 8 : 3
-                        )
-                }
-                .animation(expansionAnimation, value: model.isExpanded)
-                .allowsHitTesting(false)
-            }
-        }
-        .overlay(alignment: .topLeading) { topLeadingControls }
-        .overlay(alignment: .topTrailing) { topTrailingControls }
         .onAppear {
             // Use withAnimation explicitly to animate the initial showExpandedControls state
             withAnimation(expansionAnimation) {
@@ -328,6 +283,58 @@ struct NotchCapsuleView: View {
         ) {
             terminalItemPopover(for: item)
         }
+    }
+
+    private var notchSurface: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color(red: 0, green: 0, blue: 0))
+                .opacity(baseBackgroundOpacity)
+                .animation(.easeInOut(duration: 0.22), value: backgroundStateKey)
+
+            if model.auroraBackgroundEnabled && model.isExpanded {
+                NotchMetalEffectView(isActive: model.isExpanded, theme: model.auroraTheme)
+                    .opacity(0.85)
+                    .transition(.opacity)
+            }
+
+            if model.isExpanded {
+                expandedTerminalControls
+                    .transition(.opacity)
+            }
+        }
+        .mask(notchBackgroundMaskGroup)
+        .contentShape(RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous))
+        .overlay {
+            if !model.hasPhysicalNotch && model.fakeNotchGlowEnabled {
+                ZStack {
+                    NotchMetalEffectView(isActive: model.isExpanded, shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme, preferredFramesPerSecond: nil)
+                        .mask {
+                            RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                                .stroke(lineWidth: model.isExpanded ? 18 : 7)
+                                .blur(radius: model.isExpanded ? 10 : 3)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous))
+                        .opacity(model.isExpanded ? 0.82 : 0.52)
+
+                    NotchMetalEffectView(isActive: model.isExpanded, shader: "neonBorderFragment", glowTheme: model.fakeNotchGlowTheme, preferredFramesPerSecond: nil)
+                        .mask {
+                            RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                                .stroke(lineWidth: model.isExpanded ? 1.5 : 0.9)
+                        }
+                        .shadow(
+                            color: Color(red: 0.72, green: 0.40, blue: 1.00).opacity(model.isExpanded ? 0.82 : 0.48),
+                            radius: model.isExpanded ? 8 : 3
+                        )
+                }
+                .animation(expansionAnimation, value: model.isExpanded)
+                .allowsHitTesting(false)
+            }
+        }
+        .overlay(alignment: .topLeading) { topLeadingControls }
+        .overlay(alignment: .topTrailing) { topTrailingControls }
+        .overlay { panelFrameDebugOverlay }
+        .overlay(alignment: .top) { hitTestDebugOverlay }
     }
 
     @ViewBuilder
@@ -609,6 +616,65 @@ struct NotchCapsuleView: View {
             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
                 .foregroundStyle(Color(red: 0, green: 0, blue: 0))
                 .animation(.easeInOut(duration: 0.22), value: model.isExpanded || model.isHoveringPreview)
+        }
+    }
+
+    @ViewBuilder
+    private var startupOrbOverlay: some View {
+        if experimentalStartupOrbEnabled && !model.hasPhysicalNotch {
+            StartupOrbView(
+                style: .pill,
+                hostWidth: capsuleWidth,
+                isEligible: !model.isExpanded
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var panelFrameDebugOverlay: some View {
+        if hitTestDebugOverlayEnabled && !model.hasPhysicalNotch {
+            GeometryReader { proxy in
+                Rectangle()
+                    .fill(Color.orange.opacity(0.06))
+                    .overlay {
+                        Rectangle()
+                            .stroke(Color.orange.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [10, 6]))
+                    }
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var hitTestDebugOverlay: some View {
+        if hitTestDebugOverlayEnabled && !model.hasPhysicalNotch && !model.isExpanded {
+            ZStack {
+                RoundedRectangle(cornerRadius: notchCornerRadius + 20, style: .continuous)
+                    .fill(Color.red.opacity(0.16))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: notchCornerRadius + 20, style: .continuous)
+                            .stroke(Color.red.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
+                    }
+                    .frame(width: capsuleWidth + 40, height: model.closedSize.height + 40)
+                    .offset(y: -20)
+
+                Circle()
+                    .fill(Color.cyan.opacity(0.22))
+                    .overlay {
+                        Circle()
+                            .stroke(Color.cyan.opacity(0.95), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
+                    }
+                    .frame(
+                        width: StartupOrbGeometry.bubbleSize(for: .pill) + 16,
+                        height: StartupOrbGeometry.bubbleSize(for: .pill) + 16
+                    )
+                    .offset(
+                        x: StartupOrbGeometry.detachedOffsetX(for: .pill, hostWidth: capsuleWidth),
+                        y: StartupOrbGeometry.offsetY(for: .pill) - 8
+                    )
+            }
+            .allowsHitTesting(false)
         }
     }
 }

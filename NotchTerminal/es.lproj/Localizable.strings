@@ -80,8 +80,16 @@
 /* Settings - Experimental */
 "settings.experimental.effects" = "Efectos experimentales";
 "settings.experimental.effects.subtitle" = "Visuales opcionales que pueden variar según pantalla/GPU.";
+"settings.experimental.debug" = "Debug";
+"settings.experimental.debug.subtitle" = "Herramientas y guías visuales solo para desarrollo.";
+"settings.experimental.startupOrb" = "Mostrar orb de inicio";
+"settings.experimental.startupOrb.subtitle" = "Muestra el orb junto al notch en pantallas sin notch físico.";
 "settings.experimental.warning" = "Estos efectos visuales son altamente experimentales y consumen batería.";
 "settings.experimental.notchOffsets.note" = "Solo afecta al notch cerrado en pantallas con notch físico.";
+"settings.experimental.dragToNotch" = "Activar acople al notch por arrastre";
+"settings.experimental.dragToNotch.subtitle" = "Permite que las ventanas de terminal se acoplen al notch al arrastrarlas cerca. Experimental y aún inestable.";
+"settings.experimental.hitTestDebugOverlay" = "Mostrar contornos de depuración del acople";
+"settings.experimental.hitTestDebugOverlay.subtitle" = "Muestra las guías discontinuas de color para las zonas de acople y detección.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Efecto de brillo néon morado para notches simulados.";
 "settings.fakeNotchGlowTheme" = "Tema de brillo";

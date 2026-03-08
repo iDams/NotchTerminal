@@ -23,6 +23,7 @@ final class NotchViewModel: ObservableObject {
     
     // Tracking visibility state
     @Published var isFullScreenAppActive: Bool = false
+    @Published var isMenuOverlapping: Bool = false
 
     @Published var isHoveringPreview = false {
         didSet {

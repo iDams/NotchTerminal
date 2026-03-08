@@ -22,9 +22,9 @@
 
 /* Begin PBXFileReference section */
 		A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotchTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B14A9A3A2F90000100C0DE01 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		B14A9A3B2F90000100C0DE01 /* Signing.local.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.local.example.xcconfig; sourceTree = "<group>"; };
-		B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */

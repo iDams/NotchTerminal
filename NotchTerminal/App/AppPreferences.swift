@@ -34,6 +34,9 @@ enum AppPreferences {
         static let terminalDefaultWidth = "terminalDefaultWidth"
         static let terminalDefaultHeight = "terminalDefaultHeight"
         static let notchDockingSensitivity = "notchDockingSensitivity"
+        static let experimentalDragToNotchEnabled = "experimentalDragToNotchEnabled"
+        static let experimentalStartupOrbEnabled = "experimentalStartupOrbEnabled"
+        static let hitTestDebugOverlayEnabled = "hitTestDebugOverlayEnabled"
         static let enableCRTFilter = "enableCRTFilter"
     }
 
@@ -65,6 +68,9 @@ enum AppPreferences {
         static let terminalDefaultWidth: Double = 740
         static let terminalDefaultHeight: Double = 480
         static let notchDockingSensitivity: Double = 80
+        static let experimentalDragToNotchEnabled = false
+        static let experimentalStartupOrbEnabled = false
+        static let hitTestDebugOverlayEnabled = false
         static let enableCRTFilter = false
     }
 }

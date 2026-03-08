@@ -80,8 +80,16 @@
 /* Settings - Experimental */
 "settings.experimental.effects" = "Effets expérimentaux";
 "settings.experimental.effects.subtitle" = "Visuels optionnels qui peuvent varier selon l'écran/GPU.";
+"settings.experimental.debug" = "Debug";
+"settings.experimental.debug.subtitle" = "Outils et repères visuels réservés au développement.";
+"settings.experimental.startupOrb" = "Afficher l’orbe de démarrage";
+"settings.experimental.startupOrb.subtitle" = "Affiche l’orbe à côté du notch sur les écrans sans notch physique.";
 "settings.experimental.warning" = "Ces effets visuels sont hautement expérimentaux et consomment de la batterie.";
 "settings.experimental.notchOffsets.note" = "N'affecte que le notch fermé sur les écrans avec un notch physique.";
+"settings.experimental.dragToNotch" = "Activer l’ancrage au notch par glisser-déposer";
+"settings.experimental.dragToNotch.subtitle" = "Permet aux fenêtres terminal de s’ancrer au notch lorsqu’elles sont glissées à proximité. Expérimental et encore instable.";
+"settings.experimental.hitTestDebugOverlay" = "Afficher les contours de débogage de l’ancrage";
+"settings.experimental.hitTestDebugOverlay.subtitle" = "Affiche les guides colorés en pointillés pour les zones d’ancrage et de détection.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Effet de lueur néon violet pour les notches simulés.";
 "settings.fakeNotchGlowTheme" = "Thème de lueur";

@@ -80,8 +80,16 @@
 /* Settings - Experimental */
 "settings.experimental.effects" = "Experimental Effects";
 "settings.experimental.effects.subtitle" = "Optional visuals that may vary by screen/GPU.";
+"settings.experimental.debug" = "Debug";
+"settings.experimental.debug.subtitle" = "Development-only tools and visual guides.";
+"settings.experimental.startupOrb" = "Show startup orb";
+"settings.experimental.startupOrb.subtitle" = "Displays the orb next to the notch on non-notch displays.";
 "settings.experimental.warning" = "These visual effects are highly experimental and cost battery life.";
 "settings.experimental.notchOffsets.note" = "Only affects the closed notch on displays with a physical notch.";
+"settings.experimental.dragToNotch" = "Enable drag-to-notch docking";
+"settings.experimental.dragToNotch.subtitle" = "Lets terminal windows snap into the notch when dragged nearby. Experimental and currently unstable.";
+"settings.experimental.hitTestDebugOverlay" = "Show docking debug outlines";
+"settings.experimental.hitTestDebugOverlay.subtitle" = "Displays the colored dashed guides for the docking and hit-test areas.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Neon purple glow effect for simulated notches.";
 "settings.fakeNotchGlowTheme" = "Glow Theme";

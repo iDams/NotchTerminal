@@ -80,8 +80,16 @@
 /* Settings - Experimental */
 "settings.experimental.effects" = "実験的エフェクト";
 "settings.experimental.effects.subtitle" = "画面/GPUによって異なる場合があります。";
+"settings.experimental.debug" = "デバッグ";
+"settings.experimental.debug.subtitle" = "開発用のツールと視覚ガイドです。";
+"settings.experimental.startupOrb" = "起動オーブを表示";
+"settings.experimental.startupOrb.subtitle" = "物理ノッチのない画面で、ノッチ横にオーブを表示します。";
 "settings.experimental.warning" = "これらの視覚エフェクトはバッテリーを消費します。";
 "settings.experimental.notchOffsets.note" = "物理ノッチ付きディスプレイで、閉じたノッチにのみ影響します。";
+"settings.experimental.dragToNotch" = "ドラッグでノッチにドッキングを有効化";
+"settings.experimental.dragToNotch.subtitle" = "近くまでドラッグしたターミナルウィンドウをノッチへスナップさせます。実験的で、まだ不安定です。";
+"settings.experimental.hitTestDebugOverlay" = "ドッキングのデバッグ輪郭を表示";
+"settings.experimental.hitTestDebugOverlay.subtitle" = "ドッキング領域とヒットテスト領域の色付き破線ガイドを表示します。";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "シミュレートされたノッチのネオン紫グローエフェクト。";
 "settings.fakeNotchGlowTheme" = "グローテーマ";

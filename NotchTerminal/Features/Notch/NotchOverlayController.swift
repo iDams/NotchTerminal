@@ -7,29 +7,29 @@ import SwiftData
 class PassthroughHostingView<Content: View>: NSHostingView<Content> {
     var model: NotchViewModel?
 
+    private var experimentalStartupOrbEnabled: Bool {
+        UserDefaults.standard.object(forKey: AppPreferences.Keys.experimentalStartupOrbEnabled) as? Bool
+            ?? AppPreferences.Defaults.experimentalStartupOrbEnabled
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+
+    private func interactionRects() -> (notchRect: CGRect, orbRect: CGRect?)? {
+        guard let model = model else { return nil }
+        let hostRect = StartupOrbGeometry.hostRectInPanel(
+            panelBounds: bounds,
+            model: model,
+            shadowPadding: 42
+        )
+        return (hostRect.insetBy(dx: -20, dy: -20), nil)
+    }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard let model = model else { return super.hitTest(point) }
-        
-        let contentWidth = model.contentWidth
-        let padding = model.contentPadding
-        let expandedW = min(max(contentWidth + (padding * 2), 680), 1100)
-        
-        let notchW = model.isExpanded 
-            ? expandedW + (model.hasPhysicalNotch ? 28 : 0)
-            : model.closedSize.width + (model.hasPhysicalNotch ? 12 : 0)
-        
-        let notchH = model.isExpanded ? 160.0 : model.closedSize.height
-        
-        let panelW = bounds.width
-        let panelH = bounds.height
-        
-        let x = (panelW - notchW) / 2
-        let y = panelH - 42 - notchH // 42 is shadowPadding
-        
-        // Add a slight buffer (e.g., 20 points) around the visual bounds to catch edges easily
-        let notchRect = CGRect(x: x, y: y, width: notchW, height: notchH).insetBy(dx: -20, dy: -20)
-        
-        if notchRect.contains(point) {
+        guard let rects = interactionRects() else { return super.hitTest(point) }
+
+        if rects.notchRect.contains(point) || rects.orbRect?.contains(point) == true {
             return super.hitTest(point)
         }
         return nil
@@ -293,7 +293,7 @@ final class NotchOverlayController {
         // but the PassthroughHostingView will reject them if they hit clear pixels!
         panel.ignoresMouseEvents = false
         panel.hidesOnDeactivate = false
-        panel.level = .statusBar
+        panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .transient]
         panel.contentView = PassthroughHostingView(
             rootView: AnyView(makeNotchCapsuleView(for: displayID).environmentObject(model))
@@ -401,8 +401,8 @@ final class NotchOverlayController {
             }
 
             let accurateActivationRect = notchActivationRect(for: screen, model: model)
-
-            let isHovering = accurateActivationRect.contains(cursor)
+            let orbRect = startupOrbScreenRect(for: screen, model: model)
+            let isHovering = accurateActivationRect.contains(cursor) && !(orbRect?.contains(cursor) == true)
             var shouldExpand = model.isExpanded
 
             if isHovering {
@@ -502,6 +502,7 @@ final class NotchOverlayController {
     // MARK: - Layout
 
     private func layoutPanels(animated: Bool, displays: Set<CGDirectDisplayID>? = nil, isCollapsing: Bool = false) {
+        let cursor = NSEvent.mouseLocation
         for screen in NSScreen.screens {
             guard let displayID = displayID(for: screen),
                   let panel = panelsByDisplay[displayID],
@@ -509,7 +510,7 @@ final class NotchOverlayController {
 
             if let displays, !displays.contains(displayID) { continue }
             let frame = frameForPanel(on: screen, model: model)
-            panel.ignoresMouseEvents = !model.isExpanded
+            panel.ignoresMouseEvents = !shouldAllowMouseEvents(for: model, on: screen, cursor: cursor)
 
             if animated {
                 // We no longer animate AppKit frames at all for the Notch!
@@ -602,6 +603,39 @@ final class NotchOverlayController {
         )
         // Keep fake-notch activation compact for non-notch displays.
         return virtual.insetBy(dx: -18, dy: -12)
+    }
+
+    private func startupOrbScreenRect(for screen: NSScreen, model: NotchViewModel) -> CGRect? {
+        let isEnabled = UserDefaults.standard.object(forKey: AppPreferences.Keys.experimentalStartupOrbEnabled) as? Bool
+            ?? AppPreferences.Defaults.experimentalStartupOrbEnabled
+        guard isEnabled, !model.hasPhysicalNotch, !model.isExpanded else { return nil }
+        let hostRect = StartupOrbGeometry.hostRectOnScreen(
+            screenFrame: screen.frame,
+            hostWidth: collapsedNoNotchSize.width,
+            hostHeight: collapsedNoNotchSize.height,
+            topInset: noNotchTopInset
+        )
+        return StartupOrbGeometry.detachedFrame(alignedTo: hostRect, style: .pill)
+    }
+
+    private func shouldAllowMouseEvents(for model: NotchViewModel, on screen: NSScreen, cursor: CGPoint) -> Bool {
+        if model.isExpanded {
+            return true
+        }
+
+        if !model.hasPhysicalNotch {
+            let virtual = CGRect(
+                x: screen.frame.midX - collapsedNoNotchSize.width / 2,
+                y: screen.frame.maxY - collapsedNoNotchSize.height - noNotchTopInset,
+                width: collapsedNoNotchSize.width,
+                height: collapsedNoNotchSize.height
+            )
+            let notchRect = virtual.insetBy(dx: -20, dy: -20)
+            let orbRect = startupOrbScreenRect(for: screen, model: model)?.insetBy(dx: -8, dy: -8)
+            return notchRect.contains(cursor) || orbRect?.contains(cursor) == true
+        }
+
+        return false
     }
 
     private func topInset(for model: NotchViewModel) -> CGFloat {

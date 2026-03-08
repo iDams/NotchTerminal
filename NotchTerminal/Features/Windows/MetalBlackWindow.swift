@@ -86,6 +86,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     @AppStorage(AppPreferences.Keys.terminalDefaultWidth) private var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
     @AppStorage(AppPreferences.Keys.terminalDefaultHeight) private var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
     @AppStorage(AppPreferences.Keys.notchDockingSensitivity) private var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
+    @AppStorage(AppPreferences.Keys.experimentalDragToNotchEnabled) private var experimentalDragToNotchEnabled: Bool = AppPreferences.Defaults.experimentalDragToNotchEnabled
 
     private var expandedSize: CGSize {
         CGSize(width: terminalDefaultWidth, height: terminalDefaultHeight)
@@ -94,6 +95,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private var activeWindowID: UUID?
     private var pendingDockTargets: [UUID: NotchTarget] = [:]
     private var dockingPreviewOriginalFrames: [UUID: CGRect] = [:]
+    private var dockSuppressionUntil: [UUID: Date] = [:]
     private var closingWithoutTerminate = Set<UUID>()
     private var nextNumber: Int = 1
 
@@ -804,6 +806,11 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
               let instance = windows[id],
               !instance.isMinimized else { return }
 
+        guard experimentalDragToNotchEnabled else {
+            clearDockPreviewState(for: id)
+            return
+        }
+
         updateDockPreviewState(for: id, panelFrame: panel.frame, instance: instance)
         installDragEndMonitorIfNeeded()
     }
@@ -827,6 +834,11 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func handleDragEnd() {
+        guard experimentalDragToNotchEnabled else {
+            clearAllDockPreviewState()
+            return
+        }
+
         // Remove the monitor immediately
         if let monitor = dragMonitor {
             NSEvent.removeMonitor(monitor)
@@ -853,7 +865,23 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func updateDockPreviewState(for id: UUID, panelFrame: CGRect, instance: WindowInstance) {
+        guard experimentalDragToNotchEnabled else {
+            clearDockPreviewState(for: id)
+            return
+        }
+
         let isDraggingWithMouse = (NSEvent.pressedMouseButtons & 0x1) != 0
+        if let suppressionUntil = dockSuppressionUntil[id], suppressionUntil > Date() {
+            if let previousTarget = pendingDockTargets[id] {
+                postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
+            }
+            pendingDockTargets.removeValue(forKey: id)
+            restoreDockPreviewIfNeeded(id: id)
+            return
+        } else {
+            dockSuppressionUntil.removeValue(forKey: id)
+        }
+
         let nearTarget = closestDockTarget(for: panelFrame, in: instance)
 
         if let nearTarget, isDraggingWithMouse {
@@ -865,6 +893,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         if let previousTarget = pendingDockTargets[id] {
             postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
+            if isPillDockTarget(previousTarget, for: instance) && isDraggingWithMouse {
+                dockSuppressionUntil[id] = Date().addingTimeInterval(0.45)
+            }
         }
         pendingDockTargets.removeValue(forKey: id)
         restoreDockPreviewIfNeeded(id: id)
@@ -879,6 +910,30 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
                 "isHovering": isHovering
             ]
         )
+    }
+
+    private func clearDockPreviewState(for id: UUID) {
+        if let previousTarget = pendingDockTargets[id] {
+            postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
+        }
+        pendingDockTargets.removeValue(forKey: id)
+        dockSuppressionUntil.removeValue(forKey: id)
+        restoreDockPreviewIfNeeded(id: id)
+    }
+
+    private func clearAllDockPreviewState() {
+        if let monitor = dragMonitor {
+            NSEvent.removeMonitor(monitor)
+            dragMonitor = nil
+        }
+        for target in pendingDockTargets.values {
+            postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
+        }
+        for id in Array(dockingPreviewOriginalFrames.keys) {
+            restoreDockPreviewIfNeeded(id: id)
+        }
+        pendingDockTargets.removeAll()
+        dockSuppressionUntil.removeAll()
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
@@ -1077,6 +1132,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func closestDockTarget(for windowFrame: CGRect, in instance: WindowInstance) -> NotchTarget? {
+        guard experimentalDragToNotchEnabled else { return nil }
+
         // Use top-center of window (where the title bar is) for proximity detection
         let topCenter = CGPoint(x: windowFrame.midX, y: windowFrame.maxY)
         let targets = instance.notchTargetsProvider()
@@ -1089,7 +1146,12 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
                 // when the UI grid opens, becoming huge. 
                 // We MUST dock into the closed notch frame exclusively.
                 let baseFrame = self.notchFrame(for: target.displayID, in: instance) ?? target.frame
-                let expanded = baseFrame.insetBy(dx: -sensitivity, dy: -(sensitivity * 0.75))
+                let expanded: CGRect
+                if isPillDockTarget(target, for: instance) {
+                    expanded = baseFrame.insetBy(dx: -sensitivity, dy: -(sensitivity * 0.38))
+                } else {
+                    expanded = baseFrame.insetBy(dx: -sensitivity, dy: -(sensitivity * 0.75))
+                }
                 
                 let dx = topCenter.x - expanded.midX
                 let dy = topCenter.y - expanded.midY
@@ -1100,5 +1162,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             .min { $0.1 < $1.1 }
 
         return candidate?.0
+    }
+
+    private func isPillDockTarget(_ target: NotchTarget, for instance: WindowInstance) -> Bool {
+        guard let screen = screen(for: target.displayID) ?? screen(for: instance.displayID) else { return true }
+        return screen.notchSize == .zero
     }
 }

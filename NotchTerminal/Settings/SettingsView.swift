@@ -311,7 +311,6 @@ struct AppearanceSettingsView: View {
 
     @AppStorage(AppPreferences.Keys.terminalDefaultWidth) var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
     @AppStorage(AppPreferences.Keys.terminalDefaultHeight) var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
-    @AppStorage(AppPreferences.Keys.notchDockingSensitivity) var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
 
     @AppStorage(AppPreferences.Keys.compactTickerEnabled) var compactTickerEnabled: Bool = AppPreferences.Defaults.compactTickerEnabled
     @AppStorage(AppPreferences.Keys.compactTickerInterval) var compactTickerInterval: Double = AppPreferences.Defaults.compactTickerInterval
@@ -336,7 +335,6 @@ struct AppearanceSettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 geometrySection
                 terminalDefaultsSection
-                dockingSection
                 compactTickerSection
                 effectsSection
                 resetSection
@@ -392,26 +390,6 @@ struct AppearanceSettingsView: View {
                 range: 200 ... 1000,
                 step: 10,
                 valueFormatter: { "\(Int($0))" }
-            )
-        }
-    }
-
-    private var dockingSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
-                title: "settings.appearance.docking".localized,
-                subtitle: "settings.appearance.docking.subtitle".localized,
-                icon: "magnet"
-            )
-
-            ZenithSliderPreferenceRow(
-                title: "settings.notchDockingSensitivity".localized,
-                subtitle: "settings.notchDockingSensitivity.subtitle".localized,
-                icon: "record.circle",
-                value: $notchDockingSensitivity,
-                range: 0 ... 100,
-                step: 2,
-                valueFormatter: { "\(Int($0)) pt" }
             )
         }
     }
@@ -507,7 +485,6 @@ struct AppearanceSettingsView: View {
         contentPadding == AppPreferences.Defaults.contentPadding &&
         terminalDefaultWidth == AppPreferences.Defaults.terminalDefaultWidth &&
         terminalDefaultHeight == AppPreferences.Defaults.terminalDefaultHeight &&
-        notchDockingSensitivity == AppPreferences.Defaults.notchDockingSensitivity &&
         compactTickerEnabled == AppPreferences.Defaults.compactTickerEnabled &&
         compactTickerInterval == AppPreferences.Defaults.compactTickerInterval &&
         compactTickerClosedExtraWidth == AppPreferences.Defaults.compactTickerClosedExtraWidth &&
@@ -519,7 +496,6 @@ struct AppearanceSettingsView: View {
         contentPadding = AppPreferences.Defaults.contentPadding
         terminalDefaultWidth = AppPreferences.Defaults.terminalDefaultWidth
         terminalDefaultHeight = AppPreferences.Defaults.terminalDefaultHeight
-        notchDockingSensitivity = AppPreferences.Defaults.notchDockingSensitivity
         compactTickerEnabled = AppPreferences.Defaults.compactTickerEnabled
         compactTickerInterval = AppPreferences.Defaults.compactTickerInterval
         compactTickerClosedExtraWidth = AppPreferences.Defaults.compactTickerClosedExtraWidth
