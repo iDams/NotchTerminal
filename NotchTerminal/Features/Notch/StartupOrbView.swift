@@ -24,44 +24,49 @@ enum StartupOrbGeometry {
         }
     }
 
-    static func detachedOffsetX(for style: StartupOrbStyle, hostWidth: CGFloat) -> CGFloat {
+    static func detachedOffsetX(for style: StartupOrbStyle, hostWidth: CGFloat, manualOffset: CGFloat = 0) -> CGFloat {
         let rightEdge = (hostWidth / 2) - 10
         switch style {
         case .pill:
-            return rightEdge + 24
+            return rightEdge + 24 + manualOffset
         case .physicalNotch:
-            return rightEdge + 18
+            return rightEdge + 58 + manualOffset
         }
     }
 
-    static func attachedOffsetX(for style: StartupOrbStyle, hostWidth: CGFloat) -> CGFloat {
+    static func attachedOffsetX(for style: StartupOrbStyle, hostWidth: CGFloat, manualOffset: CGFloat = 0) -> CGFloat {
         let rightEdge = (hostWidth / 2) - 10
         switch style {
         case .pill:
-            return rightEdge - 18
+            return rightEdge - 18 + manualOffset
         case .physicalNotch:
-            return rightEdge - 14
+            return rightEdge + 28 + manualOffset
         }
     }
 
-    static func offsetY(for style: StartupOrbStyle) -> CGFloat {
+    static func offsetY(for style: StartupOrbStyle, manualOffset: CGFloat = 0) -> CGFloat {
         switch style {
         case .pill:
-            return 0
+            return 0 + manualOffset
         case .physicalNotch:
-            return -2
+            return 8 + manualOffset
         }
     }
 
-    static func detachedFrame(alignedTo hostRect: CGRect, style: StartupOrbStyle) -> CGRect {
+    static func detachedFrame(
+        alignedTo hostRect: CGRect,
+        style: StartupOrbStyle,
+        manualOffsetX: CGFloat = 0,
+        manualOffsetY: CGFloat = 0
+    ) -> CGRect {
         let bubbleSize = bubbleSize(for: style)
-        let centerX = hostRect.midX + detachedOffsetX(for: style, hostWidth: hostRect.width)
+        let centerX = hostRect.midX + detachedOffsetX(for: style, hostWidth: hostRect.width, manualOffset: manualOffsetX)
         let originX = centerX - (bubbleSize / 2)
         // SwiftUI anchors this view to the top via .overlay(alignment: .top)
         // In AppKit coordinates, the top of the host is hostRect.maxY.
         // We subtract the bubbleSize so the orb drops down from the top edge.
         // SwiftUI offsetY moves the view DOWN (+ve) or UP (-ve). Since AppKit +Y is UP, we subtract offsetY.
-        let originY = hostRect.maxY - bubbleSize - offsetY(for: style)
+        let originY = hostRect.maxY - bubbleSize - offsetY(for: style, manualOffset: manualOffsetY)
         return CGRect(x: originX, y: originY, width: bubbleSize, height: bubbleSize)
     }
 
@@ -119,11 +124,17 @@ struct StartupOrbView: View {
     let style: StartupOrbStyle
     let hostWidth: CGFloat
     let isEligible: Bool
+    @AppStorage(AppPreferences.Keys.startupOrbPillOffsetX) private var startupOrbPillOffsetX = AppPreferences.Defaults.startupOrbPillOffsetX
+    @AppStorage(AppPreferences.Keys.startupOrbPillOffsetY) private var startupOrbPillOffsetY = AppPreferences.Defaults.startupOrbPillOffsetY
+    @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetX) private var startupOrbNotchOffsetX = AppPreferences.Defaults.startupOrbNotchOffsetX
+    @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetY) private var startupOrbNotchOffsetY = AppPreferences.Defaults.startupOrbNotchOffsetY
 
     @State private var showOrb = false
     @State private var isDetached = false
     @State private var hasSettled = false
     @State private var hasPlayedInitialAnimation = false
+    @State private var playbackGeneration = 0
+    @State private var hasScheduledInitialStartupPlayback = false
 
     var body: some View {
         Group {
@@ -136,14 +147,29 @@ struct StartupOrbView: View {
                 .transition(.identity)
             }
         }
-        .task(id: isEligible) {
-            if isEligible {
+        .onAppear {
+            guard isEligible, !hasScheduledInitialStartupPlayback else { return }
+            hasScheduledInitialStartupPlayback = true
+            let generation = playbackGeneration
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                guard generation == playbackGeneration, isEligible else { return }
                 playIfNeeded()
             }
         }
         .onChange(of: isEligible) { _, eligible in
             if eligible {
-                playIfNeeded()
+                if hasScheduledInitialStartupPlayback {
+                    playIfNeeded()
+                } else {
+                    hasScheduledInitialStartupPlayback = true
+                    let generation = playbackGeneration
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                        guard generation == playbackGeneration, isEligible else { return }
+                        playIfNeeded()
+                    }
+                }
+            } else {
+                resetPlayback()
             }
         }
     }
@@ -176,21 +202,39 @@ struct StartupOrbView: View {
 
     private var orbOffsetX: CGFloat {
         if isDetached {
-            return StartupOrbGeometry.detachedOffsetX(for: style, hostWidth: hostWidth)
+            return StartupOrbGeometry.detachedOffsetX(for: style, hostWidth: hostWidth, manualOffset: currentManualOffsetX)
         }
-        return StartupOrbGeometry.attachedOffsetX(for: style, hostWidth: hostWidth)
+        return StartupOrbGeometry.attachedOffsetX(for: style, hostWidth: hostWidth, manualOffset: currentManualOffsetX)
     }
 
     private var orbOffsetY: CGFloat {
-        StartupOrbGeometry.offsetY(for: style)
+        StartupOrbGeometry.offsetY(for: style, manualOffset: currentManualOffsetY)
+    }
+
+    private var currentManualOffsetX: CGFloat {
+        switch style {
+        case .pill:
+            return startupOrbPillOffsetX
+        case .physicalNotch:
+            return startupOrbNotchOffsetX
+        }
+    }
+
+    private var currentManualOffsetY: CGFloat {
+        switch style {
+        case .pill:
+            return startupOrbPillOffsetY
+        case .physicalNotch:
+            return startupOrbNotchOffsetY
+        }
     }
 
     private var orbScaleX: CGFloat {
-        isDetached ? 1.0 : 1.9
+        isDetached ? 1.0 : 1.45
     }
 
     private var orbScaleY: CGFloat {
-        isDetached ? 1.0 : 0.54
+        isDetached ? 1.0 : 0.76
     }
 
     private var orbOpacity: Double {
@@ -202,18 +246,22 @@ struct StartupOrbView: View {
         guard !(showOrb && hasPlayedInitialAnimation && !hasSettled) else { return }
 
         if !hasPlayedInitialAnimation {
+            playbackGeneration += 1
+            let generation = playbackGeneration
             hasPlayedInitialAnimation = true
             showOrb = true
             isDetached = false
             hasSettled = false
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.62)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+                guard generation == playbackGeneration, isEligible else { return }
+                withAnimation(.spring(response: 0.44, dampingFraction: 0.74, blendDuration: 0.08)) {
                     isDetached = true
                 }
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                guard generation == playbackGeneration, isEligible else { return }
                 withAnimation(.easeOut(duration: 0.18)) {
                     hasSettled = true
                 }
@@ -224,5 +272,14 @@ struct StartupOrbView: View {
         showOrb = true
         isDetached = true
         hasSettled = true
+    }
+
+    private func resetPlayback() {
+        playbackGeneration += 1
+        showOrb = false
+        isDetached = false
+        hasSettled = false
+        hasPlayedInitialAnimation = false
+        hasScheduledInitialStartupPlayback = false
     }
 }

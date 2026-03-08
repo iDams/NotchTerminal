@@ -6,10 +6,42 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.fakeNotchGlowTheme) var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
     @AppStorage(AppPreferences.Keys.experimentalDragToNotchEnabled) var experimentalDragToNotchEnabled: Bool = AppPreferences.Defaults.experimentalDragToNotchEnabled
     @AppStorage(AppPreferences.Keys.experimentalStartupOrbEnabled) var experimentalStartupOrbEnabled: Bool = AppPreferences.Defaults.experimentalStartupOrbEnabled
+    @AppStorage(AppPreferences.Keys.startupOrbPillOffsetX) var startupOrbPillOffsetX: Double = AppPreferences.Defaults.startupOrbPillOffsetX
+    @AppStorage(AppPreferences.Keys.startupOrbPillOffsetY) var startupOrbPillOffsetY: Double = AppPreferences.Defaults.startupOrbPillOffsetY
+    @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetX) var startupOrbNotchOffsetX: Double = AppPreferences.Defaults.startupOrbNotchOffsetX
+    @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetY) var startupOrbNotchOffsetY: Double = AppPreferences.Defaults.startupOrbNotchOffsetY
     @AppStorage(AppPreferences.Keys.hitTestDebugOverlayEnabled) var hitTestDebugOverlayEnabled: Bool = AppPreferences.Defaults.hitTestDebugOverlayEnabled
     @AppStorage(AppPreferences.Keys.notchDockingSensitivity) var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
     @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
     @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
+
+    private var startupOrbPillOffsetXBinding: Binding<Double> {
+        Binding(
+            get: { startupOrbPillOffsetX - AppPreferences.Defaults.startupOrbPillOffsetX },
+            set: { startupOrbPillOffsetX = $0 + AppPreferences.Defaults.startupOrbPillOffsetX }
+        )
+    }
+
+    private var startupOrbPillOffsetYBinding: Binding<Double> {
+        Binding(
+            get: { startupOrbPillOffsetY - AppPreferences.Defaults.startupOrbPillOffsetY },
+            set: { startupOrbPillOffsetY = $0 + AppPreferences.Defaults.startupOrbPillOffsetY }
+        )
+    }
+
+    private var startupOrbNotchOffsetXBinding: Binding<Double> {
+        Binding(
+            get: { startupOrbNotchOffsetX - AppPreferences.Defaults.startupOrbNotchOffsetX },
+            set: { startupOrbNotchOffsetX = $0 + AppPreferences.Defaults.startupOrbNotchOffsetX }
+        )
+    }
+
+    private var startupOrbNotchOffsetYBinding: Binding<Double> {
+        Binding(
+            get: { startupOrbNotchOffsetY - AppPreferences.Defaults.startupOrbNotchOffsetY },
+            set: { startupOrbNotchOffsetY = $0 + AppPreferences.Defaults.startupOrbNotchOffsetY }
+        )
+    }
 
     private var hasAnyNoNotch: Bool {
         NSScreen.screens.contains { screen in
@@ -41,6 +73,7 @@ struct ExperimentalSettingsView: View {
                 geometrySection
                 dockingSection
                 debugSection
+                startupOrbSection
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
                         title: "settings.experimental.effects".localized,
@@ -53,13 +86,6 @@ struct ExperimentalSettingsView: View {
                         .foregroundStyle(.tertiary)
 
                     if hasAnyNoNotch {
-                        ZenithPreferenceToggleRow(
-                            title: "settings.experimental.startupOrb".localized,
-                            subtitle: "settings.experimental.startupOrb.subtitle".localized,
-                            icon: "circle.grid.2x1.right.filled",
-                            binding: $experimentalStartupOrbEnabled
-                        )
-
                         ZenithPreferenceToggleRow(
                             title: "settings.fakeNotchGlow".localized,
                             subtitle: "settings.fakeNotchGlow.subtitle".localized,
@@ -88,6 +114,79 @@ struct ExperimentalSettingsView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+        }
+    }
+
+    private var startupOrbPillSection: some View {
+        VStack(spacing: 12) {
+            ZenithSliderPreferenceRow(
+                title: "settings.experimental.startupOrb.pillOffsetX".localized,
+                subtitle: "settings.experimental.startupOrb.pillOffsetX.subtitle".localized,
+                icon: "arrow.left.and.right.circle",
+                value: startupOrbPillOffsetXBinding,
+                range: -80 ... 80,
+                step: 1,
+                valueFormatter: { "\(Int($0)) pt" }
+            )
+
+            ZenithSliderPreferenceRow(
+                title: "settings.experimental.startupOrb.pillOffsetY".localized,
+                subtitle: "settings.experimental.startupOrb.pillOffsetY.subtitle".localized,
+                icon: "arrow.up.and.down.circle",
+                value: startupOrbPillOffsetYBinding,
+                range: -60 ... 60,
+                step: 1,
+                valueFormatter: { "\(Int($0)) pt" }
+            )
+        }
+    }
+
+    private var startupOrbNotchSection: some View {
+        VStack(spacing: 12) {
+            ZenithSliderPreferenceRow(
+                title: "settings.experimental.startupOrb.notchOffsetX".localized,
+                subtitle: "settings.experimental.startupOrb.notchOffsetX.subtitle".localized,
+                icon: "arrow.left.and.right.circle",
+                value: startupOrbNotchOffsetXBinding,
+                range: -80 ... 120,
+                step: 1,
+                valueFormatter: { "\(Int($0)) pt" }
+            )
+
+            ZenithSliderPreferenceRow(
+                title: "settings.experimental.startupOrb.notchOffsetY".localized,
+                subtitle: "settings.experimental.startupOrb.notchOffsetY.subtitle".localized,
+                icon: "arrow.up.and.down.circle",
+                value: startupOrbNotchOffsetYBinding,
+                range: -60 ... 60,
+                step: 1,
+                valueFormatter: { "\(Int($0)) pt" }
+            )
+        }
+    }
+
+    private var startupOrbSection: some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: "settings.experimental.startupOrb.section".localized,
+                subtitle: "settings.experimental.startupOrb.section.subtitle".localized,
+                icon: "circle.grid.2x1.right.filled"
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.experimental.startupOrb".localized,
+                subtitle: "settings.experimental.startupOrb.subtitle".localized,
+                icon: "circle.grid.2x1.right.filled",
+                binding: $experimentalStartupOrbEnabled
+            )
+
+            if experimentalStartupOrbEnabled && hasAnyNoNotch {
+                startupOrbPillSection
+            }
+
+            if experimentalStartupOrbEnabled && hasAnyPhysicalNotch {
+                startupOrbNotchSection
+            }
         }
     }
 

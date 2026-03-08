@@ -77,7 +77,7 @@ final class NotchOverlayController {
             self?.applyTerminalItems(items)
         }
         rebuildPanels()
-        updateFullScreenStatus()
+        updateFullScreenAndMenuStatus()
         startMouseTracking()
         startEventMonitoring()
         registerObservers()
@@ -166,10 +166,10 @@ final class NotchOverlayController {
                 self.updateExpansionAndLayout()
                 
                 self.trackingTickCount += 1
-                // Check full-screen state roughly every 1 second (e.g. at 60fps -> 60 ticks)
+                // Check full-screen and menu state roughly every 1 second (e.g. at 60fps -> 60 ticks)
                 if self.trackingTickCount >= self.trackingFPS {
                     self.trackingTickCount = 0
-                    self.updateFullScreenStatus()
+                    self.updateFullScreenAndMenuStatus()
                 }
             }
         }
@@ -275,7 +275,7 @@ final class NotchOverlayController {
             }
         }
 
-        updateFullScreenStatus()
+        updateFullScreenAndMenuStatus()
         layoutPanels(animated: false)
     }
 
@@ -537,7 +537,11 @@ final class NotchOverlayController {
         let hasNotch = model.hasPhysicalNotch
 
         let closedSize: NSSize = {
-            guard hasNotch else { return collapsedNoNotchSize }
+            guard hasNotch else {
+                return model.isMenuOverlapping 
+                    ? NSSize(width: 26, height: 26) 
+                    : collapsedNoNotchSize 
+            }
             let raw = screen.notchSizeOrFallback(fallback: collapsedNoNotchSize)
             return NSSize(
                 width: max(92, raw.width * notchClosedWidthScale + model.notchWidthOffset),
@@ -749,7 +753,7 @@ final class NotchOverlayController {
     
     // MARK: - Full Screen Detection
     
-    private func updateFullScreenStatus() {
+    private func updateFullScreenAndMenuStatus() {
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
         guard let windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
             return
@@ -757,10 +761,12 @@ final class NotchOverlayController {
 
         let myPID = ProcessInfo.processInfo.processIdentifier
         var candidateWindowBounds: [CGRect] = []
+        var candidateMenuBarBounds: [CGRect] = []
+        
+        let screenWidths = NSScreen.screens.map { $0.frame.width }
         
         for window in windowList {
             guard let pid = window[kCGWindowOwnerPID as String] as? Int32,
-                  pid != myPID, // Don't hide for our own terminal windows
                   let boundsDict = window[kCGWindowBounds as String] as? [String: Any],
                   let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) else {
                 continue
@@ -768,14 +774,25 @@ final class NotchOverlayController {
             
             let layer = window[kCGWindowLayer as String] as? Int ?? 0
             if layer < 0 { continue } // Ignore desktop backdrops naturally
-
-            candidateWindowBounds.append(bounds)
+            
+            if layer == 24 {
+                // Layer 24 is the menu bar layer. Exclude the full-width backdrop.
+                let isFullWidth = screenWidths.contains { abs(bounds.width - $0) < 10 }
+                if !isFullWidth {
+                    // CGWindow bounds are global CG coordinates (Y=0 top-left of main screen).
+                    candidateMenuBarBounds.append(bounds)
+                }
+            } else {
+                // For full screen checks, we only care about other apps
+                if pid != myPID {
+                    candidateWindowBounds.append(bounds)
+                }
+            }
         }
         
         var layoutNeeded = false
         
-        let screens = NSScreen.screens
-        for screen in screens {
+        for screen in NSScreen.screens {
             guard let displayID = displayID(for: screen),
                   let model = modelsByDisplay[displayID] else { continue }
             
@@ -798,12 +815,57 @@ final class NotchOverlayController {
                     model.isExpanded = false
                 }
             }
+            
+            // Menu bar overlap check
+            if !model.hasPhysicalNotch && !shouldHideForFullScreen {
+                let notchLocalLeftEdge = (screen.frame.width / 2) - (collapsedNoNotchSize.width / 2)
+                let overlapThreshold = notchLocalLeftEdge - 4
+                
+                // Find all layer 24 bounds that fall within this screen horizontally
+                // We use global X coordinates. This screen is from `screen.frame.minX` to `screen.frame.maxX`
+                var maxMenuRightEdgeLocalToScreen: CGFloat = 0
+                for rect in candidateMenuBarBounds {
+                    let rectMinX = rect.minX
+                    let rectMaxX = rect.maxX
+                    
+                    // Does this menu rect generally align with this screen horizontally?
+                    // We allow some flexibility since menu bar items might cross borders slightly or be pinned.
+                    if rectMaxX >= screen.frame.minX && rectMinX <= screen.frame.maxX {
+                        // Normally, the left side menu starts near `screen.frame.minX`. 
+                        // The right-side menu (status bar) starts far to the right and shouldn't trigger it unless it's giant.
+                        // We check if this layer 24 item is on the LEFT side of the screen.
+                        let isLeftSideMenu = (rectMinX - screen.frame.minX) < notchLocalLeftEdge
+                        
+                        if isLeftSideMenu {
+                            let localMaxX = rectMaxX - screen.frame.minX
+                            if localMaxX > maxMenuRightEdgeLocalToScreen {
+                                maxMenuRightEdgeLocalToScreen = localMaxX
+                            }
+                        }
+                    }
+                }
+                
+                // print("NotchTerminal Debug: Screen \(screen.frame.width) | MenuWidth: \(maxMenuRightEdgeLocalToScreen) | Threshold: \(overlapThreshold)")
+                
+                let isOverlappingMenu = maxMenuRightEdgeLocalToScreen >= overlapThreshold
+                
+                if model.isMenuOverlapping != isOverlappingMenu {
+                    model.isMenuOverlapping = isOverlappingMenu
+                    layoutNeeded = true
+                }
+            } else {
+                if model.isMenuOverlapping {
+                    model.isMenuOverlapping = false
+                    layoutNeeded = true
+                }
+            }
         }
         
         if layoutNeeded {
             layoutPanels(animated: true)
         }
     }
+
 
     private func windowBounds(_ windowBounds: CGRect, approximatelyMatchFullScreenDisplay displayBounds: CGRect) -> Bool {
         let tolerance: CGFloat = 6.0

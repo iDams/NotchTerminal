@@ -81,8 +81,8 @@ struct NotchCapsuleView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            notchSurface
             startupOrbOverlay
+            notchSurface
         }
         .onAppear {
             // Use withAnimation explicitly to animate the initial showExpandedControls state
@@ -621,9 +621,9 @@ struct NotchCapsuleView: View {
 
     @ViewBuilder
     private var startupOrbOverlay: some View {
-        if experimentalStartupOrbEnabled && !model.hasPhysicalNotch {
+        if experimentalStartupOrbEnabled {
             StartupOrbView(
-                style: .pill,
+                style: model.hasPhysicalNotch ? .physicalNotch : .pill,
                 hostWidth: capsuleWidth,
                 isEligible: !model.isExpanded
             )

@@ -36,6 +36,10 @@ enum AppPreferences {
         static let notchDockingSensitivity = "notchDockingSensitivity"
         static let experimentalDragToNotchEnabled = "experimentalDragToNotchEnabled"
         static let experimentalStartupOrbEnabled = "experimentalStartupOrbEnabled"
+        static let startupOrbPillOffsetX = "startupOrbPillOffsetX"
+        static let startupOrbPillOffsetY = "startupOrbPillOffsetY"
+        static let startupOrbNotchOffsetX = "startupOrbNotchOffsetX"
+        static let startupOrbNotchOffsetY = "startupOrbNotchOffsetY"
         static let hitTestDebugOverlayEnabled = "hitTestDebugOverlayEnabled"
         static let enableCRTFilter = "enableCRTFilter"
     }
@@ -70,6 +74,10 @@ enum AppPreferences {
         static let notchDockingSensitivity: Double = 80
         static let experimentalDragToNotchEnabled = false
         static let experimentalStartupOrbEnabled = false
+        static let startupOrbPillOffsetX: Double = 3
+        static let startupOrbPillOffsetY: Double = 0
+        static let startupOrbNotchOffsetX: Double = 9
+        static let startupOrbNotchOffsetY: Double = 4
         static let hitTestDebugOverlayEnabled = false
         static let enableCRTFilter = false
     }
