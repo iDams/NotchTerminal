@@ -3,6 +3,9 @@ import AppKit
 
 struct NotchSettingsView: View {
     @State private var screens: [NSScreen] = NSScreen.screens
+    @State private var notchOffsetXValues: [CGDirectDisplayID: Double] = [:]
+    @State private var notchOffsetYValues: [CGDirectDisplayID: Double] = [:]
+    @State private var notchWidthValues: [CGDirectDisplayID: Double] = [:]
     @AppStorage(AppPreferences.Keys.auroraDisplayOverrideIDs) private var auroraDisplayOverrideIDsRaw = ""
     @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
     @AppStorage(AppPreferences.Keys.auroraDisplayThemeMap) private var auroraDisplayThemeMapRaw = ""
@@ -68,8 +71,11 @@ struct NotchSettingsView: View {
                     subtitle: "settings.notch.offsetX.subtitle".localized,
                     icon: "arrow.left.and.right",
                     value: Binding(
-                        get: { AppPreferences.notchOffsetX(for: item.displayID) },
-                        set: { AppPreferences.setNotchOffsetX($0, for: item.displayID) }
+                        get: { notchOffsetXValues[item.displayID] ?? AppPreferences.notchOffsetX(for: item.displayID) },
+                        set: {
+                            notchOffsetXValues[item.displayID] = $0
+                            AppPreferences.setNotchOffsetX($0, for: item.displayID)
+                        }
                     ),
                     range: -160 ... 160,
                     step: 1,
@@ -81,8 +87,11 @@ struct NotchSettingsView: View {
                     subtitle: "settings.notch.offsetY.subtitle".localized,
                     icon: "arrow.up.and.down",
                     value: Binding(
-                        get: { AppPreferences.notchOffsetY(for: item.displayID) },
-                        set: { AppPreferences.setNotchOffsetY($0, for: item.displayID) }
+                        get: { notchOffsetYValues[item.displayID] ?? AppPreferences.notchOffsetY(for: item.displayID) },
+                        set: {
+                            notchOffsetYValues[item.displayID] = $0
+                            AppPreferences.setNotchOffsetY($0, for: item.displayID)
+                        }
                     ),
                     range: -80 ... 80,
                     step: 1,
@@ -94,8 +103,11 @@ struct NotchSettingsView: View {
                     subtitle: "settings.notch.width.subtitle".localized,
                     icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
                     value: Binding(
-                        get: { AppPreferences.notchWidthAdjustment(for: item.displayID) },
-                        set: { AppPreferences.setNotchWidthAdjustment($0, for: item.displayID) }
+                        get: { notchWidthValues[item.displayID] ?? AppPreferences.notchWidthAdjustment(for: item.displayID) },
+                        set: {
+                            notchWidthValues[item.displayID] = $0
+                            AppPreferences.setNotchWidthAdjustment($0, for: item.displayID)
+                        }
                     ),
                     range: -120 ... 120,
                     step: 1,
@@ -208,6 +220,24 @@ struct NotchSettingsView: View {
 
     private func refreshScreens() {
         screens = NSScreen.screens
+        syncSliderState()
+    }
+
+    private func syncSliderState() {
+        var nextX: [CGDirectDisplayID: Double] = [:]
+        var nextY: [CGDirectDisplayID: Double] = [:]
+        var nextWidth: [CGDirectDisplayID: Double] = [:]
+
+        for screen in screens {
+            guard let displayID = displayID(for: screen) else { continue }
+            nextX[displayID] = AppPreferences.notchOffsetX(for: displayID)
+            nextY[displayID] = AppPreferences.notchOffsetY(for: displayID)
+            nextWidth[displayID] = AppPreferences.notchWidthAdjustment(for: displayID)
+        }
+
+        notchOffsetXValues = nextX
+        notchOffsetYValues = nextY
+        notchWidthValues = nextWidth
     }
 
     private func displayID(for screen: NSScreen) -> CGDirectDisplayID? {
