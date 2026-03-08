@@ -4,6 +4,10 @@ import MetalKit
 import SwiftTerm
 import Darwin
 
+extension Notification.Name {
+    static let notchDockHoverChanged = Notification.Name("NotchTerminal.notchDockHoverChanged")
+}
+
 final class InteractiveTerminalPanel: NSPanel {
     var onCommandPlus: (() -> Void)?
     var onCommandMinus: (() -> Void)?
@@ -833,10 +837,14 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         for (id, target) in pendingDockTargets {
             guard let instance = windows[id], !instance.isMinimized else { continue }
             if matchesPendingDockTarget(target, for: instance) {
+                postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
                 pendingDockTargets.removeValue(forKey: id)
                 minimizeWindow(id: id)
                 return
             }
+        }
+        for target in pendingDockTargets.values {
+            postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
         }
         for id in Array(dockingPreviewOriginalFrames.keys) {
             restoreDockPreviewIfNeeded(id: id)
@@ -850,12 +858,27 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         if let nearTarget, isDraggingWithMouse {
             pendingDockTargets[id] = nearTarget
+            postNotchDockHoverChanged(displayID: nearTarget.displayID, isHovering: true)
             applyDockPreviewIfNeeded(id: id)
             return
         }
 
+        if let previousTarget = pendingDockTargets[id] {
+            postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
+        }
         pendingDockTargets.removeValue(forKey: id)
         restoreDockPreviewIfNeeded(id: id)
+    }
+
+    private func postNotchDockHoverChanged(displayID: CGDirectDisplayID, isHovering: Bool) {
+        NotificationCenter.default.post(
+            name: .notchDockHoverChanged,
+            object: nil,
+            userInfo: [
+                "displayID": displayID,
+                "isHovering": isHovering
+            ]
+        )
     }
 
     func windowDidBecomeKey(_ notification: Notification) {

@@ -4,6 +4,8 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.enableCRTFilter) var enableCRTFilter: Bool = AppPreferences.Defaults.enableCRTFilter
     @AppStorage(AppPreferences.Keys.fakeNotchGlowEnabled) var fakeNotchGlowEnabled: Bool = AppPreferences.Defaults.fakeNotchGlowEnabled
     @AppStorage(AppPreferences.Keys.fakeNotchGlowTheme) var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
+    @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
+    @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
 
     private var hasAnyNoNotch: Bool {
         NSScreen.screens.contains { screen in
@@ -17,9 +19,22 @@ struct ExperimentalSettingsView: View {
         }
     }
 
+    private var hasAnyPhysicalNotch: Bool {
+        NSScreen.screens.contains { screen in
+            if #available(macOS 12.0, *) {
+                let left = screen.auxiliaryTopLeftArea ?? .zero
+                let right = screen.auxiliaryTopRightArea ?? .zero
+                let blockedWidth = screen.frame.width - left.width - right.width
+                return blockedWidth > 20 && min(left.height, right.height) > 0
+            }
+            return false
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                geometrySection
                 ZenithSettingsSection(contentSpacing: 12) {
                     ZenithSectionHeading(
                         title: "settings.experimental.effects".localized,
@@ -60,6 +75,44 @@ struct ExperimentalSettingsView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+        }
+    }
+
+    private var geometrySection: some View {
+        Group {
+            if hasAnyPhysicalNotch {
+                ZenithSettingsSection(contentSpacing: 12) {
+                    ZenithSectionHeading(
+                        title: "settings.appearance.geometry".localized,
+                        subtitle: "settings.appearance.geometry.subtitle".localized,
+                        icon: "aspectratio"
+                    )
+
+                    Text("settings.experimental.notchOffsets.note".localized)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+
+                    ZenithSliderPreferenceRow(
+                        title: "settings.notchWidthOffset".localized,
+                        subtitle: "settings.notchWidthOffset.subtitle".localized,
+                        icon: "arrow.left.and.right",
+                        value: $notchWidthOffset,
+                        range: -80 ... 80,
+                        step: 1,
+                        valueFormatter: { "\(Int($0))" }
+                    )
+
+                    ZenithSliderPreferenceRow(
+                        title: "settings.notchHeightOffset".localized,
+                        subtitle: "settings.notchHeightOffset.subtitle".localized,
+                        icon: "arrow.up.and.down",
+                        value: $notchHeightOffset,
+                        range: -48 ... 48,
+                        step: 1,
+                        valueFormatter: { "\(Int($0))" }
+                    )
+                }
+            }
         }
     }
 }

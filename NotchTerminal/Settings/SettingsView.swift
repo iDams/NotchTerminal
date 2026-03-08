@@ -308,8 +308,6 @@ struct GeneralSettingsView: View {
 
 struct AppearanceSettingsView: View {
     @AppStorage(AppPreferences.Keys.contentPadding) var contentPadding: Double = AppPreferences.Defaults.contentPadding
-    @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
-    @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
 
     @AppStorage(AppPreferences.Keys.terminalDefaultWidth) var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
     @AppStorage(AppPreferences.Keys.terminalDefaultHeight) var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
@@ -362,26 +360,6 @@ struct AppearanceSettingsView: View {
                 icon: "arrow.up.left.and.arrow.down.right",
                 value: $contentPadding,
                 range: 0 ... 40,
-                step: 1,
-                valueFormatter: { "\(Int($0))" }
-            )
-
-            ZenithSliderPreferenceRow(
-                title: "settings.notchWidthOffset".localized,
-                subtitle: "settings.notchWidthOffset.subtitle".localized,
-                icon: "arrow.left.and.right",
-                value: $notchWidthOffset,
-                range: -80 ... 80,
-                step: 1,
-                valueFormatter: { "\(Int($0))" }
-            )
-
-            ZenithSliderPreferenceRow(
-                title: "settings.notchHeightOffset".localized,
-                subtitle: "settings.notchHeightOffset.subtitle".localized,
-                icon: "arrow.up.and.down",
-                value: $notchHeightOffset,
-                range: -48 ... 48,
                 step: 1,
                 valueFormatter: { "\(Int($0))" }
             )
@@ -527,8 +505,6 @@ struct AppearanceSettingsView: View {
 
     private var isUsingAppearanceDefaults: Bool {
         contentPadding == AppPreferences.Defaults.contentPadding &&
-        notchWidthOffset == AppPreferences.Defaults.notchWidthOffset &&
-        notchHeightOffset == AppPreferences.Defaults.notchHeightOffset &&
         terminalDefaultWidth == AppPreferences.Defaults.terminalDefaultWidth &&
         terminalDefaultHeight == AppPreferences.Defaults.terminalDefaultHeight &&
         notchDockingSensitivity == AppPreferences.Defaults.notchDockingSensitivity &&
@@ -541,8 +517,6 @@ struct AppearanceSettingsView: View {
 
     private func resetAppearanceDefaults() {
         contentPadding = AppPreferences.Defaults.contentPadding
-        notchWidthOffset = AppPreferences.Defaults.notchWidthOffset
-        notchHeightOffset = AppPreferences.Defaults.notchHeightOffset
         terminalDefaultWidth = AppPreferences.Defaults.terminalDefaultWidth
         terminalDefaultHeight = AppPreferences.Defaults.terminalDefaultHeight
         notchDockingSensitivity = AppPreferences.Defaults.notchDockingSensitivity

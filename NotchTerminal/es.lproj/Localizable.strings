@@ -81,6 +81,7 @@
 "settings.experimental.effects" = "Efectos experimentales";
 "settings.experimental.effects.subtitle" = "Visuales opcionales que pueden variar según pantalla/GPU.";
 "settings.experimental.warning" = "Estos efectos visuales son altamente experimentales y consumen batería.";
+"settings.experimental.notchOffsets.note" = "Solo afecta al notch cerrado en pantallas con notch físico.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Efecto de brillo néon morado para notches simulados.";
 "settings.fakeNotchGlowTheme" = "Tema de brillo";

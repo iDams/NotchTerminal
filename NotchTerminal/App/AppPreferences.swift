@@ -38,7 +38,7 @@ enum AppPreferences {
     }
 
     enum Defaults {
-        static let contentPadding: Double = 14
+        static let contentPadding: Double = 30
         static let notchWidthOffset: Double = -80
         static let notchHeightOffset: Double = -8
         static let fakeNotchGlowEnabled = false
@@ -62,8 +62,8 @@ enum AppPreferences {
         static let showChipCloseButtonOnHover = true
         static let confirmBeforeCloseAll = true
         static let closeActionMode = "terminateProcessAndClose"
-        static let terminalDefaultWidth: Double = 640
-        static let terminalDefaultHeight: Double = 400
+        static let terminalDefaultWidth: Double = 740
+        static let terminalDefaultHeight: Double = 480
         static let notchDockingSensitivity: Double = 80
         static let enableCRTFilter = false
     }

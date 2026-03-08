@@ -70,6 +70,7 @@ final class NotchOverlayController {
     private var pendingExpandWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
     private var pendingShrinkWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
     private var pinnedExpandedDisplays: Set<CGDirectDisplayID> = []
+    private var dockHoverDisplays: Set<CGDirectDisplayID> = []
 
     func start() {
         blackWindowController.onTerminalItemsChanged = { [weak self] items in
@@ -213,6 +214,13 @@ final class NotchOverlayController {
             }
             observers.append(token)
         }
+
+        let dockHoverToken = center.addObserver(forName: .notchDockHoverChanged, object: nil, queue: .main) { [weak self] note in
+            Task { @MainActor [weak self] in
+                self?.handleDockHoverNotification(note)
+            }
+        }
+        observers.append(dockHoverToken)
     }
 
     // MARK: - Panel Management
@@ -373,6 +381,18 @@ final class NotchOverlayController {
             if pinnedExpandedDisplays.contains(displayID) {
                 pendingExpandWorkItems[displayID]?.cancel()
                 pendingExpandWorkItems.removeValue(forKey: displayID)
+                if !model.isExpanded {
+                    model.isExpanded = true
+                    changedDisplays.insert(displayID)
+                }
+                continue
+            }
+
+            if dockHoverDisplays.contains(displayID) {
+                pendingExpandWorkItems[displayID]?.cancel()
+                pendingExpandWorkItems.removeValue(forKey: displayID)
+                closeWorkItem?.cancel()
+                closeWorkItem = nil
                 if !model.isExpanded {
                     model.isExpanded = true
                     changedDisplays.insert(displayID)
@@ -766,6 +786,28 @@ final class NotchOverlayController {
             self?.blackWindowController.reconcileDisplays()
             self?.restartMouseTrackingIfNeeded()
         }
+    }
+
+    private func handleDockHoverNotification(_ note: Notification) {
+        guard let userInfo = note.userInfo,
+              let displayID = userInfo["displayID"] as? CGDirectDisplayID,
+              let isHovering = userInfo["isHovering"] as? Bool,
+              let model = modelsByDisplay[displayID] else { return }
+
+        if isHovering {
+            dockHoverDisplays.insert(displayID)
+            pendingExpandWorkItems[displayID]?.cancel()
+            pendingExpandWorkItems.removeValue(forKey: displayID)
+            closeWorkItem?.cancel()
+            closeWorkItem = nil
+            if !model.isExpanded {
+                model.isExpanded = true
+            }
+        } else {
+            dockHoverDisplays.remove(displayID)
+        }
+
+        layoutPanels(animated: true, displays: [displayID])
     }
 
     private func displayID(from raw: String) -> CGDirectDisplayID {
