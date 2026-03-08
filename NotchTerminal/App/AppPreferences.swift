@@ -1,7 +1,9 @@
 import Foundation
+import CoreGraphics
 
 enum AppPreferences {
     enum Keys {
+        static let disabledNotchDisplayIDs = "disabledNotchDisplayIDs"
         static let contentPadding = "contentPadding"
         static let notchWidthOffset = "notchWidthOffset"
         static let notchHeightOffset = "notchHeightOffset"
@@ -80,5 +82,38 @@ enum AppPreferences {
         static let startupOrbNotchOffsetY: Double = 4
         static let hitTestDebugOverlayEnabled = false
         static let enableCRTFilter = false
+    }
+
+    static func disabledNotchDisplayIDs(in defaults: UserDefaults = .standard) -> Set<CGDirectDisplayID> {
+        guard let rawValue = defaults.string(forKey: Keys.disabledNotchDisplayIDs),
+              !rawValue.isEmpty else {
+            return []
+        }
+
+        return Set(
+            rawValue
+                .split(separator: ",")
+                .compactMap { UInt32($0) }
+                .map { CGDirectDisplayID($0) }
+        )
+    }
+
+    static func isNotchEnabled(for displayID: CGDirectDisplayID, in defaults: UserDefaults = .standard) -> Bool {
+        !disabledNotchDisplayIDs(in: defaults).contains(displayID)
+    }
+
+    static func setNotchEnabled(_ isEnabled: Bool, for displayID: CGDirectDisplayID, in defaults: UserDefaults = .standard) {
+        var disabledIDs = disabledNotchDisplayIDs(in: defaults)
+        if isEnabled {
+            disabledIDs.remove(displayID)
+        } else {
+            disabledIDs.insert(displayID)
+        }
+
+        let rawValue = disabledIDs
+            .map { String($0) }
+            .sorted()
+            .joined(separator: ",")
+        defaults.set(rawValue, forKey: Keys.disabledNotchDisplayIDs)
     }
 }

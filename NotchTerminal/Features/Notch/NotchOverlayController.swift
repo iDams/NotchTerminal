@@ -273,7 +273,8 @@ final class NotchOverlayController {
         let workspaceCenter = NSWorkspace.shared.notificationCenter
         let names: [Notification.Name] = [
             NSApplication.didChangeScreenParametersNotification,
-            NSWindow.didChangeScreenNotification
+            NSWindow.didChangeScreenNotification,
+            UserDefaults.didChangeNotification
         ]
 
         for name in names {
@@ -354,6 +355,8 @@ final class NotchOverlayController {
                     makeNotchCapsuleView(for: displayID).environmentObject(model)
                 )
             }
+
+            applyNotchVisibility(for: displayID)
         }
 
         updateFullScreenAndMenuStatus()
@@ -447,6 +450,15 @@ final class NotchOverlayController {
         for screen in NSScreen.screens {
             guard let displayID = displayID(for: screen),
                   let model = modelsByDisplay[displayID] else { continue }
+            guard AppPreferences.isNotchEnabled(for: displayID) else {
+                if model.isExpanded {
+                    model.isExpanded = false
+                    changedDisplays.insert(displayID)
+                }
+                pendingExpandWorkItems[displayID]?.cancel()
+                pendingExpandWorkItems.removeValue(forKey: displayID)
+                continue
+            }
                   
             // Only hide the fake notch on full-screen apps.
             if !model.hasPhysicalNotch && model.isFullScreenAppActive {
@@ -590,6 +602,10 @@ final class NotchOverlayController {
                   let model = modelsByDisplay[displayID] else { continue }
 
             if let displays, !displays.contains(displayID) { continue }
+            if !AppPreferences.isNotchEnabled(for: displayID) {
+                applyNotchVisibility(for: displayID)
+                continue
+            }
             let frame = frameForPanel(on: screen, model: model)
             panel.ignoresMouseEvents = !shouldAllowMouseEvents(for: model, on: screen, cursor: cursor)
 
@@ -611,6 +627,7 @@ final class NotchOverlayController {
             } else {
                 panel.alphaValue = 1.0
             }
+            panel.orderFrontRegardless()
         }
     }
 
@@ -903,6 +920,22 @@ final class NotchOverlayController {
             self?.rebuildPanels()
             self?.blackWindowController.reconcileDisplays()
             self?.restartMouseTrackingIfNeeded()
+        }
+    }
+
+    private func applyNotchVisibility(for displayID: CGDirectDisplayID) {
+        guard let panel = panelsByDisplay[displayID],
+              let model = modelsByDisplay[displayID] else { return }
+
+        if AppPreferences.isNotchEnabled(for: displayID) {
+            panel.alphaValue = 1.0
+            panel.ignoresMouseEvents = false
+            panel.orderFrontRegardless()
+        } else {
+            model.isExpanded = false
+            panel.alphaValue = 0.0
+            panel.ignoresMouseEvents = true
+            panel.orderOut(nil)
         }
     }
 

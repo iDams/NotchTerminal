@@ -3,6 +3,7 @@ import AppKit
 
 private enum SettingsTab: Hashable {
     case general
+    case notch
     case appearance
     case about
     case experimental
@@ -15,6 +16,8 @@ struct SettingsView: View {
         switch selectedTab {
         case .general:
             return 430
+        case .notch:
+            return 320
         case .appearance:
             return 560
         case .about:
@@ -30,6 +33,12 @@ struct SettingsView: View {
                 .tag(SettingsTab.general)
                 .tabItem {
                     Label("settings.general".localized, systemImage: "gear")
+                }
+
+            NotchSettingsView()
+                .tag(SettingsTab.notch)
+                .tabItem {
+                    Label("settings.notch".localized, systemImage: "capsule.portrait")
                 }
 
             AppearanceSettingsView()

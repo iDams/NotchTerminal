@@ -4,9 +4,18 @@
 
 /* Settings - General */
 "settings.general" = "一般";
+"settings.notch" = "Notch";
 "settings.appearance" = "外観";
 "settings.about" = "情報";
 "settings.experimental" = "実験的";
+
+/* Settings - Notch */
+"settings.notch.displays" = "アクティブなノッチ";
+"settings.notch.displays.subtitle" = "接続中の各ディスプレイごとにノッチを個別に有効または無効にします。";
+"settings.notch.empty" = "アクティブなディスプレイが見つかりません。";
+"settings.notch.display.physical" = "物理ノッチ";
+"settings.notch.display.pill" = "ピルノッチ";
+"settings.notch.display.main" = "メインディスプレイ";
 
 /* Settings - System */
 "settings.system" = "システム";

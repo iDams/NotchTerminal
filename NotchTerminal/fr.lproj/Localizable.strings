@@ -4,9 +4,18 @@
 
 /* Settings - General */
 "settings.general" = "Général";
+"settings.notch" = "Notch";
 "settings.appearance" = "Apparence";
 "settings.about" = "À propos";
 "settings.experimental" = "Expérimental";
+
+/* Settings - Notch */
+"settings.notch.displays" = "Notches actifs";
+"settings.notch.displays.subtitle" = "Activez ou désactivez le notch indépendamment sur chaque écran connecté.";
+"settings.notch.empty" = "Aucun écran actif détecté.";
+"settings.notch.display.physical" = "Notch physique";
+"settings.notch.display.pill" = "Notch pill";
+"settings.notch.display.main" = "Écran principal";
 
 /* Settings - System */
 "settings.system" = "Système";

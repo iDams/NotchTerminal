@@ -4,9 +4,18 @@
 
 /* Settings - General */
 "settings.general" = "General";
+"settings.notch" = "Notch";
 "settings.appearance" = "Apariencia";
 "settings.about" = "Acerca de";
 "settings.experimental" = "Experimental";
+
+/* Settings - Notch */
+"settings.notch.displays" = "Notches activos";
+"settings.notch.displays.subtitle" = "Activa o desactiva el notch de forma independiente en cada pantalla conectada.";
+"settings.notch.empty" = "No se detectaron pantallas activas.";
+"settings.notch.display.physical" = "Notch físico";
+"settings.notch.display.pill" = "Notch pill";
+"settings.notch.display.main" = "Pantalla principal";
 
 /* Settings - System */
 "settings.system" = "Sistema";
