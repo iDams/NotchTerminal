@@ -10,7 +10,7 @@ It combines:
 - A top notch overlay (real notch and no-notch screens)
 - Floating terminal windows
 - Quick terminal actions (restore/minimize/close)
-- Metal-based visual effects
+- Advanced Metal-based visual effects (Aurora background, CRT filter, Fake Notch glow)
 
 ## What It Does
 
@@ -91,12 +91,13 @@ The shared `Config/Signing.xcconfig` includes that file optionally, so collabora
 - `Appearance`
   - Notch geometry offsets
   - Docking sensitivity
-  - Effects toggles
+  - Effects toggles (Aurora Background, Fake Notch Glow, CRT Filter)
 - `About`
   - Version/info links
+  - Check for Updates (integrates Sparkle/GitHub Releases)
   - Third-party notices
 - `Experimental`
-  - Work-in-progress options
+  - Work-in-progress options (Drag to Notch, Startup Orb)
 
 ## Project Structure
 

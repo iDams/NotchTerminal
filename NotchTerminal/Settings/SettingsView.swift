@@ -98,9 +98,6 @@ struct GeneralSettingsView: View {
 
     @AppStorage(AppPreferences.Keys.hapticFeedback) var hapticFeedback: Bool = AppPreferences.Defaults.hapticFeedback
     @AppStorage(AppPreferences.Keys.showDockIcon) var showDockIcon: Bool = AppPreferences.Defaults.showDockIcon
-    @AppStorage(AppPreferences.Keys.showCostSummary) var showCostSummary: Bool = AppPreferences.Defaults.showCostSummary
-    @AppStorage(AppPreferences.Keys.backgroundRefreshCadenceMinutes) var backgroundRefreshCadenceMinutes: Int = AppPreferences.Defaults.backgroundRefreshCadenceMinutes
-    @AppStorage(AppPreferences.Keys.checkProviderStatus) var checkProviderStatus: Bool = AppPreferences.Defaults.checkProviderStatus
     @AppStorage(AppPreferences.Keys.autoOpenOnHover) var autoOpenOnHover: Bool = AppPreferences.Defaults.autoOpenOnHover
     @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
     @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
@@ -321,9 +318,6 @@ struct AppearanceSettingsView: View {
     @AppStorage(AppPreferences.Keys.terminalDefaultWidth) var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
     @AppStorage(AppPreferences.Keys.terminalDefaultHeight) var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
 
-    @AppStorage(AppPreferences.Keys.compactTickerEnabled) var compactTickerEnabled: Bool = AppPreferences.Defaults.compactTickerEnabled
-    @AppStorage(AppPreferences.Keys.compactTickerInterval) var compactTickerInterval: Double = AppPreferences.Defaults.compactTickerInterval
-    @AppStorage(AppPreferences.Keys.compactTickerClosedExtraWidth) var compactTickerClosedExtraWidth: Double = AppPreferences.Defaults.compactTickerClosedExtraWidth
     @AppStorage(AppPreferences.Keys.auroraBackgroundEnabled) var auroraBackgroundEnabled: Bool = AppPreferences.Defaults.auroraBackgroundEnabled
     @AppStorage(AppPreferences.Keys.auroraTheme) var auroraTheme: NotchViewModel.AuroraTheme = .classic
 
@@ -344,7 +338,6 @@ struct AppearanceSettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 geometrySection
                 terminalDefaultsSection
-                compactTickerSection
                 effectsSection
                 resetSection
             }
@@ -403,44 +396,6 @@ struct AppearanceSettingsView: View {
         }
     }
 
-    private var compactTickerSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
-                title: "settings.appearance.compactTicker".localized,
-                subtitle: "settings.appearance.compactTicker.subtitle".localized,
-                icon: "rectangle.compress.vertical"
-            )
-
-            ZenithPreferenceToggleRow(
-                title: "settings.compactTickerEnabled".localized,
-                subtitle: "settings.compactTickerEnabled.subtitle".localized,
-                icon: "text.line.first.and.arrowtriangle.forward",
-                binding: $compactTickerEnabled
-            )
-
-            if compactTickerEnabled {
-                ZenithSliderPreferenceRow(
-                    title: "settings.compactTickerInterval".localized,
-                    subtitle: "settings.compactTickerInterval.subtitle".localized,
-                    icon: "timer",
-                    value: $compactTickerInterval,
-                    range: 4 ... 20,
-                    step: 1,
-                    valueFormatter: { "\(Int($0))s" }
-                )
-
-                ZenithSliderPreferenceRow(
-                    title: "settings.compactTickerClosedExtraWidth".localized,
-                    subtitle: "settings.compactTickerClosedExtraWidth.subtitle".localized,
-                    icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
-                    value: $compactTickerClosedExtraWidth,
-                    range: 0 ... 260,
-                    step: 2,
-                    valueFormatter: { "\(Int($0))" }
-                )
-            }
-        }
-    }
 
     private var effectsSection: some View {
         ZenithSettingsSection(contentSpacing: 12) {
@@ -494,9 +449,6 @@ struct AppearanceSettingsView: View {
         contentPadding == AppPreferences.Defaults.contentPadding &&
         terminalDefaultWidth == AppPreferences.Defaults.terminalDefaultWidth &&
         terminalDefaultHeight == AppPreferences.Defaults.terminalDefaultHeight &&
-        compactTickerEnabled == AppPreferences.Defaults.compactTickerEnabled &&
-        compactTickerInterval == AppPreferences.Defaults.compactTickerInterval &&
-        compactTickerClosedExtraWidth == AppPreferences.Defaults.compactTickerClosedExtraWidth &&
         auroraBackgroundEnabled == AppPreferences.Defaults.auroraBackgroundEnabled &&
         auroraTheme == .classic
     }
@@ -505,9 +457,6 @@ struct AppearanceSettingsView: View {
         contentPadding = AppPreferences.Defaults.contentPadding
         terminalDefaultWidth = AppPreferences.Defaults.terminalDefaultWidth
         terminalDefaultHeight = AppPreferences.Defaults.terminalDefaultHeight
-        compactTickerEnabled = AppPreferences.Defaults.compactTickerEnabled
-        compactTickerInterval = AppPreferences.Defaults.compactTickerInterval
-        compactTickerClosedExtraWidth = AppPreferences.Defaults.compactTickerClosedExtraWidth
         auroraBackgroundEnabled = AppPreferences.Defaults.auroraBackgroundEnabled
         auroraTheme = .classic
     }

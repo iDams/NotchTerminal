@@ -29,9 +29,10 @@ Requirements:
 - `NotchTerminal/Features/Notch`: notch overlay UI + interaction model.
 - `NotchTerminal/Features/Windows`: floating terminal windows and actions.
 - `NotchTerminal/Features/Persistence`: SwiftData models.
-- `NotchTerminal/Rendering/Metal`: Metal shaders/rendering pipeline.
-- `NotchTerminal/Settings`: settings screens.
+- `NotchTerminal/Rendering/Metal`: Metal shaders/rendering pipeline (Aurora, Fake Glow, CRT).
+- `NotchTerminal/Settings`: settings screens and custom Zenith UI components.
 - `NotchTerminal/Services`: shared services/utilities.
+- `vendor/SwiftTerm`: vendored terminal emulation library.
 
 ## Behavior Expectations
 - Keep notch interactions fast and non-blocking.

@@ -81,23 +81,9 @@ final class NotchViewModel: ObservableObject {
 
     // Usage
     @AppStorage(AppPreferences.Keys.hapticFeedback) var hapticFeedback: Bool = AppPreferences.Defaults.hapticFeedback
-    @AppStorage(AppPreferences.Keys.showCostSummary) var showCostSummary: Bool = AppPreferences.Defaults.showCostSummary
 
-    // Compact Ticker
-    @AppStorage(AppPreferences.Keys.compactTickerEnabled) var compactTickerEnabled: Bool = AppPreferences.Defaults.compactTickerEnabled
-    @AppStorage(AppPreferences.Keys.compactTickerInterval) var compactTickerInterval: Double = AppPreferences.Defaults.compactTickerInterval
-    @AppStorage(AppPreferences.Keys.compactTickerClosedExtraWidth) var compactTickerClosedExtraWidth: Double = AppPreferences.Defaults.compactTickerClosedExtraWidth
-    @AppStorage(AppPreferences.Keys.compactTickerMetricMode) var compactTickerMetricMode: CompactTickerMetricMode = .percent
-    @AppStorage(AppPreferences.Keys.compactTickerPriorityMode) var compactTickerPriorityMode: CompactTickerPriorityMode = .criticalFirst
-    @AppStorage(AppPreferences.Keys.compactTickerBackgroundMode) var compactTickerBackgroundMode: CompactTickerBackgroundMode = .solid
-    @AppStorage(AppPreferences.Keys.compactTickerShowAntigravity) var compactTickerShowAntigravity: Bool = AppPreferences.Defaults.compactTickerShowAntigravity
-    @AppStorage(AppPreferences.Keys.compactTickerShowGeminiCLI) var compactTickerShowGeminiCLI: Bool = AppPreferences.Defaults.compactTickerShowGeminiCLI
-    @AppStorage(AppPreferences.Keys.compactTickerShowZia) var compactTickerShowZia: Bool = AppPreferences.Defaults.compactTickerShowZia
 
     // Automation
-    @AppStorage(AppPreferences.Keys.backgroundRefreshCadenceMinutes) var backgroundRefreshCadenceMinutes: Int = AppPreferences.Defaults.backgroundRefreshCadenceMinutes
-    @AppStorage(AppPreferences.Keys.checkProviderStatus) var checkProviderStatus: Bool = AppPreferences.Defaults.checkProviderStatus
-    @AppStorage(AppPreferences.Keys.sessionQuotaNotificationsEnabled) var sessionQuotaNotificationsEnabled: Bool = AppPreferences.Defaults.sessionQuotaNotificationsEnabled
     @AppStorage(AppPreferences.Keys.autoOpenOnHover) var autoOpenOnHover: Bool = AppPreferences.Defaults.autoOpenOnHover
     @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
     @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
@@ -105,21 +91,6 @@ final class NotchViewModel: ObservableObject {
     @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) var showChipCloseButtonOnHover: Bool = AppPreferences.Defaults.showChipCloseButtonOnHover
     @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) var confirmBeforeCloseAll: Bool = AppPreferences.Defaults.confirmBeforeCloseAll
     @AppStorage(AppPreferences.Keys.closeActionMode) var closeActionMode: String = AppPreferences.Defaults.closeActionMode
-
-    enum CompactTickerMetricMode: String, CaseIterable, Identifiable {
-        case percent, dot
-        var id: String { rawValue }
-    }
-
-    enum CompactTickerPriorityMode: String, CaseIterable, Identifiable {
-        case criticalFirst, roundRobin
-        var id: String { rawValue }
-    }
-
-    enum CompactTickerBackgroundMode: String, CaseIterable, Identifiable {
-        case solid, transparent
-        var id: String { rawValue }
-    }
 
     func triggerHaptic() {
         guard hapticFeedback else { return }
