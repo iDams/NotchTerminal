@@ -54,6 +54,9 @@ final class NotchOverlayController {
     private var trackingFPS: Int = 60
     private var trackingTickCount: Int = 0
     private var observers: [NSObjectProtocol] = []
+    private var workspaceObservers: [NSObjectProtocol] = []
+    private var scrollEventTap: CFMachPort?
+    private var scrollEventTapRunLoopSource: CFRunLoopSource?
     private var lastCursorLocation: CGPoint?
     private var cancellables = Set<AnyCancellable>()
     private var modelContext: ModelContext?
@@ -66,6 +69,9 @@ final class NotchOverlayController {
     private var lastInteractionTime: Date?
     private var globalKeyMonitor: Any?
     private var localKeyMonitor: Any?
+    private var globalSwipeMonitor: Any?
+    private var localSwipeMonitor: Any?
+    private var pendingSpaceSwitchResetWorkItem: DispatchWorkItem?
     private var closeWorkItem: DispatchWorkItem?
     private var pendingExpandWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
     private var pendingShrinkWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
@@ -78,6 +84,7 @@ final class NotchOverlayController {
         }
         rebuildPanels()
         updateFullScreenAndMenuStatus()
+        startGestureMonitoring()
         startMouseTracking()
         startEventMonitoring()
         registerObservers()
@@ -97,14 +104,36 @@ final class NotchOverlayController {
             NSEvent.removeMonitor(localKeyMonitor)
             self.localKeyMonitor = nil
         }
+        if let globalSwipeMonitor {
+            NSEvent.removeMonitor(globalSwipeMonitor)
+            self.globalSwipeMonitor = nil
+        }
+        if let localSwipeMonitor {
+            NSEvent.removeMonitor(localSwipeMonitor)
+            self.localSwipeMonitor = nil
+        }
 
         for observer in observers {
             NotificationCenter.default.removeObserver(observer)
         }
         observers.removeAll()
+        for observer in workspaceObservers {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+        workspaceObservers.removeAll()
+        if let scrollEventTapRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), scrollEventTapRunLoopSource, .commonModes)
+            self.scrollEventTapRunLoopSource = nil
+        }
+        if let scrollEventTap {
+            CFMachPortInvalidate(scrollEventTap)
+            self.scrollEventTap = nil
+        }
 
         closeWorkItem?.cancel()
         closeWorkItem = nil
+        pendingSpaceSwitchResetWorkItem?.cancel()
+        pendingSpaceSwitchResetWorkItem = nil
         pendingExpandWorkItems.values.forEach { $0.cancel() }
         pendingExpandWorkItems.removeAll()
         pendingShrinkWorkItems.values.forEach { $0.cancel() }
@@ -155,6 +184,46 @@ final class NotchOverlayController {
             }
             return event
         }
+        globalSwipeMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            self?.handlePotentialSpaceSwipe(event)
+        }
+        localSwipeMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            self?.handlePotentialSpaceSwipe(event)
+            return event
+        }
+    }
+
+    private func startGestureMonitoring() {
+        let mask = CGEventMask(1 << CGEventType.scrollWheel.rawValue)
+        let callback: CGEventTapCallBack = { _, type, event, userInfo in
+            guard type == .scrollWheel,
+                  let userInfo else {
+                return Unmanaged.passUnretained(event)
+            }
+
+            let controller = Unmanaged<NotchOverlayController>
+                .fromOpaque(userInfo)
+                .takeUnretainedValue()
+            controller.handlePotentialSpaceScrollEvent(event)
+            return Unmanaged.passUnretained(event)
+        }
+
+        guard let eventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: mask,
+            callback: callback,
+            userInfo: UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        ) else {
+            return
+        }
+
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
+        scrollEventTap = eventTap
+        scrollEventTapRunLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: eventTap, enable: true)
     }
 
     private func startMouseTracking() {
@@ -201,6 +270,7 @@ final class NotchOverlayController {
 
     private func registerObservers() {
         let center = NotificationCenter.default
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
         let names: [Notification.Name] = [
             NSApplication.didChangeScreenParametersNotification,
             NSWindow.didChangeScreenNotification
@@ -221,6 +291,17 @@ final class NotchOverlayController {
             }
         }
         observers.append(dockHoverToken)
+
+        let activeSpaceToken = workspaceCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleActiveSpaceDidChange()
+            }
+        }
+        workspaceObservers.append(activeSpaceToken)
     }
 
     // MARK: - Panel Management
@@ -538,9 +619,7 @@ final class NotchOverlayController {
 
         let closedSize: NSSize = {
             guard hasNotch else {
-                return model.isMenuOverlapping 
-                    ? NSSize(width: 26, height: 26) 
-                    : collapsedNoNotchSize 
+                return collapsedNoNotchSize
             }
             let raw = screen.notchSizeOrFallback(fallback: collapsedNoNotchSize)
             return NSSize(
@@ -605,8 +684,8 @@ final class NotchOverlayController {
             width: collapsedNoNotchSize.width,
             height: collapsedNoNotchSize.height
         )
-        // Keep fake-notch activation compact for non-notch displays.
-        return virtual.insetBy(dx: -18, dy: -12)
+        // On fake-notch displays, require the cursor to actually reach the pill.
+        return virtual.insetBy(dx: -2, dy: -2)
     }
 
     private func startupOrbScreenRect(for screen: NSScreen, model: NotchViewModel) -> CGRect? {
@@ -761,9 +840,6 @@ final class NotchOverlayController {
 
         let myPID = ProcessInfo.processInfo.processIdentifier
         var candidateWindowBounds: [CGRect] = []
-        var candidateMenuBarBounds: [CGRect] = []
-        
-        let screenWidths = NSScreen.screens.map { $0.frame.width }
         
         for window in windowList {
             guard let pid = window[kCGWindowOwnerPID as String] as? Int32,
@@ -774,19 +850,10 @@ final class NotchOverlayController {
             
             let layer = window[kCGWindowLayer as String] as? Int ?? 0
             if layer < 0 { continue } // Ignore desktop backdrops naturally
-            
-            if layer == 24 {
-                // Layer 24 is the menu bar layer. Exclude the full-width backdrop.
-                let isFullWidth = screenWidths.contains { abs(bounds.width - $0) < 10 }
-                if !isFullWidth {
-                    // CGWindow bounds are global CG coordinates (Y=0 top-left of main screen).
-                    candidateMenuBarBounds.append(bounds)
-                }
-            } else {
-                // For full screen checks, we only care about other apps
-                if pid != myPID {
-                    candidateWindowBounds.append(bounds)
-                }
+
+            // For full screen checks, we only care about other apps
+            if pid != myPID {
+                candidateWindowBounds.append(bounds)
             }
         }
         
@@ -815,57 +882,12 @@ final class NotchOverlayController {
                     model.isExpanded = false
                 }
             }
-            
-            // Menu bar overlap check
-            if !model.hasPhysicalNotch && !shouldHideForFullScreen {
-                let notchLocalLeftEdge = (screen.frame.width / 2) - (collapsedNoNotchSize.width / 2)
-                let overlapThreshold = notchLocalLeftEdge - 4
-                
-                // Find all layer 24 bounds that fall within this screen horizontally
-                // We use global X coordinates. This screen is from `screen.frame.minX` to `screen.frame.maxX`
-                var maxMenuRightEdgeLocalToScreen: CGFloat = 0
-                for rect in candidateMenuBarBounds {
-                    let rectMinX = rect.minX
-                    let rectMaxX = rect.maxX
-                    
-                    // Does this menu rect generally align with this screen horizontally?
-                    // We allow some flexibility since menu bar items might cross borders slightly or be pinned.
-                    if rectMaxX >= screen.frame.minX && rectMinX <= screen.frame.maxX {
-                        // Normally, the left side menu starts near `screen.frame.minX`. 
-                        // The right-side menu (status bar) starts far to the right and shouldn't trigger it unless it's giant.
-                        // We check if this layer 24 item is on the LEFT side of the screen.
-                        let isLeftSideMenu = (rectMinX - screen.frame.minX) < notchLocalLeftEdge
-                        
-                        if isLeftSideMenu {
-                            let localMaxX = rectMaxX - screen.frame.minX
-                            if localMaxX > maxMenuRightEdgeLocalToScreen {
-                                maxMenuRightEdgeLocalToScreen = localMaxX
-                            }
-                        }
-                    }
-                }
-                
-                // print("NotchTerminal Debug: Screen \(screen.frame.width) | MenuWidth: \(maxMenuRightEdgeLocalToScreen) | Threshold: \(overlapThreshold)")
-                
-                let isOverlappingMenu = maxMenuRightEdgeLocalToScreen >= overlapThreshold
-                
-                if model.isMenuOverlapping != isOverlappingMenu {
-                    model.isMenuOverlapping = isOverlappingMenu
-                    layoutNeeded = true
-                }
-            } else {
-                if model.isMenuOverlapping {
-                    model.isMenuOverlapping = false
-                    layoutNeeded = true
-                }
-            }
         }
         
         if layoutNeeded {
             layoutPanels(animated: true)
         }
     }
-
 
     private func windowBounds(_ windowBounds: CGRect, approximatelyMatchFullScreenDisplay displayBounds: CGRect) -> Bool {
         let tolerance: CGFloat = 6.0
@@ -904,6 +926,69 @@ final class NotchOverlayController {
         }
 
         layoutPanels(animated: true, displays: [displayID])
+    }
+
+    private func handleActiveSpaceDidChange() {
+        let eligibleDisplays = physicalNotchDisplayIDs()
+        guard !eligibleDisplays.isEmpty else { return }
+
+        scheduleSpaceSwitchReset(after: 0.03, displayIDs: eligibleDisplays)
+    }
+
+    private func handlePotentialSpaceSwipe(_ event: NSEvent) {
+        let phase = event.phase
+        let momentumPhase = event.momentumPhase
+        let isGesturePhase = phase.contains(.began) || phase.contains(.changed) || phase.contains(.mayBegin)
+        let isMomentumPhase = momentumPhase.contains(.began) || momentumPhase.contains(.changed)
+        guard isGesturePhase || isMomentumPhase else { return }
+
+        let horizontalMagnitude = abs(event.deltaX)
+        let verticalMagnitude = abs(event.deltaY)
+        let preciseHorizontalMagnitude = abs(event.scrollingDeltaX)
+        let preciseVerticalMagnitude = abs(event.scrollingDeltaY)
+        let dominantHorizontal = max(horizontalMagnitude, preciseHorizontalMagnitude)
+        let dominantVertical = max(verticalMagnitude, preciseVerticalMagnitude)
+        let isEarlyGesturePhase = phase.contains(.began) || phase.contains(.mayBegin)
+        let requiredHorizontalMagnitude: CGFloat = isEarlyGesturePhase ? 0.15 : 1.0
+        guard dominantHorizontal > dominantVertical * 1.2, dominantHorizontal > requiredHorizontalMagnitude else { return }
+
+        let eligibleDisplays = physicalNotchDisplayIDs()
+        guard !eligibleDisplays.isEmpty else { return }
+
+        setSpaceSwitching(true, displayIDs: eligibleDisplays)
+        scheduleSpaceSwitchReset(after: 1.0, displayIDs: eligibleDisplays)
+    }
+
+    private func handlePotentialSpaceScrollEvent(_ event: CGEvent) {
+        _ = event
+    }
+
+    private func physicalNotchDisplayIDs() -> [CGDirectDisplayID] {
+        modelsByDisplay.compactMap { displayID, model in
+            model.hasPhysicalNotch ? displayID : nil
+        }
+    }
+
+    private func setSpaceSwitching(_ isSwitching: Bool, displayIDs: [CGDirectDisplayID]) {
+        for displayID in displayIDs {
+            modelsByDisplay[displayID]?.isSwitchingSpace = isSwitching
+            guard let panel = panelsByDisplay[displayID] else { continue }
+            panel.alphaValue = isSwitching ? 0 : 1
+            if !isSwitching {
+                panel.orderFrontRegardless()
+            }
+        }
+    }
+
+    private func scheduleSpaceSwitchReset(after delay: TimeInterval, displayIDs: [CGDirectDisplayID]) {
+        pendingSpaceSwitchResetWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.setSpaceSwitching(false, displayIDs: displayIDs)
+            self.pendingSpaceSwitchResetWorkItem = nil
+        }
+        pendingSpaceSwitchResetWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
     }
 
     private func displayID(from raw: String) -> CGDirectDisplayID {

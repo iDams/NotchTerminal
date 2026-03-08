@@ -90,3 +90,5 @@ UPDATE_FEATURES.md
 
 *.swp
 *.swo
+
+build.log

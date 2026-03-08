@@ -40,7 +40,8 @@ enum StartupOrbGeometry {
         case .pill:
             return rightEdge - 18 + manualOffset
         case .physicalNotch:
-            return rightEdge + 28 + manualOffset
+            // Start further inside the real notch so the orb feels like it emerges from behind it.
+            return rightEdge + 1 + manualOffset
         }
     }
 

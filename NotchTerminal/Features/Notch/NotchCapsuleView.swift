@@ -625,7 +625,7 @@ struct NotchCapsuleView: View {
             StartupOrbView(
                 style: model.hasPhysicalNotch ? .physicalNotch : .pill,
                 hostWidth: capsuleWidth,
-                isEligible: !model.isExpanded
+                isEligible: !model.isExpanded && !model.isSwitchingSpace
             )
         }
     }

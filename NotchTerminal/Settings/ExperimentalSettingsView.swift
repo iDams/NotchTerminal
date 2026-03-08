@@ -148,7 +148,7 @@ struct ExperimentalSettingsView: View {
                 subtitle: "settings.experimental.startupOrb.notchOffsetX.subtitle".localized,
                 icon: "arrow.left.and.right.circle",
                 value: startupOrbNotchOffsetXBinding,
-                range: -80 ... 120,
+                range: -120 ... 120,
                 step: 1,
                 valueFormatter: { "\(Int($0)) pt" }
             )
