@@ -37,6 +37,7 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     private var currentInputLine = ""
     private var isInLiveResize = false
     private var wheelMonitor: Any?
+    private var keyMonitor: Any?
     private var selectionMonitor: Any?
     private var selectionAutoScrollTimer: Timer?
     private var selectionAutoScrollDelta = 0
@@ -110,6 +111,7 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        installArrowKeyMonitorIfNeeded()
         installWheelForwardMonitorIfNeeded()
         installSelectionMonitorIfNeeded()
     }
@@ -117,6 +119,9 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     deinit {
         if let wheelMonitor {
             NSEvent.removeMonitor(wheelMonitor)
+        }
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
         }
         if let selectionMonitor {
             NSEvent.removeMonitor(selectionMonitor)
@@ -226,6 +231,37 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
 
     func ensureWheelForwardingMonitor() {
         installWheelForwardMonitorIfNeeded()
+    }
+
+    private func installArrowKeyMonitorIfNeeded() {
+        guard keyMonitor == nil else { return }
+
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            guard event.window === self.window else { return event }
+            guard self.window?.firstResponder === self else { return event }
+
+            let modifiers = event.modifierFlags.intersection([.command, .option, .control])
+            guard modifiers.isEmpty else { return event }
+
+            let sequence: [UInt8]?
+            switch event.keyCode {
+            case 126:
+                sequence = self.terminal.applicationCursor ? EscapeSequences.moveUpApp : EscapeSequences.moveUpNormal
+            case 125:
+                sequence = self.terminal.applicationCursor ? EscapeSequences.moveDownApp : EscapeSequences.moveDownNormal
+            case 123:
+                sequence = self.terminal.applicationCursor ? EscapeSequences.moveLeftApp : EscapeSequences.moveLeftNormal
+            case 124:
+                sequence = self.terminal.applicationCursor ? EscapeSequences.moveRightApp : EscapeSequences.moveRightNormal
+            default:
+                sequence = nil
+            }
+
+            guard let sequence else { return event }
+            self.send(source: self, data: sequence[...])
+            return nil
+        }
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {

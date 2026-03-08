@@ -76,6 +76,7 @@ final class NotchOverlayController {
             self?.applyTerminalItems(items)
         }
         rebuildPanels()
+        updateFullScreenStatus()
         startMouseTracking()
         startEventMonitoring()
         registerObservers()
@@ -164,7 +165,7 @@ final class NotchOverlayController {
                 self.updateExpansionAndLayout()
                 
                 self.trackingTickCount += 1
-                // Check full screen state roughly every 1 seconds (e.g. at 60fps -> 60 ticks)
+                // Check full-screen state roughly every 1 second (e.g. at 60fps -> 60 ticks)
                 if self.trackingTickCount >= self.trackingFPS {
                     self.trackingTickCount = 0
                     self.updateFullScreenStatus()
@@ -266,6 +267,7 @@ final class NotchOverlayController {
             }
         }
 
+        updateFullScreenStatus()
         layoutPanels(animated: false)
     }
 
@@ -700,7 +702,7 @@ final class NotchOverlayController {
         }
 
         let myPID = ProcessInfo.processInfo.processIdentifier
-        var pidToBounds = [Int32: CGRect]()
+        var candidateWindowBounds: [CGRect] = []
         
         for window in windowList {
             guard let pid = window[kCGWindowOwnerPID as String] as? Int32,
@@ -712,13 +714,8 @@ final class NotchOverlayController {
             
             let layer = window[kCGWindowLayer as String] as? Int ?? 0
             if layer < 0 { continue } // Ignore desktop backdrops naturally
-            
-            // Accumulate coverage for this PID
-            if let existing = pidToBounds[pid] {
-                pidToBounds[pid] = existing.union(bounds)
-            } else {
-                pidToBounds[pid] = bounds
-            }
+
+            candidateWindowBounds.append(bounds)
         }
         
         var layoutNeeded = false
@@ -732,7 +729,7 @@ final class NotchOverlayController {
             var isCovered = false
             let tolerance: CGFloat = 5.0
             
-            for (_, rect) in pidToBounds {
+            for rect in candidateWindowBounds {
                 let intersection = rect.intersection(displayBounds)
                 if intersection.width >= displayBounds.width - tolerance &&
                    intersection.height >= displayBounds.height - tolerance {
