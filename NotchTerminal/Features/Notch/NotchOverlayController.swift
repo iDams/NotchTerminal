@@ -359,8 +359,8 @@ final class NotchOverlayController {
             guard let displayID = displayID(for: screen),
                   let model = modelsByDisplay[displayID] else { continue }
                   
-            // If full screen app is active on this monitor, do not allow expansion on hover
-            if model.isFullScreenAppActive {
+            // Only hide the fake notch on full-screen apps.
+            if !model.hasPhysicalNotch && model.isFullScreenAppActive {
                 if model.isExpanded {
                     model.isExpanded = false
                     changedDisplays.insert(displayID)
@@ -502,8 +502,8 @@ final class NotchOverlayController {
                 panel.setFrame(frame, display: true)
             }
             
-            // Adjust visibility / hit testing if a full screen app hides the notch
-            if model.isFullScreenAppActive {
+            // Only hide the fake notch on full-screen apps.
+            if !model.hasPhysicalNotch && model.isFullScreenAppActive {
                 panel.alphaValue = 0.0
                 panel.ignoresMouseEvents = true
             } else {
@@ -727,21 +727,20 @@ final class NotchOverlayController {
             
             let displayBounds = CGDisplayBounds(displayID)
             var isCovered = false
-            let tolerance: CGFloat = 5.0
             
             for rect in candidateWindowBounds {
-                let intersection = rect.intersection(displayBounds)
-                if intersection.width >= displayBounds.width - tolerance &&
-                   intersection.height >= displayBounds.height - tolerance {
+                if windowBounds(rect, approximatelyMatchFullScreenDisplay: displayBounds) {
                     isCovered = true
                     break
                 }
             }
             
-            if model.isFullScreenAppActive != isCovered {
-                model.isFullScreenAppActive = isCovered
+            let shouldHideForFullScreen = !model.hasPhysicalNotch && isCovered
+
+            if model.isFullScreenAppActive != shouldHideForFullScreen {
+                model.isFullScreenAppActive = shouldHideForFullScreen
                 layoutNeeded = true
-                if isCovered && model.isExpanded {
+                if shouldHideForFullScreen && model.isExpanded {
                     model.isExpanded = false
                 }
             }
@@ -750,6 +749,15 @@ final class NotchOverlayController {
         if layoutNeeded {
             layoutPanels(animated: true)
         }
+    }
+
+    private func windowBounds(_ windowBounds: CGRect, approximatelyMatchFullScreenDisplay displayBounds: CGRect) -> Bool {
+        let tolerance: CGFloat = 6.0
+
+        return abs(windowBounds.minX - displayBounds.minX) <= tolerance &&
+               abs(windowBounds.maxX - displayBounds.maxX) <= tolerance &&
+               abs(windowBounds.minY - displayBounds.minY) <= tolerance &&
+               abs(windowBounds.maxY - displayBounds.maxY) <= tolerance
     }
 
     private func handleScreenConfigurationChange() {
