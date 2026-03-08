@@ -11,13 +11,14 @@ private enum SettingsTab: Hashable {
 
 struct SettingsView: View {
     @State private var selectedTab: SettingsTab = .general
+    @AppStorage(AppPreferences.Keys.showExperimentalSettings) private var showExperimentalSettings = AppPreferences.Defaults.showExperimentalSettings
 
     private var idealHeight: CGFloat {
         switch selectedTab {
         case .general:
             return 430
         case .notch:
-            return 320
+            return 620
         case .appearance:
             return 560
         case .about:
@@ -38,7 +39,7 @@ struct SettingsView: View {
             NotchSettingsView()
                 .tag(SettingsTab.notch)
                 .tabItem {
-                    Label("settings.notch".localized, systemImage: "capsule.portrait")
+                    Label("settings.notch".localized, systemImage: "slider.horizontal.below.rectangle")
                 }
 
             AppearanceSettingsView()
@@ -53,11 +54,13 @@ struct SettingsView: View {
                     Label("settings.about".localized, systemImage: "info.circle")
                 }
 
-            ExperimentalSettingsView()
-                .tag(SettingsTab.experimental)
-                .tabItem {
-                    Label("settings.experimental".localized, systemImage: "flask")
-                }
+            if showExperimentalSettings {
+                ExperimentalSettingsView()
+                    .tag(SettingsTab.experimental)
+                    .tabItem {
+                        Label("settings.experimental".localized, systemImage: "flask")
+                    }
+            }
         }
         .frame(
             minWidth: 560,
@@ -68,12 +71,20 @@ struct SettingsView: View {
             maxHeight: 700
         )
         .onAppear {
+            if !showExperimentalSettings && selectedTab == .experimental {
+                selectedTab = .general
+            }
             // Center the settings window
             for window in NSApplication.shared.windows {
                 if window.title == "Settings" || window.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" {
                     window.center()
                     break
                 }
+            }
+        }
+        .onChange(of: showExperimentalSettings) { _, isVisible in
+            if !isVisible && selectedTab == .experimental {
+                selectedTab = .general
             }
         }
     }
@@ -98,6 +109,7 @@ struct GeneralSettingsView: View {
 
     @AppStorage(AppPreferences.Keys.hapticFeedback) var hapticFeedback: Bool = AppPreferences.Defaults.hapticFeedback
     @AppStorage(AppPreferences.Keys.showDockIcon) var showDockIcon: Bool = AppPreferences.Defaults.showDockIcon
+    @AppStorage(AppPreferences.Keys.showExperimentalSettings) var showExperimentalSettings: Bool = AppPreferences.Defaults.showExperimentalSettings
     @AppStorage(AppPreferences.Keys.autoOpenOnHover) var autoOpenOnHover: Bool = AppPreferences.Defaults.autoOpenOnHover
     @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
     @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
@@ -189,6 +201,13 @@ struct GeneralSettingsView: View {
                 subtitle: "settings.showDockIcon.subtitle".localized,
                 icon: "dock.rectangle",
                 binding: $showDockIcon
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.showExperimentalSettings".localized,
+                subtitle: "settings.showExperimentalSettings.subtitle".localized,
+                icon: "flask",
+                binding: $showExperimentalSettings
             )
         }
     }

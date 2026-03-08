@@ -3,6 +3,11 @@ import AppKit
 
 struct NotchSettingsView: View {
     @State private var screens: [NSScreen] = NSScreen.screens
+    @AppStorage(AppPreferences.Keys.auroraDisplayOverrideIDs) private var auroraDisplayOverrideIDsRaw = ""
+    @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
+    @AppStorage(AppPreferences.Keys.auroraDisplayThemeMap) private var auroraDisplayThemeMapRaw = ""
+    @AppStorage(AppPreferences.Keys.auroraBackgroundEnabled) private var globalAuroraBackgroundEnabled = AppPreferences.Defaults.auroraBackgroundEnabled
+    @AppStorage(AppPreferences.Keys.auroraTheme) private var globalAuroraTheme: NotchViewModel.AuroraTheme = .classic
 
     var body: some View {
         ScrollView {
@@ -13,27 +18,17 @@ struct NotchSettingsView: View {
                         subtitle: "settings.notch.displays.subtitle".localized,
                         icon: "capsule.portrait"
                     )
+                }
 
-                    if screens.isEmpty {
+                if screens.isEmpty {
+                    ZenithSettingsSection(contentSpacing: 12) {
                         Text("settings.notch.empty".localized)
                             .font(.footnote)
                             .foregroundStyle(.tertiary)
-                    } else {
-                        ForEach(screenItems) { item in
-                            ZenithPreferenceToggleRow(
-                                title: item.title,
-                                subtitle: item.subtitle,
-                                icon: item.icon,
-                                binding: Binding(
-                                    get: {
-                                        AppPreferences.isNotchEnabled(for: item.displayID)
-                                    },
-                                    set: { isEnabled in
-                                        AppPreferences.setNotchEnabled(isEnabled, for: item.displayID)
-                                    }
-                                )
-                            )
-                        }
+                    }
+                } else {
+                    ForEach(screenItems) { item in
+                        notchDisplaySection(for: item)
                     }
                 }
             }
@@ -45,6 +40,151 @@ struct NotchSettingsView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
             refreshScreens()
+        }
+    }
+
+    @ViewBuilder
+    private func notchDisplaySection(for item: NotchDisplayItem) -> some View {
+        ZenithSettingsSection(contentSpacing: 12) {
+            ZenithSectionHeading(
+                title: item.title,
+                subtitle: item.subtitle,
+                icon: item.icon
+            )
+
+            ZenithPreferenceToggleRow(
+                title: "settings.notch.enabled".localized,
+                subtitle: "settings.notch.enabled.subtitle".localized,
+                icon: "power",
+                binding: Binding(
+                    get: { AppPreferences.isNotchEnabled(for: item.displayID) },
+                    set: { AppPreferences.setNotchEnabled($0, for: item.displayID) }
+                )
+            )
+
+            if AppPreferences.isNotchEnabled(for: item.displayID) {
+                ZenithSliderPreferenceRow(
+                    title: "settings.notch.offsetX".localized,
+                    subtitle: "settings.notch.offsetX.subtitle".localized,
+                    icon: "arrow.left.and.right",
+                    value: Binding(
+                        get: { AppPreferences.notchOffsetX(for: item.displayID) },
+                        set: { AppPreferences.setNotchOffsetX($0, for: item.displayID) }
+                    ),
+                    range: -160 ... 160,
+                    step: 1,
+                    valueFormatter: { "\($0.formatted(.number.precision(.fractionLength(0)))) pt" }
+                )
+
+                ZenithSliderPreferenceRow(
+                    title: "settings.notch.offsetY".localized,
+                    subtitle: "settings.notch.offsetY.subtitle".localized,
+                    icon: "arrow.up.and.down",
+                    value: Binding(
+                        get: { AppPreferences.notchOffsetY(for: item.displayID) },
+                        set: { AppPreferences.setNotchOffsetY($0, for: item.displayID) }
+                    ),
+                    range: -80 ... 80,
+                    step: 1,
+                    valueFormatter: { "\($0.formatted(.number.precision(.fractionLength(0)))) pt" }
+                )
+
+                ZenithSliderPreferenceRow(
+                    title: "settings.notch.width".localized,
+                    subtitle: "settings.notch.width.subtitle".localized,
+                    icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
+                    value: Binding(
+                        get: { AppPreferences.notchWidthAdjustment(for: item.displayID) },
+                        set: { AppPreferences.setNotchWidthAdjustment($0, for: item.displayID) }
+                    ),
+                    range: -120 ... 120,
+                    step: 1,
+                    valueFormatter: { "\($0.formatted(.number.precision(.fractionLength(0)))) pt" }
+                )
+
+                Divider()
+
+                ZenithPreferenceToggleRow(
+                    title: "settings.notch.customBackground".localized,
+                    subtitle: "settings.notch.customBackground.subtitle".localized,
+                    icon: "paintpalette",
+                    binding: Binding(
+                        get: {
+                            _ = auroraDisplayOverrideIDsRaw
+                            return AppPreferences.hasCustomAuroraOverride(for: item.displayID)
+                        },
+                        set: {
+                            AppPreferences.setCustomAuroraOverrideEnabled($0, for: item.displayID)
+                        }
+                    )
+                )
+
+                if AppPreferences.hasCustomAuroraOverride(for: item.displayID) {
+                    ZenithPreferenceToggleRow(
+                        title: "settings.notch.customBackground.enabled".localized,
+                        subtitle: "settings.notch.customBackground.enabled.subtitle".localized,
+                        icon: "waveform.circle",
+                        binding: Binding(
+                            get: {
+                                _ = auroraDisplayEnabledMapRaw
+                                return AppPreferences.auroraBackgroundEnabled(
+                                    for: item.displayID,
+                                    fallback: globalAuroraBackgroundEnabled
+                                )
+                            },
+                            set: {
+                                AppPreferences.setAuroraBackgroundEnabled($0, for: item.displayID)
+                            }
+                        )
+                    )
+
+                    if AppPreferences.auroraBackgroundEnabled(
+                        for: item.displayID,
+                        fallback: globalAuroraBackgroundEnabled
+                    ) {
+                        HStack(alignment: .center, spacing: 10) {
+                            Image(systemName: "swatchpalette")
+                                .font(.system(size: 13, weight: .semibold))
+                                .frame(width: 20, height: 20)
+                                .foregroundStyle(.secondary)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("settings.auroraTheme".localized)
+                                    .font(.body.weight(.medium))
+                                Text("settings.notch.customBackground.theme.subtitle".localized)
+                                    .font(.footnote)
+                                    .foregroundStyle(.tertiary)
+                            }
+
+                            Spacer(minLength: 8)
+
+                            Picker(
+                                "settings.auroraTheme".localized,
+                                selection: Binding(
+                                    get: {
+                                        _ = auroraDisplayThemeMapRaw
+                                        let rawValue = AppPreferences.auroraTheme(
+                                            for: item.displayID,
+                                            fallback: globalAuroraTheme.rawValue
+                                        )
+                                        return NotchViewModel.AuroraTheme(rawValue: rawValue) ?? globalAuroraTheme
+                                    },
+                                    set: {
+                                        AppPreferences.setAuroraTheme($0.rawValue, for: item.displayID)
+                                    }
+                                )
+                            ) {
+                                ForEach(NotchViewModel.AuroraTheme.allCases) { theme in
+                                    Text(theme.localizedName).tag(theme)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 220)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
         }
     }
 
@@ -61,7 +201,7 @@ struct NotchSettingsView: View {
                 displayID: displayID,
                 title: screen.localizedName,
                 subtitle: "\(notchKindKey.localized)\(mainSuffix)",
-                icon: hasPhysicalNotch(on: screen) ? "macbook" : "rectangle.tophalf.inset.filled"
+                icon: iconName(for: screen)
             )
         }
     }
@@ -83,6 +223,19 @@ struct NotchSettingsView: View {
         let right = screen.auxiliaryTopRightArea ?? .zero
         let blockedWidth = screen.frame.width - left.width - right.width
         return blockedWidth > 20 && min(left.height, right.height) > 0
+    }
+
+    private func iconName(for screen: NSScreen) -> String {
+        if hasPhysicalNotch(on: screen) {
+            return "macbook"
+        }
+
+        let name = screen.localizedName.lowercased()
+        if name.contains("sidecar") || name.contains("ipad") || name.contains("airplay") {
+            return "ipad.landscape"
+        }
+
+        return "display"
     }
 }
 

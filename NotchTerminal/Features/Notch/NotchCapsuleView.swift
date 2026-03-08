@@ -27,6 +27,9 @@ struct NotchCapsuleView: View {
     @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) private var confirmBeforeCloseAll = AppPreferences.Defaults.confirmBeforeCloseAll
     @AppStorage(AppPreferences.Keys.experimentalStartupOrbEnabled) private var experimentalStartupOrbEnabled = AppPreferences.Defaults.experimentalStartupOrbEnabled
     @AppStorage(AppPreferences.Keys.hitTestDebugOverlayEnabled) private var hitTestDebugOverlayEnabled = AppPreferences.Defaults.hitTestDebugOverlayEnabled
+    @AppStorage(AppPreferences.Keys.auroraDisplayOverrideIDs) private var auroraDisplayOverrideIDsRaw = ""
+    @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
+    @AppStorage(AppPreferences.Keys.auroraDisplayThemeMap) private var auroraDisplayThemeMapRaw = ""
 
     private var expandedWidth: CGFloat {
         let minWidth: CGFloat = 680
@@ -47,6 +50,25 @@ struct NotchCapsuleView: View {
         if model.isHoveringPreview { key += 2 }
         if model.hasPhysicalNotch { key += 4 }
         return key
+    }
+
+    private var effectiveAuroraBackgroundEnabled: Bool {
+        _ = auroraDisplayOverrideIDsRaw
+        _ = auroraDisplayEnabledMapRaw
+        return AppPreferences.auroraBackgroundEnabled(
+            for: model.ownDisplayID,
+            fallback: model.auroraBackgroundEnabled
+        )
+    }
+
+    private var effectiveAuroraTheme: NotchViewModel.AuroraTheme {
+        _ = auroraDisplayOverrideIDsRaw
+        _ = auroraDisplayThemeMapRaw
+        let rawValue = AppPreferences.auroraTheme(
+            for: model.ownDisplayID,
+            fallback: model.auroraTheme.rawValue
+        )
+        return NotchViewModel.AuroraTheme(rawValue: rawValue) ?? model.auroraTheme
     }
     
     init(
@@ -292,8 +314,8 @@ struct NotchCapsuleView: View {
                 .opacity(baseBackgroundOpacity)
                 .animation(.easeInOut(duration: 0.22), value: backgroundStateKey)
 
-            if model.auroraBackgroundEnabled && model.isExpanded {
-                NotchMetalEffectView(isActive: model.isExpanded, theme: model.auroraTheme)
+            if effectiveAuroraBackgroundEnabled && model.isExpanded {
+                NotchMetalEffectView(isActive: model.isExpanded, theme: effectiveAuroraTheme)
                     .opacity(0.85)
                     .transition(.opacity)
             }

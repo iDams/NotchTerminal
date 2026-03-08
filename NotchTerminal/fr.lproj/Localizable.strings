@@ -13,6 +13,19 @@
 "settings.notch.displays" = "Notches actifs";
 "settings.notch.displays.subtitle" = "Activez ou désactivez le notch indépendamment sur chaque écran connecté.";
 "settings.notch.empty" = "Aucun écran actif détecté.";
+"settings.notch.enabled" = "Activer ce notch";
+"settings.notch.enabled.subtitle" = "Affiche le notch uniquement sur cet écran.";
+"settings.notch.offsetX" = "Position horizontale";
+"settings.notch.offsetX.subtitle" = "Déplace ce notch vers la gauche ou la droite sur son écran.";
+"settings.notch.offsetY" = "Position verticale";
+"settings.notch.offsetY.subtitle" = "Déplace ce notch vers le haut ou le bas sur son écran.";
+"settings.notch.width" = "Ajustement de largeur";
+"settings.notch.width.subtitle" = "Réduit ou élargit ce notch sans affecter les autres.";
+"settings.notch.customBackground" = "Fond personnalisé";
+"settings.notch.customBackground.subtitle" = "Remplace le fond global du notch uniquement pour cet écran.";
+"settings.notch.customBackground.enabled" = "Activer le fond aurora";
+"settings.notch.customBackground.enabled.subtitle" = "Applique l’effet aurora uniquement à ce notch.";
+"settings.notch.customBackground.theme.subtitle" = "Choisissez un thème de fond pour ce notch.";
 "settings.notch.display.physical" = "Notch physique";
 "settings.notch.display.pill" = "Notch pill";
 "settings.notch.display.main" = "Écran principal";
@@ -24,6 +37,8 @@
 "settings.hapticFeedback.subtitle" = "Utilise le retour haptique lors des interactions dans le notch.";
 "settings.showDockIcon" = "Afficher l'icône dans le Dock";
 "settings.showDockIcon.subtitle" = "Affiche l'icône de l'application dans le Dock en utilisant l'asset AppIcon.";
+"settings.showExperimentalSettings" = "Afficher l’onglet Expérimental";
+"settings.showExperimentalSettings.subtitle" = "Affiche les réglages expérimentaux et les fonctionnalités instables dans Réglages.";
 "settings.quitApp" = "Quitter l'application";
 "settings.quitApp.subtitle" = "Ferme complètement NotchTerminal.";
 

@@ -13,6 +13,19 @@
 "settings.notch.displays" = "アクティブなノッチ";
 "settings.notch.displays.subtitle" = "接続中の各ディスプレイごとにノッチを個別に有効または無効にします。";
 "settings.notch.empty" = "アクティブなディスプレイが見つかりません。";
+"settings.notch.enabled" = "このノッチを有効化";
+"settings.notch.enabled.subtitle" = "このディスプレイでのみノッチを表示します。";
+"settings.notch.offsetX" = "水平位置";
+"settings.notch.offsetX.subtitle" = "このノッチをディスプレイ上で左右に移動します。";
+"settings.notch.offsetY" = "垂直位置";
+"settings.notch.offsetY.subtitle" = "このノッチをディスプレイ上で上下に移動します。";
+"settings.notch.width" = "幅調整";
+"settings.notch.width.subtitle" = "他のノッチに影響せず、このノッチだけを狭くしたり広くしたりします。";
+"settings.notch.customBackground" = "カスタム背景";
+"settings.notch.customBackground.subtitle" = "このディスプレイだけグローバルなノッチ背景を上書きします。";
+"settings.notch.customBackground.enabled" = "Aurora 背景を有効化";
+"settings.notch.customBackground.enabled.subtitle" = "Aurora エフェクトをこのノッチだけに適用します。";
+"settings.notch.customBackground.theme.subtitle" = "このノッチ用の背景テーマを選びます。";
 "settings.notch.display.physical" = "物理ノッチ";
 "settings.notch.display.pill" = "ピルノッチ";
 "settings.notch.display.main" = "メインディスプレイ";
@@ -24,6 +37,8 @@
 "settings.hapticFeedback.subtitle" = "ノッチでのインタラクション時に触覚を使用します。";
 "settings.showDockIcon" = "Dockアイコンを表示";
 "settings.showDockIcon.subtitle" = "AppIconアセットを使用してDockにアプリアイコンを表示します。";
+"settings.showExperimentalSettings" = "実験タブを表示";
+"settings.showExperimentalSettings.subtitle" = "設定内で実験的な設定と不安定な機能を表示します。";
 "settings.quitApp" = "アプリを終了";
 "settings.quitApp.subtitle" = "NotchTerminalを完全に終了します。";
 

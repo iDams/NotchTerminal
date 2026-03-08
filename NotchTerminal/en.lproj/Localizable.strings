@@ -13,6 +13,19 @@
 "settings.notch.displays" = "Active Notches";
 "settings.notch.displays.subtitle" = "Enable or disable the notch independently on each connected display.";
 "settings.notch.empty" = "No active displays detected.";
+"settings.notch.enabled" = "Enable this notch";
+"settings.notch.enabled.subtitle" = "Shows the notch only on this display.";
+"settings.notch.offsetX" = "Horizontal position";
+"settings.notch.offsetX.subtitle" = "Move this notch left or right on its display.";
+"settings.notch.offsetY" = "Vertical position";
+"settings.notch.offsetY.subtitle" = "Move this notch up or down on its display.";
+"settings.notch.width" = "Width adjustment";
+"settings.notch.width.subtitle" = "Shrink or widen this notch without affecting the others.";
+"settings.notch.customBackground" = "Custom background";
+"settings.notch.customBackground.subtitle" = "Override the global notch background only for this display.";
+"settings.notch.customBackground.enabled" = "Enable aurora background";
+"settings.notch.customBackground.enabled.subtitle" = "Applies the aurora effect only to this notch.";
+"settings.notch.customBackground.theme.subtitle" = "Choose a background theme for this notch.";
 "settings.notch.display.physical" = "Physical notch";
 "settings.notch.display.pill" = "Pill notch";
 "settings.notch.display.main" = "Main display";
@@ -24,6 +37,8 @@
 "settings.hapticFeedback.subtitle" = "Use haptics when interactions occur in the notch.";
 "settings.showDockIcon" = "Show Dock icon";
 "settings.showDockIcon.subtitle" = "Display the app icon in the Dock using the configured AppIcon asset.";
+"settings.showExperimentalSettings" = "Show Experimental tab";
+"settings.showExperimentalSettings.subtitle" = "Reveals experimental settings and unstable features in Settings.";
 "settings.quitApp" = "Quit application";
 "settings.quitApp.subtitle" = "Close NotchTerminal completely.";
 

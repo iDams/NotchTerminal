@@ -633,14 +633,21 @@ final class NotchOverlayController {
 
     private func frameForPanel(on screen: NSScreen, model: NotchViewModel) -> CGRect {
         let hasNotch = model.hasPhysicalNotch
+        let displayID = displayID(for: screen)
+        let horizontalOffset = displayID.map { CGFloat(AppPreferences.notchOffsetX(for: $0)) } ?? 0
+        let verticalOffset = displayID.map { CGFloat(AppPreferences.notchOffsetY(for: $0)) } ?? 0
+        let widthAdjustment = displayID.map { CGFloat(AppPreferences.notchWidthAdjustment(for: $0)) } ?? 0
 
         let closedSize: NSSize = {
             guard hasNotch else {
-                return collapsedNoNotchSize
+                return NSSize(
+                    width: max(26, collapsedNoNotchSize.width + widthAdjustment),
+                    height: collapsedNoNotchSize.height
+                )
             }
             let raw = screen.notchSizeOrFallback(fallback: collapsedNoNotchSize)
             return NSSize(
-                width: max(92, raw.width * notchClosedWidthScale + model.notchWidthOffset),
+                width: max(92, raw.width * notchClosedWidthScale + model.notchWidthOffset + widthAdjustment),
                 height: max(22, raw.height * notchClosedHeightScale + model.notchHeightOffset)
             )
         }()
@@ -664,8 +671,8 @@ final class NotchOverlayController {
         let topInset: CGFloat = hasNotch ? notchTopInset : noNotchTopInset
 
         let visualOrigin = CGPoint(
-            x: screen.frame.midX - (visualSize.width + shoulderExtra) / 2.0,
-            y: screen.frame.maxY - visualSize.height - topInset
+            x: screen.frame.midX - (visualSize.width + shoulderExtra) / 2.0 + horizontalOffset,
+            y: screen.frame.maxY - visualSize.height - topInset - verticalOffset
         )
 
         return CGRect(
@@ -680,6 +687,10 @@ final class NotchOverlayController {
 
     private func notchActivationRect(for screen: NSScreen, model: NotchViewModel) -> CGRect {
         let hasNotch = model.hasPhysicalNotch
+        let displayID = displayID(for: screen)
+        let horizontalOffset = displayID.map { CGFloat(AppPreferences.notchOffsetX(for: $0)) } ?? 0
+        let verticalOffset = displayID.map { CGFloat(AppPreferences.notchOffsetY(for: $0)) } ?? 0
+        let widthAdjustment = displayID.map { CGFloat(AppPreferences.notchWidthAdjustment(for: $0)) } ?? 0
 
         if model.isExpanded {
             // While expanded, keep a larger interaction zone so moving to previews
@@ -690,19 +701,26 @@ final class NotchOverlayController {
 
         let notchRect = hardwareNotchRect(for: screen)
         if hasNotch && notchRect != .zero {
+            let adjustedRect = CGRect(
+                x: screen.frame.midX - model.closedSize.width / 2 + horizontalOffset,
+                y: screen.frame.maxY - model.closedSize.height - notchTopInset - verticalOffset,
+                width: model.closedSize.width,
+                height: model.closedSize.height
+            )
             // Real-notch screens should open only when the cursor is very close
             // to the notch/top edge to avoid accidental expansion while browsing.
-            return notchRect.insetBy(dx: -6, dy: -1)
+            return adjustedRect
+                .insetBy(dx: -6, dy: -1)
         }
 
         let virtual = CGRect(
-            x: screen.frame.midX - collapsedNoNotchSize.width / 2,
+            x: screen.frame.midX - (collapsedNoNotchSize.width + widthAdjustment) / 2 + horizontalOffset,
             y: screen.frame.maxY - collapsedNoNotchSize.height - noNotchTopInset,
-            width: collapsedNoNotchSize.width,
+            width: max(26, collapsedNoNotchSize.width + widthAdjustment),
             height: collapsedNoNotchSize.height
         )
         // On fake-notch displays, require the cursor to actually reach the pill.
-        return virtual.insetBy(dx: -2, dy: -2)
+        return virtual.offsetBy(dx: 0, dy: -verticalOffset).insetBy(dx: -2, dy: -2)
     }
 
     private func startupOrbScreenRect(for screen: NSScreen, model: NotchViewModel) -> CGRect? {
@@ -711,11 +729,16 @@ final class NotchOverlayController {
         guard isEnabled, !model.hasPhysicalNotch, !model.isExpanded else { return nil }
         let hostRect = StartupOrbGeometry.hostRectOnScreen(
             screenFrame: screen.frame,
-            hostWidth: collapsedNoNotchSize.width,
+            hostWidth: max(26, collapsedNoNotchSize.width + (displayID(for: screen).map { CGFloat(AppPreferences.notchWidthAdjustment(for: $0)) } ?? 0)),
             hostHeight: collapsedNoNotchSize.height,
             topInset: noNotchTopInset
         )
-        return StartupOrbGeometry.detachedFrame(alignedTo: hostRect, style: .pill)
+        let horizontalOffset = displayID(for: screen).map { CGFloat(AppPreferences.notchOffsetX(for: $0)) } ?? 0
+        let verticalOffset = displayID(for: screen).map { CGFloat(AppPreferences.notchOffsetY(for: $0)) } ?? 0
+        return StartupOrbGeometry.detachedFrame(
+            alignedTo: hostRect.offsetBy(dx: horizontalOffset, dy: -verticalOffset),
+            style: .pill
+        )
     }
 
     private func shouldAllowMouseEvents(for model: NotchViewModel, on screen: NSScreen, cursor: CGPoint) -> Bool {
@@ -724,13 +747,16 @@ final class NotchOverlayController {
         }
 
         if !model.hasPhysicalNotch {
+            let horizontalOffset = displayID(for: screen).map { CGFloat(AppPreferences.notchOffsetX(for: $0)) } ?? 0
+            let verticalOffset = displayID(for: screen).map { CGFloat(AppPreferences.notchOffsetY(for: $0)) } ?? 0
+            let widthAdjustment = displayID(for: screen).map { CGFloat(AppPreferences.notchWidthAdjustment(for: $0)) } ?? 0
             let virtual = CGRect(
-                x: screen.frame.midX - collapsedNoNotchSize.width / 2,
+                x: screen.frame.midX - (collapsedNoNotchSize.width + widthAdjustment) / 2 + horizontalOffset,
                 y: screen.frame.maxY - collapsedNoNotchSize.height - noNotchTopInset,
-                width: collapsedNoNotchSize.width,
+                width: max(26, collapsedNoNotchSize.width + widthAdjustment),
                 height: collapsedNoNotchSize.height
             )
-            let notchRect = virtual.insetBy(dx: -20, dy: -20)
+            let notchRect = virtual.offsetBy(dx: 0, dy: -verticalOffset).insetBy(dx: -20, dy: -20)
             let orbRect = startupOrbScreenRect(for: screen, model: model)?.insetBy(dx: -8, dy: -8)
             return notchRect.contains(cursor) || orbRect?.contains(cursor) == true
         }
@@ -1036,9 +1062,11 @@ final class NotchOverlayController {
 
             let size = model.closedSize
             let topInset: CGFloat = model.hasPhysicalNotch ? notchTopInset : noNotchTopInset
+            let horizontalOffset = CGFloat(AppPreferences.notchOffsetX(for: key))
+            let verticalOffset = CGFloat(AppPreferences.notchOffsetY(for: key))
             let origin = CGPoint(
-                x: screen.frame.midX - size.width / 2.0,
-                y: screen.frame.maxY - size.height - topInset
+                x: screen.frame.midX - size.width / 2.0 + horizontalOffset,
+                y: screen.frame.maxY - size.height - topInset - verticalOffset
             )
             return MetalBlackWindowsManager.NotchTarget(displayID: key, frame: CGRect(origin: origin, size: size))
         }
