@@ -97,9 +97,11 @@ final class NotchOverlayController {
         startEventMonitoring()
         registerObservers()
         restoreSessions()
+        startIPCServer()
     }
 
     func stop() {
+        NotchSocketServer.shared.stop()
         saveSessions()
         timer?.invalidate()
         timer = nil
@@ -1155,6 +1157,56 @@ final class NotchOverlayController {
             )
             return MetalBlackWindowsManager.NotchTarget(displayID: key, frame: CGRect(origin: origin, size: size))
         }
+    }
+
+    private func startIPCServer() {
+        NotchSocketServer.shared.start { [weak self] ipcEvent in
+            DispatchQueue.main.async {
+                self?.handleIPCEvent(ipcEvent)
+            }
+        }
+    }
+
+    private func handleIPCEvent(_ ipcEvent: NotchIPCEvent) {
+        let statusMap: [String: TerminalCommandOrbStatus] = [
+            "running": .running,
+            "success": .success,
+            "error": .error
+        ]
+        
+        var kind: TerminalCommandOrbKind = .generic
+        if let tool = ipcEvent.tool?.lowercased() {
+            if tool.contains("npm") || tool.contains("yarn") || tool.contains("pnpm") { kind = .package }
+            else if tool.contains("git") { kind = .git }
+            else if tool.contains("build") || tool.contains("xcodebuild") || tool.contains("cargo") { kind = .build }
+            else if tool.contains("test") || tool.contains("jest") || tool.contains("pytest") { kind = .test }
+            else if tool.contains("curl") || tool.contains("wget") { kind = .download }
+        }
+        
+        let status = statusMap[ipcEvent.status?.lowercased() ?? ""] ?? .running
+        let currentItems = self.modelsByDisplay.values.first?.terminalItems ?? []
+        let activeItem = currentItems.first(where: { $0.isActive }) ?? currentItems.first
+        
+        let targetDisplayID: CGDirectDisplayID
+        if let id = ipcEvent.displayID {
+            targetDisplayID = CGDirectDisplayID(id)
+        } else {
+            targetDisplayID = activeItem?.displayID ?? CGMainDisplayID()
+        }
+        
+        let terminalNumber = ipcEvent.terminalNumber ?? activeItem?.number ?? 0
+        
+        let event = TerminalCommandOrbEvent(
+            displayID: targetDisplayID,
+            terminalNumber: terminalNumber,
+            kind: kind,
+            status: status,
+            command: ipcEvent.message ?? ipcEvent.tool ?? "IPC Task",
+            duration: 3.0,
+            isPersistent: status == .running
+        )
+        
+        self.enqueueCommandOrbEvent(event)
     }
 
     // MARK: - Utilities

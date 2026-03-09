@@ -158,7 +158,9 @@ enum TerminalCommandOrbClassifier {
             "cat ",
             "mkdir ",
             "touch ",
-            "open "
+            "open ",
+            "notch-say",
+            "./notch-say.sh "
         ]
 
         return trivialPrefixes.contains { prefix in

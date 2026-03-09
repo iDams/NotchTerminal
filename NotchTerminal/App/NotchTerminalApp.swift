@@ -16,6 +16,7 @@ struct NotchTerminalApp: App {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notchController: NotchOverlayController?
     private var userDefaultsObserver: NSObjectProtocol?
@@ -35,7 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.applyDockIconPreference()
+            Task { @MainActor [weak self] in
+                self?.applyDockIconPreference()
+            }
         }
         
         do {
