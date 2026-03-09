@@ -82,11 +82,14 @@ struct OpenPortsPopoverView: View {
                 Spacer()
                 
                 Button(action: onRefresh) {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .font(.system(size: 16))
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(primaryText.opacity(0.8))
+                        .rotationEffect(.degrees(isLoading ? 360 : 0))
+                        .animation(isLoading ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isLoading)
                 }
                 .buttonStyle(.plain)
+                .disabled(isLoading)
             }
             Text("\(devPorts.count) dev • \(otherPorts.count) other")
                 .font(.caption)
