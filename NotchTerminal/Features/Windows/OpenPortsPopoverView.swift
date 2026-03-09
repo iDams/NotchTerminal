@@ -14,48 +14,18 @@ struct OpenPortsPopoverView: View {
         }
     }
 
-    private enum ThemeMode: CaseIterable, Identifiable {
-        case system
-        case dark
-        case light
-        var id: Self { self }
-        var localizedTitle: String {
-            switch self {
-            case .system: return "openPorts.theme.system".localized
-            case .dark: return "openPorts.theme.dark".localized
-            case .light: return "openPorts.theme.light".localized
-            }
-        }
-    }
-
     let ports: [OpenPortEntry]
     let isLoading: Bool
     let message: String?
     let onRefresh: () -> Void
     let onKill: (OpenPortEntry) -> Void
-    @Environment(\.colorScheme) private var systemColorScheme
     @State private var scope: PortScope = .dev
-    @State private var themeMode: ThemeMode = .dark
     @State private var searchText = ""
 
-    private var overrideColorScheme: ColorScheme? {
-        switch themeMode {
-        case .system: nil
-        case .dark: .dark
-        case .light: .light
-        }
-    }
-
-    private var resolvedColorScheme: ColorScheme {
-        overrideColorScheme ?? systemColorScheme
-    }
-
-    private var isDarkMode: Bool { resolvedColorScheme == .dark }
-    private var primaryText: SwiftUI.Color { isDarkMode ? .white : .black }
-    private var secondaryText: SwiftUI.Color { isDarkMode ? .white.opacity(0.65) : .black.opacity(0.62) }
-    private var subtleText: SwiftUI.Color { isDarkMode ? .white.opacity(0.55) : .black.opacity(0.50) }
-    private var cardStroke: SwiftUI.Color { isDarkMode ? .white.opacity(0.14) : .black.opacity(0.10) }
-    private var glassTint: SwiftUI.Color { isDarkMode ? .black.opacity(0.36) : .white.opacity(0.42) }
+    private var primaryText: SwiftUI.Color { .primary }
+    private var secondaryText: SwiftUI.Color { .secondary }
+    private var subtleText: SwiftUI.Color { .secondary.opacity(0.8) }
+    private var cardStroke: SwiftUI.Color { .primary.opacity(0.1) }
 
     private var searchedPorts: [OpenPortEntry] {
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -83,132 +53,84 @@ struct OpenPortsPopoverView: View {
     }
 
     var body: some View {
-        Group {
-            popoverBody
-        }
-        .ifLet(overrideColorScheme) { view, scheme in
-            view.environment(\.colorScheme, scheme)
-        }
+        popoverBody
     }
 
     private var popoverBody: some View {
-        ZStack {
-            popoverBackground
-
-            VStack(alignment: .leading, spacing: 12) {
-                headerRow
-                scopeRow
-                searchRow
-                contentStateView
-            }
-            .padding(12)
+        VStack(alignment: .leading, spacing: 16) {
+            headerRow
+            scopeRow
+            searchRow
+            contentStateView
         }
-        .frame(width: 420, height: 320)
-    }
-
-    private var popoverBackground: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial)
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(glassTint)
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(cardStroke, lineWidth: 1)
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [primaryText.opacity(0.22), .clear, primaryText.opacity(0.06)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        }
+        .padding(16)
+        .frame(width: 340, height: 420, alignment: .top)
+        // Removed `.glassEffectWithFallback(.container, ...)` because macOS .popover creates its own VisualEffect window.
+        // Doing this removes the "double background" and gray arrow mismatch.
     }
 
     private var headerRow: some View {
-        HStack(alignment: .center, spacing: 8) {
-            Image(systemName: "network")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(primaryText.opacity(0.9))
-                .frame(width: 24, height: 24)
-                .background(primaryText.opacity(0.1), in: Circle())
-            VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 8) {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 6, height: 6)
                 Text("openPorts.title".localized)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(primaryText)
-                Text("openPorts.subtitle".localized)
-                    .font(.caption)
-                    .foregroundStyle(subtleText)
-            }
-            Spacer()
-            Menu {
-                Picker("openPorts.theme".localized, selection: $themeMode) {
-                    ForEach(ThemeMode.allCases) { mode in
-                        Text(mode.localizedTitle).tag(mode)
-                    }
+                
+                Spacer()
+                
+                Button(action: onRefresh) {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .font(.system(size: 16))
+                        .foregroundStyle(primaryText.opacity(0.8))
                 }
-            } label: {
-                Image(systemName: "circle.lefthalf.filled")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(primaryText.opacity(0.9))
-                    .frame(width: 24, height: 24)
-                    .background(primaryText.opacity(0.12), in: Circle())
+                .buttonStyle(.plain)
             }
-            .menuStyle(.borderlessButton)
-            .buttonStyle(.plain)
-
-            Text("\(visiblePorts.count)")
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            Text("\(devPorts.count) dev • \(otherPorts.count) other")
+                .font(.caption)
                 .foregroundStyle(secondaryText)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(primaryText.opacity(0.1), in: Capsule())
-            Button(action: onRefresh) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(primaryText.opacity(0.9))
-                    .frame(width: 24, height: 24)
-                    .background(primaryText.opacity(0.12), in: Circle())
-            }
-            .buttonStyle(.plain)
         }
     }
 
     private var scopeRow: some View {
-        HStack(spacing: 8) {
-            scopeButton(.dev)
-            scopeButton(.all)
-            Spacer()
-            metricPill(label: "openPorts.scope.dev".localized, value: devPorts.count)
-            metricPill(label: "openPorts.scope.other".localized, value: otherPorts.count)
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("SCOPE")
+            
+            HStack(spacing: 4) {
+                scopeButton(.dev)
+                scopeButton(.all)
+            }
+            .padding(4)
+            .glassEffectWithFallback(.input, in: .capsule)
         }
     }
 
     private var searchRow: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(subtleText)
-            TextField("openPorts.search.placeholder".localized, text: $searchText)
-                .textFieldStyle(.plain)
-                .foregroundStyle(primaryText)
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(subtleText)
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("FILTER")
+            
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(subtleText)
+                TextField("openPorts.search.placeholder".localized, text: $searchText)
+                    .textFieldStyle(.plain)
+                    .foregroundStyle(primaryText)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(subtleText)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .glassEffectWithFallback(.input, in: .capsule)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(cardStroke, lineWidth: 1)
-        )
     }
 
     @ViewBuilder
@@ -224,15 +146,14 @@ struct OpenPortsPopoverView: View {
         } else {
             ScrollView {
                 VStack(spacing: 8) {
+                    sectionLabel("PORTS")
                     if !devPorts.isEmpty {
-                        sectionLabel("openPorts.scope.dev".localized)
                         ForEach(devPorts) { port in
                             portRow(port)
                         }
                     }
 
                     if scope == .all, !otherPorts.isEmpty {
-                        sectionLabel("openPorts.scope.other".localized)
                         ForEach(otherPorts) { port in
                             portRow(port)
                         }
@@ -247,110 +168,75 @@ struct OpenPortsPopoverView: View {
                     }
                 }
             }
+            .scrollIndicators(.hidden)
         }
     }
 
     @ViewBuilder
     private func scopeButton(_ value: PortScope) -> some View {
         Button {
-            withAnimation(.easeOut(duration: 0.18)) {
+            withAnimation(.snappy(duration: 0.25)) {
                 scope = value
             }
         } label: {
             Text(value.localizedTitle)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(scope == value ? (isDarkMode ? .black : .white) : primaryText.opacity(0.8))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(scope == value ? primaryText : secondaryText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
                 .background(
                     Group {
                         if scope == value {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(.regularMaterial)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .fill(primaryText.opacity(isDarkMode ? 0.22 : 0.32))
-                                )
+                            Capsule().fill(Color.primary.opacity(0.12))
+                                .overlay(Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
                         } else {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .stroke(cardStroke, lineWidth: 1)
-                                )
+                            Color.clear
                         }
                     }
                 )
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }
 
     @ViewBuilder
-    private func metricPill(label: String, value: Int) -> some View {
-        HStack(spacing: 6) {
-            Text(label)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(subtleText)
-            Text("\(value)")
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundStyle(primaryText.opacity(0.85))
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
-            Capsule()
-                .stroke(cardStroke, lineWidth: 1)
-        )
-    }
-
-    @ViewBuilder
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.caption.weight(.semibold))
+            .font(.system(size: 10, weight: .bold))
+            .kerning(0.5)
             .foregroundStyle(secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 2)
+            .padding(.top, 4)
     }
 
     @ViewBuilder
     private func portRow(_ port: OpenPortEntry) -> some View {
-        HStack(spacing: 10) {
-            Text(":\(String(port.port))")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(primaryText.opacity(0.95))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background((port.isLikelyDev ? Color.blue.opacity(0.22) : Color.gray.opacity(0.22)), in: Capsule())
+        HStack(spacing: 12) {
+            Circle()
+                .fill(port.isLikelyDev ? Color.green : Color.gray)
+                .frame(width: 8, height: 8)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(port.command)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(primaryText)
-                Text(String(format: "openPorts.row.pidAndEndpoint".localized, String(port.pid), port.endpoint))
-                    .font(.system(size: 11))
-                    .foregroundStyle(secondaryText)
-            }
+            Text(":\(String(port.port)) \(port.command)")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(primaryText)
+
             Spacer()
+            
             Button {
                 onKill(port)
             } label: {
-                Label("openPorts.kill".localized, systemImage: "xmark")
-                    .labelStyle(.iconOnly)
+                Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 24, height: 24)
-                    .background(Color.red.opacity(0.88), in: Circle())
+                    .foregroundStyle(Color.primary)
+                    .padding(6)
+                    .background(Color.primary.opacity(0.1), in: Circle())
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(cardStroke, lineWidth: 1)
-        )
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .glassEffectWithFallback(port.isLikelyDev ? .prominent : .regular, in: .capsule)
     }
 }
 
@@ -361,6 +247,48 @@ private extension View {
             transform(self, optional)
         } else {
             self
+        }
+    }
+}
+
+enum GlassEffectStyleForFallback {
+    case container
+    case regular
+    case prominent
+    case input
+}
+
+extension View {
+    @ViewBuilder
+    func glassEffectWithFallback(
+        _ style: GlassEffectStyleForFallback = .regular,
+        in shape: some Shape = .rect
+    ) -> some View {
+        switch style {
+        case .container:
+            self.background(shape.fill(.ultraThinMaterial))
+        case .regular:
+            self.background(
+                ZStack {
+                    shape.fill(.regularMaterial)
+                    shape.stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                }
+            )
+        case .prominent:
+            self.background(
+                ZStack {
+                    shape.fill(.thickMaterial)
+                    shape.stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                }
+            )
+        case .input:
+            self.background(
+                ZStack {
+                    shape.fill(.thinMaterial)
+                    shape.fill(Color.primary.opacity(0.05))
+                    shape.stroke(Color.primary.opacity(0.10), lineWidth: 1)
+                }
+            )
         }
     }
 }

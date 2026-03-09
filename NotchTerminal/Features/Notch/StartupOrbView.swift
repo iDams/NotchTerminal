@@ -437,9 +437,7 @@ struct StartupOrbView: View {
             Circle()
                 .stroke(borderColor(for: event), lineWidth: 1)
 
-            Image(systemName: symbolName(for: event.kind))
-                .font(.system(size: bubbleIconSize, weight: .bold))
-                .foregroundStyle(.white.opacity(0.94))
+            orbIcon(for: event.kind)
 
         }
         .frame(width: bubbleSize, height: bubbleSize)
@@ -456,24 +454,50 @@ struct StartupOrbView: View {
         .shadow(color: .black.opacity(0.20), radius: 6, y: 2)
     }
 
+    @ViewBuilder
+    private func orbIcon(for kind: TerminalCommandOrbKind) -> some View {
+        if kind == .package {
+            Image("OrbNPM")
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: bubbleIconSize + 5, height: bubbleIconSize + 5)
+        } else if kind == .git {
+            Image("OrbGit")
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: bubbleIconSize + 5, height: bubbleIconSize + 5)
+        } else {
+            Image(systemName: symbolName(for: kind))
+                .font(.system(size: bubbleIconSize, weight: .bold))
+                .foregroundStyle(.white.opacity(0.94))
+        }
+    }
+
     private func symbolName(for kind: TerminalCommandOrbKind) -> String {
         switch kind {
-        case .package:
-            return "shippingbox.fill"
-        case .git:
-            return "arrow.triangle.branch"
         case .build:
             return "hammer.fill"
         case .test:
             return "checklist"
         case .download:
             return "arrow.down.circle.fill"
-        case .generic:
+        case .package, .git, .generic:
             return "terminal.fill"
         }
     }
 
     private func borderColor(for kindEvent: TerminalCommandOrbEvent) -> Color {
+        switch kindEvent.status {
+        case .success:
+            return Color.green.opacity(0.75)
+        case .error:
+            return Color.red.opacity(0.78)
+        case .running:
+            break
+        }
+
         switch kindEvent.kind {
         case .package:
             return Color.blue.opacity(0.55)
@@ -491,6 +515,15 @@ struct StartupOrbView: View {
     }
 
     private func glowColor(for kindEvent: TerminalCommandOrbEvent) -> Color {
+        switch kindEvent.status {
+        case .success:
+            return .green
+        case .error:
+            return .red
+        case .running:
+            break
+        }
+
         switch kindEvent.kind {
         case .package:
             return .blue

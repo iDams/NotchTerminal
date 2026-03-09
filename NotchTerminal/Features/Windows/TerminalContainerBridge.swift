@@ -34,6 +34,7 @@ struct CRTFilterModifier: ViewModifier {
 
 final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     var commandSubmitted: ((String) -> Void)?
+    var hostOutputReceived: ((String) -> Void)?
     private var currentInputLine = ""
     private var isInLiveResize = false
     private var wheelMonitor: Any?
@@ -87,9 +88,64 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
         for byte in data {
             switch byte {
             case 10, 13:
-                let command = currentInputLine.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !command.isEmpty {
-                    commandSubmitted?(command)
+                let terminal = self.getTerminal()
+                let y = terminal.getCursorLocation().y
+                let cols = terminal.getDims().cols
+                
+                var chars = [Character]()
+                // Support wrapped commands by reading the current and previous line
+                for row in max(0, y - 1)...y {
+                    for i in 0..<cols {
+                        if let ch = terminal.getCharacter(col: i, row: row), ch != "\0" {
+                            chars.append(ch)
+                        } else {
+                            chars.append(" ")
+                        }
+                    }
+                    if row != y { chars.append(" ") }
+                }
+                
+                let visibleLine = String(chars).trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // Regex to find common command structures at the end of a messy prompt line
+                // Looks for: spaces followed by words like npm, pnpm, yarn, bun, git, cargo, make, vite, next, etc.
+                let knownCommands = ["npm", "pnpm", "yarn", "bun", "git", "cargo", "make", "vite", "next", "astro", "nuxt", "python", "python3", "node", "swift", "xcodebuild", "curl", "wget"]
+                
+                var extractedCommand = ""
+                
+                // Find rightmost occurrence of any known command
+                var bestMatchIndex: String.Index? = nil
+                for cmd in knownCommands {
+                    // Look for " cmd" or "^cmd" to avoid matching inside other words
+                    if let range = visibleLine.range(of: " \(cmd) ", options: .backwards) {
+                        if bestMatchIndex == nil || range.lowerBound > bestMatchIndex! {
+                            bestMatchIndex = visibleLine.index(after: range.lowerBound)
+                        }
+                    } else if visibleLine.hasPrefix("\(cmd) ") {
+                        if bestMatchIndex == nil {
+                            bestMatchIndex = visibleLine.startIndex
+                        }
+                    }
+                }
+                
+                if let idx = bestMatchIndex {
+                    extractedCommand = String(visibleLine[idx...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                
+                let rawInputLine = currentInputLine.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // If the user used the up arrow (OA/[A) but our regex didn't find a known command,
+                // fall back to splitting by multiple spaces which is common in custom prompts
+                if extractedCommand.isEmpty && (rawInputLine.contains("OA") || rawInputLine.contains("[A")) {
+                     let components = visibleLine.components(separatedBy: "  ").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                     extractedCommand = components.last?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                }
+                
+                let isHistoryRecall = rawInputLine.contains("OA") || rawInputLine.contains("[A")
+                let finalCommand = isHistoryRecall || rawInputLine.isEmpty ? extractedCommand : rawInputLine
+                
+                if !finalCommand.isEmpty {
+                    commandSubmitted?(finalCommand)
                 }
                 currentInputLine = ""
             case 8, 127:
@@ -102,6 +158,13 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
                 }
             }
         }
+    }
+
+    override func dataReceived(slice: ArraySlice<UInt8>) {
+        if let text = String(bytes: slice, encoding: .utf8), !text.isEmpty {
+            hostOutputReceived?(text)
+        }
+        super.dataReceived(slice: slice)
     }
 
     override func viewWillStartLiveResize() {
@@ -471,6 +534,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
     let currentDirectory: String
     let preferMouseReporting: Bool
     let commandSubmitted: (String) -> Void
+    let outputReceived: (String) -> Void
     let directoryChanged: (String) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -481,6 +545,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
         let terminal = DetectingLocalProcessTerminalView(frame: .zero)
         terminal.ensureWheelForwardingMonitor()
         terminal.commandSubmitted = commandSubmitted
+        terminal.hostOutputReceived = outputReceived
         terminal.registerForDraggedTypes([.fileURL])
         terminal.processDelegate = context.coordinator
         context.coordinator.onDirectoryChanged = directoryChanged
@@ -503,6 +568,8 @@ struct SwiftTermContainerView: NSViewRepresentable {
         nsView.font = preferredTerminalFont(size: fontSize)
         nsView.allowMouseReporting = true
         (nsView as? DetectingLocalProcessTerminalView)?.ensureWheelForwardingMonitor()
+        (nsView as? DetectingLocalProcessTerminalView)?.hostOutputReceived = outputReceived
+        (nsView as? DetectingLocalProcessTerminalView)?.commandSubmitted = commandSubmitted
         context.coordinator.windowNumber = windowNumber
         context.coordinator.currentDirectory = Self.validatedWorkingDirectory(currentDirectory)
         context.coordinator.tryStartProcessIfNeeded(on: nsView)
@@ -549,7 +616,9 @@ struct SwiftTermContainerView: NSViewRepresentable {
         }
 
         func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
-        func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
+        func setTerminalTitle(source: LocalProcessTerminalView, title: String) {
+            print("🔮 [TerminalTitle] Shell reported title: '\(title)'")
+        }
         func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {
             if let directory {
                 onDirectoryChanged?(directory)

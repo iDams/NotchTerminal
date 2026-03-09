@@ -850,7 +850,13 @@ final class NotchOverlayController {
               AppPreferences.isNotchEnabled(for: event.displayID),
               let model = modelsByDisplay[event.displayID] else { return }
 
-        if event.isPersistent {
+        if event.status != .running {
+            if model.activeCommandOrbEvent?.terminalNumber == event.terminalNumber {
+                model.activeCommandOrbEvent = nil
+            }
+        }
+
+        if event.isPersistent && event.status == .running {
             model.activeCommandOrbEvent = event
             return
         }

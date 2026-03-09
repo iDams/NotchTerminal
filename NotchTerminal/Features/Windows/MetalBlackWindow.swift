@@ -60,6 +60,11 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     var onTerminalItemsChanged: (([TerminalWindowItem]) -> Void)?
     var onCommandOrbEvent: ((TerminalCommandOrbEvent) -> Void)?
 
+    private struct PendingOrbCommand {
+        let event: TerminalCommandOrbEvent
+        var hasFailed = false
+    }
+
     private struct WindowInstance {
         let id: UUID
         var number: Int
@@ -99,6 +104,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private var dockSuppressionUntil: [UUID: Date] = [:]
     private var closingWithoutTerminate = Set<UUID>()
     private var nextNumber: Int = 1
+    private var pendingOrbCommands: [UUID: PendingOrbCommand] = [:]
 
     private func defaultDisplayIcon() -> NSImage? {
         NSImage(named: "AppLogo")
@@ -707,6 +713,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             commandSubmitted: { [weak self] command in
                 self?.handleCommandSubmitted(id: id, command: command)
             },
+            outputReceived: { [weak self] text in
+                self?.handleCommandOutput(id: id, text: text)
+            },
             directoryChanged: { [weak self] directory in
                 self?.handleDirectoryChanged(id: id, directory: directory)
             },
@@ -830,6 +839,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
 
         windows.removeValue(forKey: id)
+        pendingOrbCommands.removeValue(forKey: id)
         renumberWindows()
         publishTerminalItems()
     }
@@ -1076,7 +1086,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             displayID: instance.displayID,
             terminalNumber: instance.number
         ) {
+            pendingOrbCommands[id] = PendingOrbCommand(event: orbEvent)
             onCommandOrbEvent?(orbEvent)
+        } else {
+            pendingOrbCommands.removeValue(forKey: id)
         }
 
         if let newTitle = branding.title {
@@ -1108,12 +1121,43 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         publishTerminalItems()
     }
 
+    private func handleCommandOutput(id: UUID, text: String) {
+        guard var pending = pendingOrbCommands[id], !pending.hasFailed else { return }
+        guard outputLooksLikeFailure(text) else { return }
+        pending.hasFailed = true
+        pendingOrbCommands[id] = pending
+        onCommandOrbEvent?(TerminalCommandOrbClassifier.makeCompletionEvent(from: pending.event, status: .error))
+    }
+
     private func handleDirectoryChanged(id: UUID, directory: String) {
         guard var instance = windows[id] else { return }
 
         instance.currentDirectory = normalizedWorkingDirectory(parseDirectoryPath(directory))
+        if let pending = pendingOrbCommands[id] {
+            pendingOrbCommands.removeValue(forKey: id)
+            if !pending.hasFailed {
+                onCommandOrbEvent?(TerminalCommandOrbClassifier.makeCompletionEvent(from: pending.event, status: .success))
+            }
+        }
 
         windows[id] = instance
+    }
+
+    private func outputLooksLikeFailure(_ text: String) -> Bool {
+        let lowered = text.lowercased()
+        let patterns = [
+            "npm error",
+            "npm err!",
+            "enoent",
+            "command failed",
+            "error:",
+            "fatal:",
+            "traceback (most recent call last)",
+            "build failed",
+            "test failed",
+            "no such file or directory"
+        ]
+        return patterns.contains { lowered.contains($0) }
     }
 
     private func parseDirectoryPath(_ rawDirectory: String) -> String {

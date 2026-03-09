@@ -14,6 +14,7 @@ struct MetalBlackWindowContent: View {
     let increaseFontSize: () -> Void
     let decreaseFontSize: () -> Void
     let commandSubmitted: (String) -> Void
+    let outputReceived: (String) -> Void
     let directoryChanged: (String) -> Void
     let closeWindow: () -> Void
     let minimize: () -> Void
@@ -205,6 +206,7 @@ struct MetalBlackWindowContent: View {
                         currentDirectory: currentDirectory,
                         preferMouseReporting: preferMouseReporting,
                         commandSubmitted: commandSubmitted,
+                        outputReceived: outputReceived,
                         directoryChanged: directoryChanged
                     )
                     .modifier(CRTFilterModifier(enabled: enableCRTFilter))
@@ -294,6 +296,7 @@ struct MetalBlackWindowContent: View {
         increaseFontSize: {},
         decreaseFontSize: {},
         commandSubmitted: { _ in },
+        outputReceived: { _ in },
         directoryChanged: { _ in },
         closeWindow: {},
         minimize: {},
