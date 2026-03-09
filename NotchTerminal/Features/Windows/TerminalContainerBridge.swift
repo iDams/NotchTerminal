@@ -556,7 +556,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
         terminal.wantsLayer = true
         terminal.layer?.backgroundColor = NSColor.black.cgColor
         context.coordinator.windowNumber = windowNumber
-        context.coordinator.currentDirectory = Self.validatedWorkingDirectory(currentDirectory)
+        context.coordinator.currentDirectory = Self.validatedWorkingDirectoryPath(currentDirectory)
         context.coordinator.tryStartProcessIfNeeded(on: terminal)
         DispatchQueue.main.async {
             terminal.window?.makeFirstResponder(terminal)
@@ -571,7 +571,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
         (nsView as? DetectingLocalProcessTerminalView)?.hostOutputReceived = outputReceived
         (nsView as? DetectingLocalProcessTerminalView)?.commandSubmitted = commandSubmitted
         context.coordinator.windowNumber = windowNumber
-        context.coordinator.currentDirectory = Self.validatedWorkingDirectory(currentDirectory)
+        context.coordinator.currentDirectory = Self.validatedWorkingDirectoryPath(currentDirectory)
         context.coordinator.tryStartProcessIfNeeded(on: nsView)
         if nsView.window?.firstResponder !== nsView {
             DispatchQueue.main.async {
@@ -599,7 +599,7 @@ struct SwiftTermContainerView: NSViewRepresentable {
                 terminal.startProcess(
                     executable: shell,
                     args: ["-l"],
-                    currentDirectory: SwiftTermContainerView.validatedWorkingDirectory(currentDirectory)
+                    currentDirectory: SwiftTermContainerView.validatedWorkingDirectoryPath(currentDirectory)
                 )
                 processStarted = true
                 return
@@ -627,18 +627,6 @@ struct SwiftTermContainerView: NSViewRepresentable {
         func processTerminated(source: TerminalView, exitCode: Int32?) {}
     }
 
-    private static func validatedWorkingDirectory(_ raw: String) -> String {
-        let fallback = NSHomeDirectory()
-        let candidate = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !candidate.isEmpty, candidate.hasPrefix("/"), candidate != "/" else { return fallback }
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: candidate, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
-            return fallback
-        }
-        return candidate
-    }
-
     private func preferredTerminalFont(size: CGFloat) -> NSFont {
         let env = ProcessInfo.processInfo.environment
         if let explicit = env["NOTCH_TERMINAL_FONT"], let font = NSFont(name: explicit, size: size) {
@@ -660,5 +648,19 @@ struct SwiftTermContainerView: NSViewRepresentable {
             }
         }
         return .monospacedSystemFont(ofSize: size, weight: .regular)
+    }
+}
+
+extension SwiftTermContainerView {
+    static func validatedWorkingDirectoryPath(_ raw: String) -> String {
+        let fallback = NSHomeDirectory()
+        let candidate = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty, candidate.hasPrefix("/"), candidate != "/" else { return fallback }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: candidate, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            return fallback
+        }
+        return candidate
     }
 }

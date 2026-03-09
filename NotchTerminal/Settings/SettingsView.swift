@@ -7,11 +7,35 @@ private enum SettingsTab: Hashable {
     case appearance
     case about
     case experimental
+
+    init(uiTestValue: String) {
+        switch uiTestValue {
+        case "notch":
+            self = .notch
+        case "appearance":
+            self = .appearance
+        case "about":
+            self = .about
+        case "experimental":
+            self = .experimental
+        default:
+            self = .general
+        }
+    }
 }
 
 struct SettingsView: View {
-    @State private var selectedTab: SettingsTab = .general
+    @State private var selectedTab: SettingsTab
     @AppStorage(AppPreferences.Keys.showExperimentalSettings) private var showExperimentalSettings = AppPreferences.Defaults.showExperimentalSettings
+
+    init() {
+        if UITestSupport.isEnabled {
+            let rawTab = ProcessInfo.processInfo.environment["NOTCHTERMINAL_UI_TEST_TAB"] ?? "general"
+            _selectedTab = State(initialValue: SettingsTab(uiTestValue: rawTab))
+        } else {
+            _selectedTab = State(initialValue: .general)
+        }
+    }
 
     private var idealHeight: CGFloat {
         switch selectedTab {
@@ -66,10 +90,11 @@ struct SettingsView: View {
             minWidth: 560,
             idealWidth: 560,
             maxWidth: 760,
-            minHeight: 420,
+            minHeight: 320,
             idealHeight: min(idealHeight, 700),
             maxHeight: 700
         )
+        .accessibilityIdentifier("settings-root")
         .onAppear {
             if !showExperimentalSettings && selectedTab == .experimental {
                 selectedTab = .general
@@ -142,8 +167,8 @@ struct GeneralSettingsView: View {
     }
 
     private var languageSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.language".localized,
                 subtitle: "settings.language.subtitle".localized,
                 icon: "globe"
@@ -182,28 +207,29 @@ struct GeneralSettingsView: View {
     }
 
     private var systemSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.system".localized,
                 subtitle: "settings.system.subtitle".localized,
                 icon: "macwindow"
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.hapticFeedback".localized,
                 subtitle: "settings.hapticFeedback.subtitle".localized,
                 icon: "waveform.path",
                 binding: $hapticFeedback
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.showDockIcon".localized,
                 subtitle: "settings.showDockIcon.subtitle".localized,
                 icon: "dock.rectangle",
-                binding: $showDockIcon
+                binding: $showDockIcon,
+                accessibilityID: "settings-show-dock-icon-row"
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.showExperimentalSettings".localized,
                 subtitle: "settings.showExperimentalSettings.subtitle".localized,
                 icon: "flask",
@@ -213,33 +239,35 @@ struct GeneralSettingsView: View {
     }
 
     private var automationSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.automation".localized,
                 subtitle: "settings.automation.subtitle".localized,
                 icon: "cursorarrow.motionlines"
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.autoOpenOnHover".localized,
                 subtitle: "settings.autoOpenOnHover.subtitle".localized,
                 icon: "cursorarrow.rays",
-                binding: $autoOpenOnHover
+                binding: $autoOpenOnHover,
+                accessibilityID: "settings-auto-open-on-hover-row"
             )
 
             if autoOpenOnHover {
-                ZenithSliderPreferenceRow(
+                NotchTerminalSliderPreferenceRow(
                     title: "settings.autoOpenOnHoverDelay".localized,
                     subtitle: "settings.autoOpenOnHoverDelay.subtitle".localized,
                     icon: "timer",
                     value: $autoOpenOnHoverDelay,
                     range: 0.1 ... 2.0,
                     step: 0.1,
-                    valueFormatter: { String(format: "%.1fs", $0) }
+                    valueFormatter: { String(format: "%.1fs", $0) },
+                    accessibilityID: "settings-auto-open-delay"
                 )
             }
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.lockWhileTyping".localized,
                 subtitle: "settings.lockWhileTyping.subtitle".localized,
                 icon: "keyboard",
@@ -249,21 +277,21 @@ struct GeneralSettingsView: View {
     }
 
     private var terminalActionsSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.terminalActions".localized,
                 subtitle: "settings.terminalActions.subtitle".localized,
                 icon: "slider.horizontal.3"
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.showChipCloseButton".localized,
                 subtitle: "settings.showChipCloseButton.subtitle".localized,
                 icon: "xmark.circle",
                 binding: $showChipCloseButtonOnHover
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.confirmBeforeCloseAll".localized,
                 subtitle: "settings.confirmBeforeCloseAll.subtitle".localized,
                 icon: "exclamationmark.triangle",
@@ -299,8 +327,8 @@ struct GeneralSettingsView: View {
     }
 
     private var dangerZoneSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.dangerZone".localized,
                 subtitle: "settings.dangerZone.subtitle".localized,
                 icon: "exclamationmark.octagon"
@@ -366,14 +394,14 @@ struct AppearanceSettingsView: View {
     }
 
     private var geometrySection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.appearance.geometry".localized,
                 subtitle: "settings.appearance.geometry.subtitle".localized,
                 icon: "aspectratio"
             )
 
-            ZenithSliderPreferenceRow(
+            NotchTerminalSliderPreferenceRow(
                 title: "settings.contentPadding".localized,
                 subtitle: "settings.contentPadding.subtitle".localized,
                 icon: "arrow.up.left.and.arrow.down.right",
@@ -386,14 +414,14 @@ struct AppearanceSettingsView: View {
     }
 
     private var terminalDefaultsSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.appearance.terminalDefaults".localized,
                 subtitle: "settings.appearance.terminalDefaults.subtitle".localized,
                 icon: "macwindow.on.rectangle"
             )
 
-            ZenithSliderPreferenceRow(
+            NotchTerminalSliderPreferenceRow(
                 title: "settings.terminalDefaultWidth".localized,
                 subtitle: "settings.terminalDefaultWidth.subtitle".localized,
                 icon: "arrow.left.and.right",
@@ -403,7 +431,7 @@ struct AppearanceSettingsView: View {
                 valueFormatter: { "\(Int($0))" }
             )
 
-            ZenithSliderPreferenceRow(
+            NotchTerminalSliderPreferenceRow(
                 title: "settings.terminalDefaultHeight".localized,
                 subtitle: "settings.terminalDefaultHeight.subtitle".localized,
                 icon: "arrow.up.and.down",
@@ -417,15 +445,15 @@ struct AppearanceSettingsView: View {
 
 
     private var effectsSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.appearance.effects".localized,
                 subtitle: "settings.appearance.effects.subtitle".localized,
                 icon: "sparkles"
             )
 
             if hasAnyNotch {
-                ZenithPreferenceToggleRow(
+                NotchTerminalPreferenceToggleRow(
                     title: "settings.auroraBackground".localized,
                     subtitle: "settings.auroraBackground.subtitle".localized,
                     icon: "waveform.circle",
@@ -446,7 +474,7 @@ struct AppearanceSettingsView: View {
     }
 
     private var resetSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("settings.appearance.reset".localized)

@@ -18,6 +18,13 @@
 			remoteGlobalIDString = A97FDC9E2F452B9A000CB036;
 			remoteInfo = NotchTerminal;
 		};
+		C14B00022F90000100C0DE01 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A97FDC992F452B9A000CB036 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A97FDC9E2F452B9A000CB036;
+			remoteInfo = NotchTerminal;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +32,7 @@
 		B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B14A9A3A2F90000100C0DE01 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		B14A9A3B2F90000100C0DE01 /* Signing.local.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.local.example.xcconfig; sourceTree = "<group>"; };
+		C14B00032F90000100C0DE01 /* NotchTerminalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchTerminalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -36,6 +44,11 @@
 		B14A9A2F2F90000100C0DE01 /* NotchTerminalTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = NotchTerminalTests;
+			sourceTree = "<group>";
+		};
+		C14B00042F90000100C0DE01 /* NotchTerminalUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = NotchTerminalUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -56,6 +69,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C14B00052F90000100C0DE01 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -65,6 +85,7 @@
 				B14A9A3C2F90000100C0DE01 /* Config */,
 				A97FDCA12F452B9A000CB036 /* NotchTerminal */,
 				B14A9A2F2F90000100C0DE01 /* NotchTerminalTests */,
+				C14B00042F90000100C0DE01 /* NotchTerminalUITests */,
 				A97FDCA02F452B9A000CB036 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -74,6 +95,7 @@
 			children = (
 				A97FDC9F2F452B9A000CB036 /* NotchTerminal.app */,
 				B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */,
+				C14B00032F90000100C0DE01 /* NotchTerminalUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -135,6 +157,29 @@
 			productReference = B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		C14B00062F90000100C0DE01 /* NotchTerminalUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C14B00122F90000100C0DE01 /* Build configuration list for PBXNativeTarget "NotchTerminalUITests" */;
+			buildPhases = (
+				C14B00052F90000100C0DE01 /* Frameworks */,
+				C14B00082F90000100C0DE01 /* Resources */,
+				C14B00072F90000100C0DE01 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C14B00092F90000100C0DE01 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C14B00042F90000100C0DE01 /* NotchTerminalUITests */,
+			);
+			name = NotchTerminalUITests;
+			packageProductDependencies = (
+			);
+			productName = NotchTerminalUITests;
+			productReference = C14B00032F90000100C0DE01 /* NotchTerminalUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -148,6 +193,10 @@
 						CreatedOnToolsVersion = 26.2;
 					};
 					B14A9A312F90000100C0DE01 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = A97FDC9E2F452B9A000CB036;
+					};
+					C14B00062F90000100C0DE01 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = A97FDC9E2F452B9A000CB036;
 					};
@@ -175,12 +224,20 @@
 			targets = (
 				A97FDC9E2F452B9A000CB036 /* NotchTerminal */,
 				B14A9A312F90000100C0DE01 /* NotchTerminalTests */,
+				C14B00062F90000100C0DE01 /* NotchTerminalUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A97FDE112F452B9A000CB036 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C14B00082F90000100C0DE01 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -204,6 +261,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C14B00072F90000100C0DE01 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -211,6 +275,11 @@
 			isa = PBXTargetDependency;
 			target = A97FDC9E2F452B9A000CB036 /* NotchTerminal */;
 			targetProxy = B14A9A352F90000100C0DE01 /* PBXContainerItemProxy */;
+		};
+		C14B00092F90000100C0DE01 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A97FDC9E2F452B9A000CB036 /* NotchTerminal */;
+			targetProxy = C14B00022F90000100C0DE01 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -308,7 +377,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = Alpha;
+				CURRENT_PROJECT_VERSION = Beta;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = NotchTerminal;
@@ -319,7 +388,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = marco.NotchTerminal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -337,7 +406,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = Alpha;
+				CURRENT_PROJECT_VERSION = Beta;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = NotchTerminal;
@@ -348,7 +417,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = marco.NotchTerminal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -396,6 +465,40 @@
 			};
 			name = Release;
 		};
+		C14B00102F90000100C0DE01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = B14A9A3A2F90000100C0DE01 /* Signing.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = marco.NotchTerminalUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = NotchTerminal;
+			};
+			name = Debug;
+		};
+		C14B00112F90000100C0DE01 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = B14A9A3A2F90000100C0DE01 /* Signing.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = marco.NotchTerminalUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = NotchTerminal;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -422,6 +525,15 @@
 			buildConfigurations = (
 				B14A9A382F90000100C0DE01 /* Debug */,
 				B14A9A392F90000100C0DE01 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C14B00122F90000100C0DE01 /* Build configuration list for PBXNativeTarget "NotchTerminalUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C14B00102F90000100C0DE01 /* Debug */,
+				C14B00112F90000100C0DE01 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

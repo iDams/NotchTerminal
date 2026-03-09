@@ -164,16 +164,16 @@ final class NotchOverlayController {
         guard let modelContext else { return }
         let descriptor = FetchDescriptor<TerminalSession>()
         if let sessions = try? modelContext.fetch(descriptor), !sessions.isEmpty {
-            for session in sessions {
-                let displayIDToUse = displayID(from: session.lastKnownDisplayID)
+            let plans = SessionPersistenceLogic.restorePlans(from: sessions)
+            for plan in plans {
                 blackWindowController.createWindow(
-                    displayID: displayIDToUse,
-                    anchorScreen: screen(forDisplayID: displayIDToUse),
-                    session: session,
+                    displayID: plan.displayID,
+                    anchorScreen: screen(forDisplayID: plan.displayID),
+                    session: plan.session,
                     notchTargetsProvider: { [weak self] in self?.notchTargets() ?? [] }
                 )
-                if session.isDockedToNotch {
-                    blackWindowController.minimizeWindow(id: session.id)
+                if plan.shouldStartMinimized {
+                    blackWindowController.minimizeWindow(id: plan.session.id)
                 }
             }
         }
@@ -1125,8 +1125,7 @@ final class NotchOverlayController {
     }
 
     private func displayID(from raw: String) -> CGDirectDisplayID {
-        guard let parsed = UInt32(raw) else { return CGMainDisplayID() }
-        return CGDirectDisplayID(parsed)
+        SessionPersistenceLogic.resolvedDisplayID(from: raw)
     }
 
     private func notchTargets() -> [MetalBlackWindowsManager.NotchTarget] {

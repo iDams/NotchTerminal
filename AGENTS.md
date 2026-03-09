@@ -30,7 +30,7 @@ Requirements:
 - `NotchTerminal/Features/Windows`: floating terminal windows and actions.
 - `NotchTerminal/Features/Persistence`: SwiftData models.
 - `NotchTerminal/Rendering/Metal`: Metal shaders/rendering pipeline (Aurora, Fake Glow, CRT).
-- `NotchTerminal/Settings`: settings screens and custom Zenith UI components.
+- `NotchTerminal/Settings`: settings screens and custom NotchTerminal UI components.
 - `NotchTerminal/Services`: shared services/utilities.
 - `vendor/SwiftTerm`: vendored terminal emulation library.
 
@@ -43,7 +43,7 @@ Requirements:
 ## Localization
 - Primary strings: `NotchTerminal/*/*.strings` and `*.lproj/Localizable.strings`.
 - Existing languages include `en`, `es`, `fr`, `ja`.
-- See `LOCALIZATION.md` for language system details.
+- See `docs/localization/LOCALIZATION.md` for language system details.
 
 ## Safe Change Guidelines
 - Prefer focused, minimal patches.
@@ -52,6 +52,15 @@ Requirements:
 - Do not add personal planning docs to version control.
 - Keep user-facing copy localized where appropriate.
 - For UI/state changes, validate behavior in both notch and non-notch screens.
+
+## Testing Policy
+- Run relevant tests before changing code when there is any chance the base is already failing.
+- Run tests immediately after each meaningful code change.
+- Do not consider a task complete without running the affected tests, or clearly stating why they could not be run.
+- If new logic is added or refactored, add or update tests in the same task unless that is genuinely blocked.
+- For changes in preferences, command classification, ports, paths, sessions, or restore logic, run the full `NotchTerminal` test suite.
+- For UI or AppKit changes, at minimum run `build-for-testing` and the affected unit tests.
+- For UI test infrastructure changes, run `build-for-testing` and document separately if runtime UI execution is blocked by the local Xcode environment.
 
 ## Useful References
 - Product overview: `README.md`

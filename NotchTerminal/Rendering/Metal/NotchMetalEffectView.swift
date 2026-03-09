@@ -49,7 +49,7 @@ struct NotchMetalEffectView: NSViewRepresentable {
 
 /// A reusable modifier that applies a complex, multi-layered blurred mask to a View
 /// to create a volumetric radial glow that extends safely past its bounding box.
-public struct ZenithVolumetricGlowModifier: ViewModifier {
+public struct NotchTerminalVolumetricGlowModifier: ViewModifier {
     public var cornerRadius: CGFloat
     public var isExpanded: Bool
     

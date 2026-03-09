@@ -6,6 +6,14 @@ NotchTerminal is a macOS app that puts a terminal workflow in the notch area.
   <img src="docs/logo.png" alt="NotchTerminal Logo" width="160" />
 </p>
 
+## Screenshots
+
+![Claude and Gemini terminals in NotchTerminal](docs/screenshots/claude-gemini.png)
+
+![About settings screen](docs/screenshots/about-settings.png)
+
+![Per-display notch settings](docs/screenshots/notch-settings.png)
+
 It combines:
 - A top notch overlay (real notch and no-notch screens)
 - Floating terminal windows
@@ -84,20 +92,39 @@ The shared `Config/Signing.xcconfig` includes that file optionally, so collabora
 ## Settings Overview
 
 - `General`
-  - Dock icon toggle
+  - Language: system default or manual override (`en`, `es`, `fr`, `ja`)
   - Haptics
-  - Hover/open behavior
+  - Dock icon toggle
+  - Show Experimental tab
+  - Hover/open behavior and delay
+  - Keep open while typing
+  - Chip close button on hover
   - Close confirmation behavior
+  - Close action mode (`Close window only` / `Terminate process and close`)
+  - Quit app action
+- `Notch`
+  - Per-display notch enable/disable
+  - Per-display X/Y offset and width adjustment
+  - Per-display custom Aurora background override
 - `Appearance`
-  - Notch geometry offsets
-  - Docking sensitivity
-  - Effects toggles (Aurora Background, Fake Notch Glow, CRT Filter)
+  - Content padding
+  - Default terminal width/height
+  - Global Aurora background and theme
 - `About`
   - Version/info links
   - Check for Updates (integrates Sparkle/GitHub Releases)
+  - Release Notes
+  - Project Website
+  - Buy Me a Coffee
   - Third-party notices
 - `Experimental`
-  - Work-in-progress options (Drag to Notch, Startup Orb)
+  - Hidden by default behind `Show Experimental tab`
+  - Drag to Notch and docking sensitivity
+  - Startup Orb and its offset tuning
+  - Fake Notch Glow and theme
+  - CRT Filter
+  - Hit-test debug overlay
+  - Extra notch geometry offsets for physical-notch displays
 
 ## Project Structure
 
@@ -109,6 +136,12 @@ The shared `Config/Signing.xcconfig` includes that file optionally, so collabora
 - `NotchTerminal/Settings` settings screens
 - `NotchTerminal/Services` helpers/services
 - `NotchTerminal/Assets.xcassets` icons/images
+
+## Documentation
+
+- Main docs index: `docs/README.md`
+- Quality and testing: `docs/quality/`
+- Localization docs: `docs/localization/`
 
 ## Credits
 

@@ -85,8 +85,7 @@ test_canvas.swift
 Config/Signing.local.xcconfig
 
 # Private planning notes (keep local only)
-TERMINAL_ACTIONS_UX_IDEA.md
-UPDATE_FEATURES.md
+docs/internal/
 
 *.swp
 *.swo

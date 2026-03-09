@@ -127,7 +127,7 @@ enum TerminalCommandOrbClassifier {
             return .package
         }
 
-        if lowered.hasPrefix("vite")
+        if matchesCommandPrefix(lowered, "vite")
             || lowered.hasPrefix("next dev")
             || lowered.hasPrefix("astro dev")
             || lowered.hasPrefix("nuxt dev")
@@ -164,5 +164,9 @@ enum TerminalCommandOrbClassifier {
         return trivialPrefixes.contains { prefix in
             command == prefix || command.hasPrefix(prefix)
         }
+    }
+
+    private static func matchesCommandPrefix(_ command: String, _ prefix: String) -> Bool {
+        command == prefix || command.hasPrefix(prefix + " ")
     }
 }

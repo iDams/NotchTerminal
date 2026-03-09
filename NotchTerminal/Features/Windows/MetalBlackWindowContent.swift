@@ -305,7 +305,7 @@ struct MetalBlackWindowContent: View {
         isAnimatingMinimize: false,
         expandedFrameSize: CGSize(width: 820, height: 520),
         previewSnapshot: nil,
-        currentDirectory: "/Users/marco/project",
+        currentDirectory: "/Users/testuser/project",
         preferMouseReporting: false
     )
     .frame(width: 860, height: 560)

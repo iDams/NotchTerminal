@@ -35,7 +35,7 @@ final class OpenPortsLogicTests: XCTestCase {
     func testAppPreferencesDefaultsSmoke() {
         XCTAssertEqual(AppPreferences.Defaults.notchDockingSensitivity, 80)
         XCTAssertEqual(AppPreferences.Defaults.autoOpenOnHoverDelay, 0.5)
-        XCTAssertEqual(AppPreferences.Defaults.terminalDefaultWidth, 640)
-        XCTAssertEqual(AppPreferences.Defaults.terminalDefaultHeight, 400)
+        XCTAssertEqual(AppPreferences.Defaults.terminalDefaultWidth, 740)
+        XCTAssertEqual(AppPreferences.Defaults.terminalDefaultHeight, 480)
     }
 }

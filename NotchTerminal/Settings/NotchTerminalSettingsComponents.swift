@@ -1,10 +1,11 @@
 import SwiftUI
 
-struct ZenithPreferenceToggleRow: View {
+struct NotchTerminalPreferenceToggleRow: View {
     let title: String
     let subtitle: String?
     let icon: String?
     @Binding var binding: Bool
+    var accessibilityID: String?
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -32,12 +33,15 @@ struct ZenithPreferenceToggleRow: View {
             Toggle("", isOn: $binding)
                 .labelsHidden()
                 .toggleStyle(.switch)
+                .accessibilityLabel(title)
+                .accessibilityIdentifier(accessibilityID ?? "")
         }
         .padding(.vertical, 2)
+        .accessibilityIdentifier(accessibilityID ?? "")
     }
 }
 
-struct ZenithSliderPreferenceRow: View {
+struct NotchTerminalSliderPreferenceRow: View {
     let title: String
     let subtitle: String?
     let icon: String?
@@ -45,6 +49,7 @@ struct ZenithSliderPreferenceRow: View {
     let range: ClosedRange<Double>
     let step: Double
     let valueFormatter: (Double) -> String
+    var accessibilityID: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -78,12 +83,14 @@ struct ZenithSliderPreferenceRow: View {
             }
 
             Slider(value: $value, in: range, step: step)
+                .accessibilityIdentifier(accessibilityID ?? "")
         }
         .padding(.vertical, 2)
+        .accessibilityIdentifier(accessibilityID ?? "")
     }
 }
 
-struct ZenithSettingsSection<Content: View>: View {
+struct NotchTerminalSettingsSection<Content: View>: View {
     let contentSpacing: CGFloat
     @ViewBuilder let content: Content
 
@@ -102,7 +109,7 @@ struct ZenithSettingsSection<Content: View>: View {
     }
 }
 
-struct ZenithSectionHeading: View {
+struct NotchTerminalSectionHeading: View {
     let title: String
     let subtitle: String
     let icon: String

@@ -298,7 +298,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     func closeAllWindows(on displayID: CGDirectDisplayID, mode: CloseActionMode? = nil) {
         let actionMode = mode ?? preferredCloseActionMode()
-        for id in orderedWindowIDs(where: { $0.displayID == displayID }) {
+        for id in WindowSessionLogic.orderedWindowIDs(on: displayID, from: sessionSnapshots()) {
             closeWindowInternal(id: id, mode: actionMode)
         }
     }
@@ -621,22 +621,27 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func orderedWindowIDs(where predicate: ((WindowInstance) -> Bool)? = nil) -> [UUID] {
-        windows.values
-            .filter { predicate?($0) ?? true }
-            .sorted { $0.number < $1.number }
-            .map(\.id)
+        WindowSessionLogic.orderedWindowIDs(
+            from: sessionSnapshots(),
+            where: predicate.map { predicate in
+                { snapshot in
+                    guard let instance = self.windows[snapshot.id] else { return false }
+                    return predicate(instance)
+                }
+            }
+        )
     }
 
     /// Re-assigns sequential numbers (1, 2, 3…) to all remaining windows
     /// sorted by their current number, so there are never gaps.
     private func renumberWindows() {
-        let sortedIDs = orderedWindowIDs()
+        let renumbered = WindowSessionLogic.renumberedNumbersByID(from: sessionSnapshots())
 
-        for (index, id) in sortedIDs.enumerated() {
-            windows[id]?.number = index + 1
+        for (id, number) in renumbered {
+            windows[id]?.number = number
             updateContent(for: id)
         }
-        nextNumber = sortedIDs.count + 1
+        nextNumber = WindowSessionLogic.nextWindowNumber(from: sessionSnapshots())
     }
 
     private func publishTerminalItems() {
@@ -1017,15 +1022,24 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     func currentSessions() -> [TerminalSession] {
-        windows.values.map { instance in
-            TerminalSession(
-                id: instance.id,
-                workingDirectory: normalizedWorkingDirectory(instance.currentDirectory),
-                windowWidth: instance.expandedFrame.width,
-                windowHeight: instance.expandedFrame.height,
-                isDockedToNotch: instance.isMinimized,
-                lastKnownDisplayID: String(instance.displayID),
+        sessionSnapshots().map { snapshot in
+            WindowSessionLogic.serializedSession(
+                from: snapshot,
+                normalizeWorkingDirectory: normalizedWorkingDirectory(_:),
                 creationTimestamp: Date()
+            )
+        }
+    }
+
+    private func sessionSnapshots() -> [WindowSessionSnapshot] {
+        windows.values.map { instance in
+            WindowSessionSnapshot(
+                id: instance.id,
+                number: instance.number,
+                displayID: instance.displayID,
+                workingDirectory: instance.currentDirectory,
+                expandedFrame: instance.expandedFrame,
+                isDockedToNotch: instance.isMinimized
             )
         }
     }
@@ -1132,7 +1146,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func handleDirectoryChanged(id: UUID, directory: String) {
         guard var instance = windows[id] else { return }
 
-        instance.currentDirectory = normalizedWorkingDirectory(parseDirectoryPath(directory))
+        instance.currentDirectory = normalizedWorkingDirectory(Self.parseDirectoryPath(directory))
         if let pending = pendingOrbCommands[id] {
             pendingOrbCommands.removeValue(forKey: id)
             if !pending.hasFailed {
@@ -1158,21 +1172,6 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             "no such file or directory"
         ]
         return patterns.contains { lowered.contains($0) }
-    }
-
-    private func parseDirectoryPath(_ rawDirectory: String) -> String {
-        var cleanPath = rawDirectory
-        if cleanPath.hasPrefix("file://") {
-            if let url = URL(string: cleanPath) {
-                cleanPath = url.path
-            } else {
-                cleanPath = String(cleanPath.dropFirst(7))
-                if let hostEnd = cleanPath.firstIndex(of: "/") {
-                    cleanPath = String(cleanPath[hostEnd...])
-                }
-            }
-        }
-        return cleanPath.removingPercentEncoding ?? cleanPath
     }
 
     private func preferredCloseActionMode() -> CloseActionMode {
@@ -1220,5 +1219,22 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func isPillDockTarget(_ target: NotchTarget, for instance: WindowInstance) -> Bool {
         guard let screen = screen(for: target.displayID) ?? screen(for: instance.displayID) else { return true }
         return screen.notchSize == .zero
+    }
+}
+
+extension MetalBlackWindowsManager {
+    static func parseDirectoryPath(_ rawDirectory: String) -> String {
+        var cleanPath = rawDirectory
+        if cleanPath.hasPrefix("file://") {
+            if let url = URL(string: cleanPath) {
+                cleanPath = url.path
+            } else {
+                cleanPath = String(cleanPath.dropFirst(7))
+                if let hostEnd = cleanPath.firstIndex(of: "/") {
+                    cleanPath = String(cleanPath[hostEnd...])
+                }
+            }
+        }
+        return cleanPath.removingPercentEncoding ?? cleanPath
     }
 }

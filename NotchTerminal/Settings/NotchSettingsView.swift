@@ -15,8 +15,8 @@ struct NotchSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
+                NotchTerminalSettingsSection(contentSpacing: 12) {
+                    NotchTerminalSectionHeading(
                         title: "settings.notch.displays".localized,
                         subtitle: "settings.notch.displays.subtitle".localized,
                         icon: "capsule.portrait"
@@ -24,7 +24,7 @@ struct NotchSettingsView: View {
                 }
 
                 if screens.isEmpty {
-                    ZenithSettingsSection(contentSpacing: 12) {
+                    NotchTerminalSettingsSection(contentSpacing: 12) {
                         Text("settings.notch.empty".localized)
                             .font(.footnote)
                             .foregroundStyle(.tertiary)
@@ -48,14 +48,14 @@ struct NotchSettingsView: View {
 
     @ViewBuilder
     private func notchDisplaySection(for item: NotchDisplayItem) -> some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: item.title,
                 subtitle: item.subtitle,
                 icon: item.icon
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.notch.enabled".localized,
                 subtitle: "settings.notch.enabled.subtitle".localized,
                 icon: "power",
@@ -66,7 +66,7 @@ struct NotchSettingsView: View {
             )
 
             if AppPreferences.isNotchEnabled(for: item.displayID) {
-                ZenithSliderPreferenceRow(
+                NotchTerminalSliderPreferenceRow(
                     title: "settings.notch.offsetX".localized,
                     subtitle: "settings.notch.offsetX.subtitle".localized,
                     icon: "arrow.left.and.right",
@@ -82,7 +82,7 @@ struct NotchSettingsView: View {
                     valueFormatter: { "\($0.formatted(.number.precision(.fractionLength(0)))) pt" }
                 )
 
-                ZenithSliderPreferenceRow(
+                NotchTerminalSliderPreferenceRow(
                     title: "settings.notch.offsetY".localized,
                     subtitle: "settings.notch.offsetY.subtitle".localized,
                     icon: "arrow.up.and.down",
@@ -98,7 +98,7 @@ struct NotchSettingsView: View {
                     valueFormatter: { "\($0.formatted(.number.precision(.fractionLength(0)))) pt" }
                 )
 
-                ZenithSliderPreferenceRow(
+                NotchTerminalSliderPreferenceRow(
                     title: "settings.notch.width".localized,
                     subtitle: "settings.notch.width.subtitle".localized,
                     icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
@@ -116,7 +116,7 @@ struct NotchSettingsView: View {
 
                 Divider()
 
-                ZenithPreferenceToggleRow(
+                NotchTerminalPreferenceToggleRow(
                     title: "settings.notch.customBackground".localized,
                     subtitle: "settings.notch.customBackground.subtitle".localized,
                     icon: "paintpalette",
@@ -132,7 +132,7 @@ struct NotchSettingsView: View {
                 )
 
                 if AppPreferences.hasCustomAuroraOverride(for: item.displayID) {
-                    ZenithPreferenceToggleRow(
+                    NotchTerminalPreferenceToggleRow(
                         title: "settings.notch.customBackground.enabled".localized,
                         subtitle: "settings.notch.customBackground.enabled.subtitle".localized,
                         icon: "waveform.circle",

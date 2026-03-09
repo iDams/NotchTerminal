@@ -22,6 +22,7 @@ struct AboutSettingsView: View {
             .padding()
             .frame(maxWidth: .infinity)
         }
+        .accessibilityIdentifier("about-root")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showThirdPartyNotices) {
             ThirdPartyNoticesSheet()
@@ -73,7 +74,8 @@ struct AboutSettingsView: View {
             AboutActionButton(
                 title: "settings.about.checkUpdates".localized,
                 subtitle: "settings.about.checkUpdates.subtitle".localized,
-                systemImage: "arrow.triangle.2.circlepath"
+                systemImage: "arrow.triangle.2.circlepath",
+                accessibilityID: "about-check-updates"
             ) {
                 checkForUpdatesOrOpenReleases()
             }
@@ -81,7 +83,8 @@ struct AboutSettingsView: View {
             AboutActionButton(
                 title: "settings.about.releaseNotes".localized,
                 subtitle: "settings.about.releaseNotes.subtitle".localized,
-                systemImage: "newspaper"
+                systemImage: "newspaper",
+                accessibilityID: "about-release-notes"
             ) {
                 openURL(changelogURL)
             }
@@ -89,7 +92,8 @@ struct AboutSettingsView: View {
             AboutActionButton(
                 title: "settings.about.website".localized,
                 subtitle: "settings.about.website.subtitle".localized,
-                systemImage: "globe"
+                systemImage: "globe",
+                accessibilityID: "about-website"
             ) {
                 openURL(websiteURL)
             }
@@ -97,7 +101,8 @@ struct AboutSettingsView: View {
             AboutActionButton(
                 title: "settings.about.donate".localized,
                 subtitle: "settings.about.donate.subtitle".localized,
-                systemImage: "cup.and.saucer.fill"
+                systemImage: "cup.and.saucer.fill",
+                accessibilityID: "about-donate"
             ) {
                 openURL(donationURL)
             }
@@ -150,6 +155,7 @@ struct AboutActionButton: View {
     let title: String
     let subtitle: String
     let systemImage: String
+    let accessibilityID: String
     let action: () -> Void
 
     var body: some View {
@@ -183,6 +189,8 @@ struct AboutActionButton: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier(accessibilityID)
     }
 }
 

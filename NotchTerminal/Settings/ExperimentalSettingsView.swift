@@ -74,8 +74,8 @@ struct ExperimentalSettingsView: View {
                 dockingSection
                 debugSection
                 startupOrbSection
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
+                NotchTerminalSettingsSection(contentSpacing: 12) {
+                    NotchTerminalSectionHeading(
                         title: "settings.experimental.effects".localized,
                         subtitle: "settings.experimental.effects.subtitle".localized,
                         icon: "sparkles"
@@ -86,7 +86,7 @@ struct ExperimentalSettingsView: View {
                         .foregroundStyle(.tertiary)
 
                     if hasAnyNoNotch {
-                        ZenithPreferenceToggleRow(
+                        NotchTerminalPreferenceToggleRow(
                             title: "settings.fakeNotchGlow".localized,
                             subtitle: "settings.fakeNotchGlow.subtitle".localized,
                             icon: "sun.max.trianglebadge.exclamationmark",
@@ -104,7 +104,7 @@ struct ExperimentalSettingsView: View {
                         }
                     }
 
-                    ZenithPreferenceToggleRow(
+                    NotchTerminalPreferenceToggleRow(
                         title: "settings.crtFilter".localized,
                         subtitle: "settings.crtFilter.subtitle".localized,
                         icon: "tv",
@@ -119,7 +119,7 @@ struct ExperimentalSettingsView: View {
 
     private var startupOrbPillSection: some View {
         VStack(spacing: 12) {
-            ZenithSliderPreferenceRow(
+            NotchTerminalSliderPreferenceRow(
                 title: "settings.experimental.startupOrb.pillOffsetX".localized,
                 subtitle: "settings.experimental.startupOrb.pillOffsetX.subtitle".localized,
                 icon: "arrow.left.and.right.circle",
@@ -129,7 +129,7 @@ struct ExperimentalSettingsView: View {
                 valueFormatter: { "\(Int($0)) pt" }
             )
 
-            ZenithSliderPreferenceRow(
+            NotchTerminalSliderPreferenceRow(
                 title: "settings.experimental.startupOrb.pillOffsetY".localized,
                 subtitle: "settings.experimental.startupOrb.pillOffsetY.subtitle".localized,
                 icon: "arrow.up.and.down.circle",
@@ -143,7 +143,7 @@ struct ExperimentalSettingsView: View {
 
     private var startupOrbNotchSection: some View {
         VStack(spacing: 12) {
-            ZenithSliderPreferenceRow(
+            NotchTerminalSliderPreferenceRow(
                 title: "settings.experimental.startupOrb.notchOffsetX".localized,
                 subtitle: "settings.experimental.startupOrb.notchOffsetX.subtitle".localized,
                 icon: "arrow.left.and.right.circle",
@@ -153,7 +153,7 @@ struct ExperimentalSettingsView: View {
                 valueFormatter: { "\(Int($0)) pt" }
             )
 
-            ZenithSliderPreferenceRow(
+            NotchTerminalSliderPreferenceRow(
                 title: "settings.experimental.startupOrb.notchOffsetY".localized,
                 subtitle: "settings.experimental.startupOrb.notchOffsetY.subtitle".localized,
                 icon: "arrow.up.and.down.circle",
@@ -166,14 +166,14 @@ struct ExperimentalSettingsView: View {
     }
 
     private var startupOrbSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.experimental.startupOrb.section".localized,
                 subtitle: "settings.experimental.startupOrb.section.subtitle".localized,
                 icon: "circle.grid.2x1.right.filled"
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.experimental.startupOrb".localized,
                 subtitle: "settings.experimental.startupOrb.subtitle".localized,
                 icon: "circle.grid.2x1.right.filled",
@@ -191,14 +191,14 @@ struct ExperimentalSettingsView: View {
     }
 
     private var dockingSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.appearance.docking".localized,
                 subtitle: "settings.appearance.docking.subtitle".localized,
-                icon: "magnet"
+                icon: "link"
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.experimental.dragToNotch".localized,
                 subtitle: "settings.experimental.dragToNotch.subtitle".localized,
                 icon: "arrow.down.to.line.compact",
@@ -206,7 +206,7 @@ struct ExperimentalSettingsView: View {
             )
 
             if experimentalDragToNotchEnabled {
-                ZenithSliderPreferenceRow(
+                NotchTerminalSliderPreferenceRow(
                     title: "settings.notchDockingSensitivity".localized,
                     subtitle: "settings.notchDockingSensitivity.subtitle".localized,
                     icon: "record.circle",
@@ -220,14 +220,14 @@ struct ExperimentalSettingsView: View {
     }
 
     private var debugSection: some View {
-        ZenithSettingsSection(contentSpacing: 12) {
-            ZenithSectionHeading(
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
                 title: "settings.experimental.debug".localized,
                 subtitle: "settings.experimental.debug.subtitle".localized,
                 icon: "ladybug"
             )
 
-            ZenithPreferenceToggleRow(
+            NotchTerminalPreferenceToggleRow(
                 title: "settings.experimental.hitTestDebugOverlay".localized,
                 subtitle: "settings.experimental.hitTestDebugOverlay.subtitle".localized,
                 icon: "viewfinder.circle",
@@ -239,8 +239,8 @@ struct ExperimentalSettingsView: View {
     private var geometrySection: some View {
         Group {
             if hasAnyPhysicalNotch {
-                ZenithSettingsSection(contentSpacing: 12) {
-                    ZenithSectionHeading(
+                NotchTerminalSettingsSection(contentSpacing: 12) {
+                    NotchTerminalSectionHeading(
                         title: "settings.appearance.geometry".localized,
                         subtitle: "settings.appearance.geometry.subtitle".localized,
                         icon: "aspectratio"
@@ -250,7 +250,7 @@ struct ExperimentalSettingsView: View {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
 
-                    ZenithSliderPreferenceRow(
+                    NotchTerminalSliderPreferenceRow(
                         title: "settings.notchWidthOffset".localized,
                         subtitle: "settings.notchWidthOffset.subtitle".localized,
                         icon: "arrow.left.and.right",
@@ -260,7 +260,7 @@ struct ExperimentalSettingsView: View {
                         valueFormatter: { "\(Int($0))" }
                     )
 
-                    ZenithSliderPreferenceRow(
+                    NotchTerminalSliderPreferenceRow(
                         title: "settings.notchHeightOffset".localized,
                         subtitle: "settings.notchHeightOffset.subtitle".localized,
                         icon: "arrow.up.and.down",

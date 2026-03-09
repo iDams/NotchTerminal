@@ -20,10 +20,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notchController: NotchOverlayController?
     private var userDefaultsObserver: NSObjectProtocol?
     private var modelContainer: ModelContainer?
+    private var uiTestWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupEditMenu()
-        applyDockIconPreference()
+        if UITestSupport.isEnabled {
+            _ = NSApp.setActivationPolicy(.regular)
+        } else {
+            applyDockIconPreference()
+        }
         userDefaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: nil,
@@ -38,8 +43,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             print("Failed to initialize SwiftData container: \(error)")
         }
         
-        notchController = NotchOverlayController(modelContext: modelContainer?.mainContext)
-        notchController?.start()
+        if !UITestSupport.isEnabled {
+            notchController = NotchOverlayController(modelContext: modelContainer?.mainContext)
+            notchController?.start()
+        }
+
+        if UITestSupport.isEnabled {
+            NSApp.activate(ignoringOtherApps: true)
+            DispatchQueue.main.async {
+                self.presentUITestWindow()
+            }
+        }
     }
 
     private func setupEditMenu() {
@@ -72,5 +86,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if showDockIcon {
             NSApp.activate(ignoringOtherApps: false)
         }
+    }
+
+    @MainActor
+    private func presentUITestWindow() {
+        if let uiTestWindow {
+            uiTestWindow.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        let hostingController = NSHostingController(rootView: SettingsView())
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 620),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "NotchTerminal UITest"
+        window.contentViewController = hostingController
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        uiTestWindow = window
     }
 }
