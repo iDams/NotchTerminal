@@ -8,6 +8,14 @@ struct WindowSessionSnapshot: Equatable {
     let workingDirectory: String
     let expandedFrame: CGRect
     let isDockedToNotch: Bool
+    let isAlwaysOnTop: Bool
+    let isCompact: Bool
+    let isMaximized: Bool
+    let displayTitle: String
+    let projectRootPath: String?
+    let projectName: String?
+    let lastSubmittedCommand: String?
+    let preMaximizeFrame: CGRect?
 }
 
 enum WindowSessionLogic {
@@ -22,7 +30,15 @@ enum WindowSessionLogic {
             windowWidth: snapshot.expandedFrame.width,
             windowHeight: snapshot.expandedFrame.height,
             isDockedToNotch: snapshot.isDockedToNotch,
+            isAlwaysOnTop: snapshot.isAlwaysOnTop,
+            isCompact: snapshot.isCompact,
+            isMaximized: snapshot.isMaximized,
+            displayTitle: snapshot.displayTitle,
+            projectRootPath: snapshot.projectRootPath,
+            projectName: snapshot.projectName,
+            lastSubmittedCommand: snapshot.lastSubmittedCommand,
             lastKnownDisplayID: String(snapshot.displayID),
+            preMaximizeFrame: snapshot.preMaximizeFrame,
             creationTimestamp: creationTimestamp
         )
     }

@@ -37,4 +37,54 @@ final class SessionPersistenceLogicTests: XCTestCase {
         XCTAssertEqual(plans.map(\.displayID), [11, 42])
         XCTAssertEqual(plans.map(\.shouldStartMinimized), [false, true])
     }
+
+    func testUpdatePersistedSessionCopiesExpandedSessionState() {
+        let persisted = TerminalSession(
+            id: UUID(),
+            workingDirectory: "/tmp/original",
+            windowWidth: 640,
+            windowHeight: 480,
+            isDockedToNotch: false,
+            isAlwaysOnTop: false,
+            isCompact: false,
+            isMaximized: false,
+            displayTitle: "NotchTerminal",
+            lastKnownDisplayID: "1",
+            creationTimestamp: Date(timeIntervalSince1970: 10)
+        )
+        let snapshot = TerminalSession(
+            id: persisted.id,
+            workingDirectory: "/tmp/updated",
+            windowWidth: 1200,
+            windowHeight: 700,
+            isDockedToNotch: true,
+            isAlwaysOnTop: true,
+            isCompact: true,
+            isMaximized: true,
+            displayTitle: "gemini",
+            projectRootPath: "/tmp/project",
+            projectName: "project",
+            lastSubmittedCommand: "swift test",
+            lastKnownDisplayID: "77",
+            preMaximizeFrame: CGRect(x: 40, y: 50, width: 800, height: 500),
+            creationTimestamp: Date(timeIntervalSince1970: 20)
+        )
+
+        SessionPersistenceLogic.updatePersistedSession(persisted, from: snapshot)
+
+        XCTAssertEqual(persisted.workingDirectory, "/tmp/updated")
+        XCTAssertEqual(persisted.windowWidth, 1200)
+        XCTAssertEqual(persisted.windowHeight, 700)
+        XCTAssertTrue(persisted.isDockedToNotch)
+        XCTAssertTrue(persisted.isAlwaysOnTop)
+        XCTAssertTrue(persisted.isCompact)
+        XCTAssertTrue(persisted.isMaximized)
+        XCTAssertEqual(persisted.displayTitle, "gemini")
+        XCTAssertEqual(persisted.projectRootPath, "/tmp/project")
+        XCTAssertEqual(persisted.projectName, "project")
+        XCTAssertEqual(persisted.lastSubmittedCommand, "swift test")
+        XCTAssertEqual(persisted.lastKnownDisplayID, "77")
+        XCTAssertEqual(persisted.preMaximizeFrame, CGRect(x: 40, y: 50, width: 800, height: 500))
+        XCTAssertEqual(persisted.creationTimestamp, Date(timeIntervalSince1970: 10))
+    }
 }

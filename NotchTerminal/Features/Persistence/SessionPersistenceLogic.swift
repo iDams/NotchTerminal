@@ -25,4 +25,20 @@ enum SessionPersistenceLogic {
             )
         }
     }
+
+    static func updatePersistedSession(_ persisted: TerminalSession, from snapshot: TerminalSession) {
+        persisted.workingDirectory = snapshot.workingDirectory
+        persisted.windowWidth = snapshot.windowWidth
+        persisted.windowHeight = snapshot.windowHeight
+        persisted.isDockedToNotch = snapshot.isDockedToNotch
+        persisted.isAlwaysOnTop = snapshot.isAlwaysOnTop
+        persisted.isCompact = snapshot.isCompact
+        persisted.isMaximized = snapshot.isMaximized
+        persisted.displayTitle = snapshot.displayTitle
+        persisted.projectRootPath = snapshot.projectRootPath
+        persisted.projectName = snapshot.projectName
+        persisted.lastSubmittedCommand = snapshot.lastSubmittedCommand
+        persisted.lastKnownDisplayID = snapshot.lastKnownDisplayID
+        persisted.preMaximizeFrame = snapshot.preMaximizeFrame
+    }
 }

@@ -393,6 +393,7 @@ struct NotchCapsuleView: View {
                 Text(item.title)
                     .font(.system(size: 12, weight: .semibold))
             }
+
             if let preview = item.preview {
                 Image(nsImage: preview)
                     .resizable()
@@ -784,8 +785,8 @@ private struct NotchCapsulePreviewHarness: View {
         previewModel.contentPadding = 14
         previewModel.fakeNotchGlowEnabled = true
         previewModel.terminalItems = [
-            TerminalWindowItem(id: UUID(), number: 1, displayID: 0, title: "NotchTerminal · ~/project", icon: nil, preview: nil, isMinimized: false, isAlwaysOnTop: false, isActive: true),
-            TerminalWindowItem(id: UUID(), number: 2, displayID: 0, title: "NotchTerminal · ~/docs", icon: nil, preview: nil, isMinimized: true, isAlwaysOnTop: false, isActive: false)
+            TerminalWindowItem(id: UUID(), number: 1, displayID: 0, title: "codex", projectName: "NotchTerminal", lastCommand: "xcodebuild -project NotchTerminal.xcodeproj -scheme NotchTerminal test", icon: nil, preview: nil, isMinimized: false, isAlwaysOnTop: false, isActive: true),
+            TerminalWindowItem(id: UUID(), number: 2, displayID: 0, title: "claude", projectName: "docs", lastCommand: "swift test", icon: nil, preview: nil, isMinimized: true, isAlwaysOnTop: false, isActive: false)
         ]
         _model = StateObject(wrappedValue: previewModel)
     }

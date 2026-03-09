@@ -181,10 +181,22 @@ final class NotchOverlayController {
 
     private func saveSessions() {
         guard let modelContext else { return }
-        try? modelContext.delete(model: TerminalSession.self)
-        let sessions = blackWindowController.currentSessions()
-        for session in sessions {
-            modelContext.insert(session)
+        let descriptor = FetchDescriptor<TerminalSession>()
+        let existingSessions = (try? modelContext.fetch(descriptor)) ?? []
+        let existingByID = Dictionary(uniqueKeysWithValues: existingSessions.map { ($0.id, $0) })
+        let latestSessions = blackWindowController.currentSessions()
+        let latestIDs = Set(latestSessions.map(\.id))
+
+        for existing in existingSessions where !latestIDs.contains(existing.id) {
+            modelContext.delete(existing)
+        }
+
+        for session in latestSessions {
+            if let existing = existingByID[session.id] {
+                SessionPersistenceLogic.updatePersistedSession(existing, from: session)
+            } else {
+                modelContext.insert(session)
+            }
         }
         try? modelContext.save()
     }

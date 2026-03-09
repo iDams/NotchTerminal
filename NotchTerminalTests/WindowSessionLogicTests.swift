@@ -10,7 +10,15 @@ final class WindowSessionLogicTests: XCTestCase {
             displayID: 123,
             workingDirectory: "/tmp/project",
             expandedFrame: CGRect(x: 10, y: 20, width: 800, height: 500),
-            isDockedToNotch: true
+            isDockedToNotch: true,
+            isAlwaysOnTop: true,
+            isCompact: true,
+            isMaximized: true,
+            displayTitle: "codex",
+            projectRootPath: "/tmp",
+            projectName: "tmp",
+            lastSubmittedCommand: "npm run dev",
+            preMaximizeFrame: CGRect(x: 30, y: 40, width: 700, height: 420)
         )
         let timestamp = Date(timeIntervalSince1970: 1234)
 
@@ -25,7 +33,15 @@ final class WindowSessionLogicTests: XCTestCase {
         XCTAssertEqual(session.windowWidth, 800)
         XCTAssertEqual(session.windowHeight, 500)
         XCTAssertTrue(session.isDockedToNotch)
+        XCTAssertTrue(session.isAlwaysOnTop)
+        XCTAssertTrue(session.isCompact)
+        XCTAssertTrue(session.isMaximized)
+        XCTAssertEqual(session.displayTitle, "codex")
+        XCTAssertEqual(session.projectRootPath, "/tmp")
+        XCTAssertEqual(session.projectName, "tmp")
+        XCTAssertEqual(session.lastSubmittedCommand, "npm run dev")
         XCTAssertEqual(session.lastKnownDisplayID, "123")
+        XCTAssertEqual(session.preMaximizeFrame, CGRect(x: 30, y: 40, width: 700, height: 420))
         XCTAssertEqual(session.creationTimestamp, timestamp)
     }
 
@@ -81,7 +97,15 @@ final class WindowSessionLogicTests: XCTestCase {
             displayID: displayID,
             workingDirectory: "/tmp",
             expandedFrame: CGRect(x: 0, y: 0, width: 640, height: 480),
-            isDockedToNotch: false
+            isDockedToNotch: false,
+            isAlwaysOnTop: false,
+            isCompact: false,
+            isMaximized: false,
+            displayTitle: "NotchTerminal",
+            projectRootPath: nil,
+            projectName: nil,
+            lastSubmittedCommand: nil,
+            preMaximizeFrame: nil
         )
     }
 }

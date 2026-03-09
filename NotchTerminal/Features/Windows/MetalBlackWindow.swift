@@ -38,6 +38,8 @@ struct TerminalWindowItem: Identifiable {
     let number: Int
     let displayID: CGDirectDisplayID
     let title: String
+    let projectName: String?
+    let lastCommand: String?
     let icon: NSImage?
     let preview: NSImage?
     let isMinimized: Bool
@@ -84,6 +86,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         var previewSnapshot: NSImage?
         var isAnimatingMinimize: Bool = false
         var currentDirectory: String = NSHomeDirectory()
+        var projectRootPath: String?
+        var projectName: String?
+        var lastSubmittedCommand: String?
         var preferMouseReporting: Bool = false
     }
 
@@ -108,6 +113,34 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     private func defaultDisplayIcon() -> NSImage? {
         NSImage(named: "AppLogo")
+    }
+
+    private func restoredBranding(for session: TerminalSession?) -> CLICommandBranding {
+        guard let session else {
+            return CLICommandBranding(title: nil, icon: nil)
+        }
+
+        let trimmedTitle = session.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty, trimmedTitle != "NotchTerminal" else {
+            return CLICommandBranding(title: nil, icon: nil)
+        }
+
+        return CLICommandBrandingResolver.branding(for: trimmedTitle)
+    }
+
+    private func resolvedProjectContext(for workingDirectory: String, session: TerminalSession?) -> ProjectContext? {
+        if let resolved = ProjectContextResolver.resolve(from: workingDirectory) {
+            return resolved
+        }
+
+        guard let rootPath = session?.projectRootPath,
+              let projectName = session?.projectName,
+              !rootPath.isEmpty,
+              !projectName.isEmpty else {
+            return nil
+        }
+
+        return ProjectContext(rootPath: rootPath, displayName: projectName)
     }
 
     private func normalizedWorkingDirectory(_ raw: String?) -> String {
@@ -167,6 +200,13 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         nextNumber += 1
 
         let panel = makePanel()
+        let restoredBranding = restoredBranding(for: session)
+        let restoredTitle: String = {
+            let candidate = session?.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return candidate.isEmpty ? "NotchTerminal" : candidate
+        }()
+        let workingDirectory = normalizedWorkingDirectory(session?.workingDirectory)
+        let projectContext = resolvedProjectContext(for: workingDirectory, session: session)
         let initialSize = session.map { CGSize(width: $0.windowWidth, height: $0.windowHeight) } ?? expandedSize
         let frame = frameForInitialShow(on: screen, size: initialSize)
         panel.setFrame(frame, display: true)
@@ -178,21 +218,27 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             originalDisplayID: displayID,
             panel: panel,
             notchTargetsProvider: notchTargetsProvider,
-            displayTitle: "NotchTerminal",
-            displayIcon: defaultDisplayIcon(),
-            isCompact: false,
+            displayTitle: restoredTitle,
+            displayIcon: restoredBranding.icon ?? defaultDisplayIcon(),
+            isCompact: session?.isCompact ?? false,
             isMinimized: false,
-            isAlwaysOnTop: false,
-            isMaximized: false,
-            preMaximizeFrame: nil,
+            isAlwaysOnTop: session?.isAlwaysOnTop ?? false,
+            isMaximized: session?.isMaximized ?? false,
+            preMaximizeFrame: session?.preMaximizeFrame,
             expandedFrame: frame,
             terminalFontSize: defaultTerminalFontSize(),
             previewSnapshot: nil,
             isAnimatingMinimize: false,
-            currentDirectory: normalizedWorkingDirectory(session?.workingDirectory),
+            currentDirectory: workingDirectory,
+            projectRootPath: projectContext?.rootPath,
+            projectName: projectContext?.displayName,
+            lastSubmittedCommand: session?.lastSubmittedCommand,
             preferMouseReporting: false
         )
 
+        if let instance = windows[id] {
+            applyBaseLevel(for: instance)
+        }
         updateContent(for: id)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: false)
@@ -658,6 +704,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             number: instance.number,
             displayID: instance.displayID,
             title: instance.displayTitle,
+            projectName: instance.projectName,
+            lastCommand: instance.lastSubmittedCommand,
             icon: instance.displayIcon,
             preview: currentPreview,
             isMinimized: instance.isMinimized,
@@ -1039,7 +1087,15 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
                 displayID: instance.displayID,
                 workingDirectory: instance.currentDirectory,
                 expandedFrame: instance.expandedFrame,
-                isDockedToNotch: instance.isMinimized
+                isDockedToNotch: instance.isMinimized,
+                isAlwaysOnTop: instance.isAlwaysOnTop,
+                isCompact: instance.isCompact,
+                isMaximized: instance.isMaximized,
+                displayTitle: instance.displayTitle,
+                projectRootPath: instance.projectRootPath,
+                projectName: instance.projectName,
+                lastSubmittedCommand: instance.lastSubmittedCommand,
+                preMaximizeFrame: instance.preMaximizeFrame
             )
         }
     }
@@ -1047,8 +1103,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func applyBaseLevel(for instance: WindowInstance) {
         if instance.isAlwaysOnTop {
             instance.panel.level = .floating
+            instance.panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         } else {
             instance.panel.level = .normal
+            instance.panel.collectionBehavior = [.managed, .fullScreenAuxiliary]
         }
     }
 
@@ -1094,6 +1152,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard var instance = windows[id] else { return }
         let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let branding = CLICommandBrandingResolver.branding(for: command)
+        instance.lastSubmittedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let orbEvent = TerminalCommandOrbClassifier.makeEvent(
             command: command,
@@ -1147,6 +1206,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard var instance = windows[id] else { return }
 
         instance.currentDirectory = normalizedWorkingDirectory(Self.parseDirectoryPath(directory))
+        let projectContext = ProjectContextResolver.resolve(from: instance.currentDirectory)
+        instance.projectRootPath = projectContext?.rootPath
+        instance.projectName = projectContext?.displayName
         if let pending = pendingOrbCommands[id] {
             pendingOrbCommands.removeValue(forKey: id)
             if !pending.hasFailed {
