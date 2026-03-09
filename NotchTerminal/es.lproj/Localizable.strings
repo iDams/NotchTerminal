@@ -138,6 +138,13 @@
 "settings.language.system" = "Predeterminado del sistema";
 "settings.language.system.subtitle" = "Usa el idioma configurado en tu sistema.";
 
+/* Persistence */
+"persistence.alert.title" = "La persistencia de sesiones no está disponible";
+"persistence.alert.message" = "NotchTerminal no pudo inicializar su almacén de datos local. La restauración de sesiones y el guardado automático quedan desactivados durante este arranque.\n\nDetalles: %@";
+"persistence.warning.title" = "La persistencia de sesiones no está disponible";
+"persistence.warning.body" = "La restauración de sesiones y el guardado automático están desactivados por ahora. La app puede seguir funcionando, pero las terminales abiertas no se restaurarán al volver a abrirla.";
+"persistence.warning.details" = "Detalles: %@";
+
 /* Settings - About */
 "settings.about.versionFormat" = "Versión %@ (%@)";
 "settings.about.checkUpdates" = "Buscar actualizaciones";

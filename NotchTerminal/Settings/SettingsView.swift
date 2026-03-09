@@ -144,6 +144,7 @@ struct GeneralSettingsView: View {
     @AppStorage(AppPreferences.Keys.closeActionMode) var closeActionMode: String = AppPreferences.Defaults.closeActionMode
 
     @ObservedObject private var languageManager = LanguageManager.shared
+    @ObservedObject private var persistenceHealth = PersistenceHealth.shared
     @State private var selectedLanguage: String = LanguageManager.shared.currentLanguage
     @State private var useSystemLanguage: Bool = !LanguageManager.shared.userHasSelectedLanguage
 
@@ -154,6 +155,9 @@ struct GeneralSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                if let details = persistenceHealth.failureDetails {
+                    persistenceWarningSection(details: details)
+                }
                 languageSection
                 systemSection
                 automationSection
@@ -164,6 +168,34 @@ struct GeneralSettingsView: View {
             .padding(.vertical, 12)
         }
         .id(languageKey)
+    }
+
+    private func persistenceWarningSection(details: String) -> some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "externaldrive.badge.exclamationmark")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .frame(width: 24, height: 24)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("persistence.warning.title".localized)
+                        .font(.body.weight(.semibold))
+
+                    Text("persistence.warning.body".localized)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(String(format: "persistence.warning.details".localized, details))
+                        .font(.footnote.monospaced())
+                        .foregroundStyle(.tertiary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .accessibilityIdentifier("persistence-warning")
     }
 
     private var languageSection: some View {

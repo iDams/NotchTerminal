@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var userDefaultsObserver: NSObjectProtocol?
     private var modelContainer: ModelContainer?
     private var uiTestWindow: NSWindow?
+    private let persistenceHealth = PersistenceHealth.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupEditMenu()
@@ -39,8 +40,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         
         do {
             modelContainer = try ModelContainer(for: TerminalSession.self)
+            persistenceHealth.markAvailable()
         } catch {
-            print("Failed to initialize SwiftData container: \(error)")
+            let details = PersistenceHealth.userFacingDetails(for: error)
+            persistenceHealth.markUnavailable(details: details)
+            NSLog("Failed to initialize SwiftData container: %@", details)
+            if !UITestSupport.isEnabled {
+                DispatchQueue.main.async { [weak self] in
+                    self?.presentPersistenceUnavailableAlert(details: details)
+                }
+            }
         }
         
         if !UITestSupport.isEnabled {
@@ -107,5 +116,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         uiTestWindow = window
+    }
+
+    @MainActor
+    private func presentPersistenceUnavailableAlert(details: String) {
+        let alert = NSAlert()
+        alert.messageText = "persistence.alert.title".localized
+        alert.informativeText = String(format: "persistence.alert.message".localized, details)
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
     }
 }

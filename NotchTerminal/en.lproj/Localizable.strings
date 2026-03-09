@@ -138,6 +138,13 @@
 "settings.language.system" = "System Default";
 "settings.language.system.subtitle" = "Uses your system's language setting.";
 
+/* Persistence */
+"persistence.alert.title" = "Session persistence is unavailable";
+"persistence.alert.message" = "NotchTerminal could not initialize its local data store. Session restore and auto-save are disabled for this launch.\n\nDetails: %@";
+"persistence.warning.title" = "Session persistence is unavailable";
+"persistence.warning.body" = "Session restore and automatic saving are currently disabled. The app can still run, but open terminal sessions will not be restored after relaunch.";
+"persistence.warning.details" = "Details: %@";
+
 /* Settings - About */
 "settings.about.versionFormat" = "Version %@ (%@)";
 "settings.about.checkUpdates" = "Check for Updates";

@@ -138,6 +138,13 @@
 "settings.language.system" = "システムデフォルト";
 "settings.language.system.subtitle" = "システムの言語設定を使用します。";
 
+/* Persistence */
+"persistence.alert.title" = "セッション永続化は利用できません";
+"persistence.alert.message" = "NotchTerminal はローカルデータストアを初期化できませんでした。この起動中はセッション復元と自動保存が無効になります。\n\n詳細: %@";
+"persistence.warning.title" = "セッション永続化は利用できません";
+"persistence.warning.body" = "現在、セッション復元と自動保存は無効です。アプリは引き続き動作しますが、開いているターミナルは次回起動時に復元されません。";
+"persistence.warning.details" = "詳細: %@";
+
 /* Settings - About */
 "settings.about.versionFormat" = "バージョン %@ (%@)";
 "settings.about.checkUpdates" = "アップデートを確認";

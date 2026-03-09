@@ -138,6 +138,13 @@
 "settings.language.system" = "Par défaut du système";
 "settings.language.system.subtitle" = "Utilise la langue configurée sur votre système.";
 
+/* Persistence */
+"persistence.alert.title" = "La persistance des sessions est indisponible";
+"persistence.alert.message" = "NotchTerminal n’a pas pu initialiser son stockage local. La restauration des sessions et l’enregistrement automatique sont désactivés pour ce lancement.\n\nDétails : %@";
+"persistence.warning.title" = "La persistance des sessions est indisponible";
+"persistence.warning.body" = "La restauration des sessions et l’enregistrement automatique sont actuellement désactivés. L’app peut continuer à fonctionner, mais les terminaux ouverts ne seront pas restaurés au prochain lancement.";
+"persistence.warning.details" = "Détails : %@";
+
 /* Settings - About */
 "settings.about.versionFormat" = "Version %@ (%@)";
 "settings.about.checkUpdates" = "Vérifier les mises à jour";
