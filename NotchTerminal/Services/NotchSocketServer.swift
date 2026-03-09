@@ -3,7 +3,7 @@ import os.log
 
 private let logger = Logger(subsystem: "com.maomao.NotchTerminal", category: "SocketServer")
 
-public struct NotchIPCEvent: Codable {
+public struct NotchIPCEvent: Codable, Sendable {
     public let tool: String?
     public let status: String?
     public let message: String?
