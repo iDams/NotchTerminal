@@ -61,7 +61,7 @@ enum AppPreferences {
         static let notchDockingSensitivity: Double = 80
         static let experimentalDragToNotchEnabled = false
         static let experimentalStartupOrbEnabled = false
-        static let startupOrbPillOffsetX: Double = 3
+        static let startupOrbPillOffsetX: Double = 20
         static let startupOrbPillOffsetY: Double = 0
         static let startupOrbNotchOffsetX: Double = 9
         static let startupOrbNotchOffsetY: Double = 4

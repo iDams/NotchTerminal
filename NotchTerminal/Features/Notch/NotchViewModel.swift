@@ -20,6 +20,8 @@ final class NotchViewModel: ObservableObject {
     
     @Published var contentWidth: CGFloat = 0
     @Published var closedSize: CGSize = CGSize(width: 126, height: 26)
+    @Published var commandOrbEvent: TerminalCommandOrbEvent?
+    @Published var activeCommandOrbEvent: TerminalCommandOrbEvent?
     
     // Tracking visibility state
     @Published var isFullScreenAppActive: Bool = false

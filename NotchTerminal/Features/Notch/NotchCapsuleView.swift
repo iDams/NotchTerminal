@@ -23,6 +23,8 @@ struct NotchCapsuleView: View {
     @State private var controlsRevealWorkItem: DispatchWorkItem?
     @State private var hoveredChipID: UUID?
     @State private var isHoveringPlus = false
+    @State private var showsStartupPreview = false
+    @State private var startupPreviewDismissWorkItem: DispatchWorkItem?
     @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) private var showChipCloseButtonOnHover = AppPreferences.Defaults.showChipCloseButtonOnHover
     @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) private var confirmBeforeCloseAll = AppPreferences.Defaults.confirmBeforeCloseAll
     @AppStorage(AppPreferences.Keys.experimentalStartupOrbEnabled) private var experimentalStartupOrbEnabled = AppPreferences.Defaults.experimentalStartupOrbEnabled
@@ -111,6 +113,22 @@ struct NotchCapsuleView: View {
             withAnimation(expansionAnimation) {
                 showExpandedControls = model.isExpanded
             }
+        }
+        .onChange(of: experimentalStartupOrbEnabled) { _, isEnabled in
+            startupPreviewDismissWorkItem?.cancel()
+            startupPreviewDismissWorkItem = nil
+            guard isEnabled else {
+                showsStartupPreview = false
+                return
+            }
+
+            showsStartupPreview = true
+            let workItem = DispatchWorkItem {
+                showsStartupPreview = false
+                startupPreviewDismissWorkItem = nil
+            }
+            startupPreviewDismissWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: workItem)
         }
         .onChange(of: model.isExpanded) { _, isExpanded in
             controlsRevealWorkItem?.cancel()
@@ -647,7 +665,9 @@ struct NotchCapsuleView: View {
             StartupOrbView(
                 style: model.hasPhysicalNotch ? .physicalNotch : .pill,
                 hostWidth: capsuleWidth,
-                isEligible: !model.isExpanded && !model.isSwitchingSpace
+                event: model.commandOrbEvent ?? model.activeCommandOrbEvent,
+                isEligible: !model.isExpanded && !model.isSwitchingSpace,
+                showsStartupPreview: showsStartupPreview
             )
         }
     }

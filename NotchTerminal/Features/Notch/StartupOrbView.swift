@@ -54,6 +54,24 @@ enum StartupOrbGeometry {
         }
     }
 
+    static func commandDetachedOffsetX(for style: StartupOrbStyle, hostWidth: CGFloat, manualOffset: CGFloat = 0) -> CGFloat {
+        switch style {
+        case .pill:
+            return detachedOffsetX(for: style, hostWidth: hostWidth, manualOffset: manualOffset)
+        case .physicalNotch:
+            return detachedOffsetX(for: style, hostWidth: hostWidth, manualOffset: manualOffset + 10)
+        }
+    }
+
+    static func commandAttachedOffsetX(for style: StartupOrbStyle, hostWidth: CGFloat, manualOffset: CGFloat = 0) -> CGFloat {
+        switch style {
+        case .pill:
+            return attachedOffsetX(for: style, hostWidth: hostWidth, manualOffset: manualOffset)
+        case .physicalNotch:
+            return attachedOffsetX(for: style, hostWidth: hostWidth, manualOffset: manualOffset + 8)
+        }
+    }
+
     static func detachedFrame(
         alignedTo hostRect: CGRect,
         style: StartupOrbStyle,
@@ -124,7 +142,9 @@ enum StartupOrbGeometry {
 struct StartupOrbView: View {
     let style: StartupOrbStyle
     let hostWidth: CGFloat
+    let event: TerminalCommandOrbEvent?
     let isEligible: Bool
+    let showsStartupPreview: Bool
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetX) private var startupOrbPillOffsetX = AppPreferences.Defaults.startupOrbPillOffsetX
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetY) private var startupOrbPillOffsetY = AppPreferences.Defaults.startupOrbPillOffsetY
     @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetX) private var startupOrbNotchOffsetX = AppPreferences.Defaults.startupOrbNotchOffsetX
@@ -136,10 +156,23 @@ struct StartupOrbView: View {
     @State private var hasPlayedInitialAnimation = false
     @State private var playbackGeneration = 0
     @State private var hasScheduledInitialStartupPlayback = false
+    @State private var showCommandOrb = false
+    @State private var commandOrbDetached = false
+    @State private var currentCommandEventID: UUID?
+    @State private var displayedCommandEvent: TerminalCommandOrbEvent?
+    @State private var commandOrbHideGeneration = 0
+    @State private var commandOrbOpacity = 1.0
 
     var body: some View {
         Group {
-            if showOrb && isEligible {
+            if showCommandOrb && isEligible, let displayedCommandEvent {
+                commandOrbBubble(for: displayedCommandEvent)
+                .offset(x: commandOrbOffsetX, y: commandOrbOffsetY)
+                .scaleEffect(x: commandOrbScaleX, y: commandOrbScaleY, anchor: .center)
+                .opacity(commandOrbOpacity)
+                .blur(radius: commandOrbDetached ? 0 : 0.6)
+                .transition(.identity)
+            } else if showOrb && isEligible {
                 orbBubble
                 .offset(x: orbOffsetX, y: orbOffsetY)
                 .scaleEffect(x: orbScaleX, y: orbScaleY, anchor: .center)
@@ -149,6 +182,7 @@ struct StartupOrbView: View {
             }
         }
         .onAppear {
+            guard showsStartupPreview else { return }
             guard isEligible, !hasScheduledInitialStartupPlayback else { return }
             hasScheduledInitialStartupPlayback = true
             let generation = playbackGeneration
@@ -158,6 +192,10 @@ struct StartupOrbView: View {
             }
         }
         .onChange(of: isEligible) { _, eligible in
+            guard showsStartupPreview else {
+                resetPlayback()
+                return
+            }
             if eligible {
                 if hasScheduledInitialStartupPlayback {
                     playIfNeeded()
@@ -171,6 +209,21 @@ struct StartupOrbView: View {
                 }
             } else {
                 resetPlayback()
+            }
+        }
+        .onChange(of: event?.id) { _, newValue in
+            guard newValue != currentCommandEventID else { return }
+            currentCommandEventID = newValue
+            if let event {
+                displayedCommandEvent = event
+            }
+            syncCommandOrbVisibility(playAnimation: true)
+        }
+        .onChange(of: showsStartupPreview) { _, shouldShow in
+            if shouldShow {
+                playIfNeeded()
+            } else if event == nil {
+                hideStartupPreview()
             }
         }
     }
@@ -199,6 +252,17 @@ struct StartupOrbView: View {
 
     private var bubbleIconSize: CGFloat {
         StartupOrbGeometry.bubbleIconSize(for: style)
+    }
+
+    private var commandOrbOffsetX: CGFloat {
+        if commandOrbDetached {
+            return StartupOrbGeometry.commandDetachedOffsetX(for: style, hostWidth: hostWidth, manualOffset: currentManualOffsetX)
+        }
+        return StartupOrbGeometry.commandAttachedOffsetX(for: style, hostWidth: hostWidth, manualOffset: currentManualOffsetX)
+    }
+
+    private var commandOrbOffsetY: CGFloat {
+        StartupOrbGeometry.offsetY(for: style, manualOffset: currentManualOffsetY)
     }
 
     private var orbOffsetX: CGFloat {
@@ -242,6 +306,14 @@ struct StartupOrbView: View {
         hasSettled ? 1 : 1
     }
 
+    private var commandOrbScaleX: CGFloat {
+        commandOrbDetached ? 1.0 : 1.38
+    }
+
+    private var commandOrbScaleY: CGFloat {
+        commandOrbDetached ? 1.0 : 0.8
+    }
+
     private func playIfNeeded() {
         guard isEligible else { return }
         guard !(showOrb && hasPlayedInitialAnimation && !hasSettled) else { return }
@@ -277,10 +349,161 @@ struct StartupOrbView: View {
 
     private func resetPlayback() {
         playbackGeneration += 1
+        commandOrbHideGeneration += 1
         showOrb = false
         isDetached = false
         hasSettled = false
         hasPlayedInitialAnimation = false
         hasScheduledInitialStartupPlayback = false
+        showCommandOrb = false
+        commandOrbDetached = false
+        commandOrbOpacity = 1.0
+        displayedCommandEvent = nil
+        currentCommandEventID = nil
+    }
+
+    private func hideStartupPreview() {
+        guard showOrb else {
+            resetPlayback()
+            return
+        }
+
+        playbackGeneration += 1
+        let generation = playbackGeneration
+        withAnimation(.spring(response: 0.36, dampingFraction: 0.82, blendDuration: 0.05)) {
+            isDetached = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+            guard generation == playbackGeneration else { return }
+            withAnimation(.easeOut(duration: 0.10)) {
+                showOrb = false
+            }
+            hasSettled = false
+            hasPlayedInitialAnimation = false
+            hasScheduledInitialStartupPlayback = false
+        }
+    }
+
+    private func syncCommandOrbVisibility(playAnimation: Bool = false) {
+        guard isEligible, event != nil else {
+            guard showCommandOrb else {
+                commandOrbDetached = false
+                commandOrbOpacity = 1.0
+                return
+            }
+            commandOrbHideGeneration += 1
+            let hideGeneration = commandOrbHideGeneration
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.82, blendDuration: 0.05)) {
+                commandOrbDetached = false
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+                guard hideGeneration == commandOrbHideGeneration else { return }
+                withAnimation(.easeOut(duration: 0.10)) {
+                    commandOrbOpacity = 0.0
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                guard hideGeneration == commandOrbHideGeneration else { return }
+                showCommandOrb = false
+                commandOrbOpacity = 1.0
+                displayedCommandEvent = nil
+            }
+            return
+        }
+
+        commandOrbHideGeneration += 1
+        showOrb = false
+        showCommandOrb = true
+        commandOrbOpacity = 1.0
+        displayedCommandEvent = event
+        guard playAnimation else {
+            commandOrbDetached = true
+            return
+        }
+
+        commandOrbDetached = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.76, blendDuration: 0.06)) {
+                commandOrbDetached = true
+            }
+        }
+    }
+
+    private func commandOrbBubble(for event: TerminalCommandOrbEvent) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.black.opacity(0.98))
+
+            Circle()
+                .stroke(borderColor(for: event), lineWidth: 1)
+
+            Image(systemName: symbolName(for: event.kind))
+                .font(.system(size: bubbleIconSize, weight: .bold))
+                .foregroundStyle(.white.opacity(0.94))
+
+        }
+        .frame(width: bubbleSize, height: bubbleSize)
+        .overlay(alignment: .topLeading) {
+            Text("\(event.terminalNumber)")
+                .font(.system(size: 8, weight: .black, design: .rounded))
+                .foregroundStyle(.black)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+                .background(.white, in: Capsule())
+                .offset(x: -6, y: -6)
+        }
+        .shadow(color: glowColor(for: event).opacity(0.3), radius: 8, y: 2)
+        .shadow(color: .black.opacity(0.20), radius: 6, y: 2)
+    }
+
+    private func symbolName(for kind: TerminalCommandOrbKind) -> String {
+        switch kind {
+        case .package:
+            return "shippingbox.fill"
+        case .git:
+            return "arrow.triangle.branch"
+        case .build:
+            return "hammer.fill"
+        case .test:
+            return "checklist"
+        case .download:
+            return "arrow.down.circle.fill"
+        case .generic:
+            return "terminal.fill"
+        }
+    }
+
+    private func borderColor(for kindEvent: TerminalCommandOrbEvent) -> Color {
+        switch kindEvent.kind {
+        case .package:
+            return Color.blue.opacity(0.55)
+        case .git:
+            return Color.mint.opacity(0.55)
+        case .build:
+            return Color.orange.opacity(0.55)
+        case .test:
+            return Color.green.opacity(0.55)
+        case .download:
+            return Color.cyan.opacity(0.55)
+        case .generic:
+            return .white.opacity(commandOrbDetached ? 0.18 : 0.1)
+        }
+    }
+
+    private func glowColor(for kindEvent: TerminalCommandOrbEvent) -> Color {
+        switch kindEvent.kind {
+        case .package:
+            return .blue
+        case .git:
+            return .mint
+        case .build:
+            return .orange
+        case .test:
+            return .green
+        case .download:
+            return .cyan
+        case .generic:
+            return .black
+        }
     }
 }

@@ -77,10 +77,18 @@ final class NotchOverlayController {
     private var pendingShrinkWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
     private var pinnedExpandedDisplays: Set<CGDirectDisplayID> = []
     private var dockHoverDisplays: Set<CGDirectDisplayID> = []
+    private var commandOrbQueues: [CGDirectDisplayID: [TerminalCommandOrbEvent]] = [:]
+    private var commandOrbDismissWorkItems: [CGDirectDisplayID: DispatchWorkItem] = [:]
+    private var pendingSessionSaveWorkItem: DispatchWorkItem?
 
     func start() {
         blackWindowController.onTerminalItemsChanged = { [weak self] items in
             self?.applyTerminalItems(items)
+        }
+        blackWindowController.onCommandOrbEvent = { [weak self] event in
+            Task { @MainActor [weak self] in
+                self?.enqueueCommandOrbEvent(event)
+            }
         }
         rebuildPanels()
         updateFullScreenAndMenuStatus()
@@ -132,12 +140,21 @@ final class NotchOverlayController {
 
         closeWorkItem?.cancel()
         closeWorkItem = nil
+        pendingSessionSaveWorkItem?.cancel()
+        pendingSessionSaveWorkItem = nil
         pendingSpaceSwitchResetWorkItem?.cancel()
         pendingSpaceSwitchResetWorkItem = nil
         pendingExpandWorkItems.values.forEach { $0.cancel() }
         pendingExpandWorkItems.removeAll()
         pendingShrinkWorkItems.values.forEach { $0.cancel() }
         pendingShrinkWorkItems.removeAll()
+        commandOrbDismissWorkItems.values.forEach { $0.cancel() }
+        commandOrbDismissWorkItems.removeAll()
+        commandOrbQueues.removeAll()
+        for (_, model) in modelsByDisplay {
+            model.commandOrbEvent = nil
+            model.activeCommandOrbEvent = nil
+        }
         pinnedExpandedDisplays.removeAll()
 
         blackWindowController.closeAllWindows()
@@ -813,6 +830,57 @@ final class NotchOverlayController {
         for (_, model) in modelsByDisplay {
             model.terminalItems = sortedItems
         }
+        scheduleSessionSave()
+    }
+
+    private func scheduleSessionSave() {
+        pendingSessionSaveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.saveSessions()
+            self?.pendingSessionSaveWorkItem = nil
+        }
+        pendingSessionSaveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: workItem)
+    }
+
+    private func enqueueCommandOrbEvent(_ event: TerminalCommandOrbEvent) {
+        let isEnabled = UserDefaults.standard.object(forKey: AppPreferences.Keys.experimentalStartupOrbEnabled) as? Bool
+            ?? AppPreferences.Defaults.experimentalStartupOrbEnabled
+        guard isEnabled,
+              AppPreferences.isNotchEnabled(for: event.displayID),
+              let model = modelsByDisplay[event.displayID] else { return }
+
+        if event.isPersistent {
+            model.activeCommandOrbEvent = event
+            return
+        }
+
+        commandOrbQueues[event.displayID, default: []].append(event)
+        guard model.commandOrbEvent == nil else { return }
+        showNextCommandOrbEvent(on: event.displayID)
+    }
+
+    private func showNextCommandOrbEvent(on displayID: CGDirectDisplayID) {
+        guard var queue = commandOrbQueues[displayID], !queue.isEmpty,
+              let model = modelsByDisplay[displayID] else { return }
+
+        let nextEvent = queue.removeFirst()
+        commandOrbQueues[displayID] = queue
+        model.commandOrbEvent = nextEvent
+
+        commandOrbDismissWorkItems[displayID]?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self, let model = self.modelsByDisplay[displayID] else { return }
+            model.commandOrbEvent = nil
+            self.commandOrbDismissWorkItems[displayID] = nil
+            if !(self.commandOrbQueues[displayID]?.isEmpty ?? true) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+                    self?.showNextCommandOrbEvent(on: displayID)
+                }
+            }
+        }
+        commandOrbDismissWorkItems[displayID] = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + nextEvent.duration, execute: workItem)
     }
 
     private func handleGlobalShortcut(_ event: NSEvent) -> Bool {

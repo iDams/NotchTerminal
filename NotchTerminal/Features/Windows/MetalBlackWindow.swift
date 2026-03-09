@@ -58,6 +58,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     var onTerminalItemsChanged: (([TerminalWindowItem]) -> Void)?
+    var onCommandOrbEvent: ((TerminalCommandOrbEvent) -> Void)?
 
     private struct WindowInstance {
         let id: UUID
@@ -1069,6 +1070,14 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard var instance = windows[id] else { return }
         let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let branding = CLICommandBrandingResolver.branding(for: command)
+
+        if let orbEvent = TerminalCommandOrbClassifier.makeEvent(
+            command: command,
+            displayID: instance.displayID,
+            terminalNumber: instance.number
+        ) {
+            onCommandOrbEvent?(orbEvent)
+        }
 
         if let newTitle = branding.title {
             guard instance.displayTitle != newTitle || instance.displayIcon !== branding.icon else { return }
