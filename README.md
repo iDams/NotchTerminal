@@ -121,6 +121,7 @@ The shared `Config/Signing.xcconfig` includes that file optionally, so collabora
   - Hidden by default behind `Show Experimental tab`
   - Drag to Notch and docking sensitivity
   - Startup Orb and its offset tuning
+  - Project Status Card (contextual details like Folder Name and Git Status in the Notch)
   - Fake Notch Glow and theme
   - CRT Filter
   - Hit-test debug overlay
