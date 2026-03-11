@@ -39,6 +39,7 @@ struct TerminalWindowItem: Identifiable {
     let displayID: CGDirectDisplayID
     let title: String
     let projectName: String?
+    let workingDirectory: String
     let lastCommand: String?
     let icon: NSImage?
     let preview: NSImage?
@@ -705,6 +706,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             displayID: instance.displayID,
             title: instance.displayTitle,
             projectName: instance.projectName,
+            workingDirectory: instance.currentDirectory,
             lastCommand: instance.lastSubmittedCommand,
             icon: instance.displayIcon,
             preview: currentPreview,

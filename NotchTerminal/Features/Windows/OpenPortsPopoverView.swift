@@ -335,6 +335,39 @@ enum PortProcessService {
             }
         }
     }
+    
+    static func fetchListeningPorts(forDirectory directoryPath: String) async throws -> [OpenPortEntry] {
+        let allPorts = try await fetchListeningPorts()
+        guard !allPorts.isEmpty else { return [] }
+        
+        let targetURL = URL(fileURLWithPath: directoryPath).resolvingSymlinksInPath()
+        
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                var filtered: [OpenPortEntry] = []
+                for port in allPorts {
+                    // Check the CWD of each process
+                    if let raw = try? runCommand("/usr/sbin/lsof", arguments: ["-p", "\(port.pid)", "-a", "-d", "cwd", "-Fn"]) {
+                        // The output for CWD will be something like:
+                        // p1234
+                        // fcwd
+                        // n/Users/...
+                        let lines = raw.output.split(separator: "\n").map(String.init)
+                        if let cwdLine = lines.first(where: { $0.hasPrefix("n") }) {
+                            let cwdRaw = String(cwdLine.dropFirst())
+                            let cwdURL = URL(fileURLWithPath: cwdRaw).resolvingSymlinksInPath()
+                            
+                            // If the process's working directory matches or is a subdirectory of the target directory
+                            if cwdURL.path.hasPrefix(targetURL.path) {
+                                filtered.append(port)
+                            }
+                        }
+                    }
+                }
+                continuation.resume(returning: filtered)
+            }
+        }
+    }
 
     static func terminate(pid: Int) async -> Bool {
         await withCheckedContinuation { continuation in

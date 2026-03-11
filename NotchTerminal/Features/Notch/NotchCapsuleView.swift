@@ -28,6 +28,9 @@ struct NotchCapsuleView: View {
     @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) private var showChipCloseButtonOnHover = AppPreferences.Defaults.showChipCloseButtonOnHover
     @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) private var confirmBeforeCloseAll = AppPreferences.Defaults.confirmBeforeCloseAll
     @AppStorage(AppPreferences.Keys.experimentalStartupOrbEnabled) private var experimentalStartupOrbEnabled = AppPreferences.Defaults.experimentalStartupOrbEnabled
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusCardEnabled) private var experimentalProjectStatusCardEnabled = AppPreferences.Defaults.experimentalProjectStatusCardEnabled
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowGit) private var experimentalProjectStatusShowGit = AppPreferences.Defaults.experimentalProjectStatusShowGit
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowFolder) private var experimentalProjectStatusShowFolder = AppPreferences.Defaults.experimentalProjectStatusShowFolder
     @AppStorage(AppPreferences.Keys.hitTestDebugOverlayEnabled) private var hitTestDebugOverlayEnabled = AppPreferences.Defaults.hitTestDebugOverlayEnabled
     @AppStorage(AppPreferences.Keys.auroraDisplayOverrideIDs) private var auroraDisplayOverrideIDsRaw = ""
     @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
@@ -371,6 +374,20 @@ struct NotchCapsuleView: View {
                 .allowsHitTesting(false)
             }
         }
+        .overlay(alignment: .top) {
+            if model.isExpanded && showExpandedControls && experimentalProjectStatusCardEnabled {
+                if let item = activeTerminal {
+                    ProjectStatusCardWrapper(
+                        item: item,
+                        showFolder: experimentalProjectStatusShowFolder,
+                        showGit: experimentalProjectStatusShowGit
+                    )
+                    .id(item.id)
+                    .padding(.top, model.hasPhysicalNotch ? 40 : (topControlsPaddingTop + 4))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
         .overlay(alignment: .topLeading) { topLeadingControls }
         .overlay(alignment: .topTrailing) { topTrailingControls }
         .overlay { panelFrameDebugOverlay }
@@ -643,6 +660,10 @@ struct NotchCapsuleView: View {
         model.hasPhysicalNotch ? 24 : 30
     }
 
+    private var activeTerminal: TerminalWindowItem? {
+        model.visibleTerminalItems.first { $0.isActive } ?? model.visibleTerminalItems.first
+    }
+
     @ViewBuilder
     private var notchBackgroundMaskGroup: some View {
         if model.hasPhysicalNotch {
@@ -775,6 +796,38 @@ struct TerminalItemButtonStyle: ButtonStyle {
     }
 }
 
+struct ProjectStatusCardWrapper: View {
+    let item: TerminalWindowItem
+    let showFolder: Bool
+    let showGit: Bool
+    @StateObject private var gitStatus: GitStatusService
+    
+    init(item: TerminalWindowItem, showFolder: Bool, showGit: Bool) {
+        self.item = item
+        self.showFolder = showFolder
+        self.showGit = showGit
+        _gitStatus = StateObject(wrappedValue: GitStatusService(targetDirectory: URL(fileURLWithPath: item.workingDirectory)))
+    }
+    
+    var body: some View {
+        ProjectStatusCardView(
+            gitStatus: gitStatus,
+            projectName: item.projectName?.isEmpty == false ? item.projectName : URL(fileURLWithPath: item.workingDirectory).lastPathComponent,
+            showFolder: showFolder,
+            showGit: showGit
+        )
+        .onAppear {
+            gitStatus.startMonitoring()
+        }
+        .onDisappear {
+            gitStatus.stopMonitoring()
+        }
+        .onChange(of: item.workingDirectory) { _, newDir in
+            gitStatus.updateDirectory(URL(fileURLWithPath: newDir))
+        }
+    }
+}
+
 private struct NotchCapsulePreviewHarness: View {
     @StateObject private var model: NotchViewModel
 
@@ -785,8 +838,8 @@ private struct NotchCapsulePreviewHarness: View {
         previewModel.contentPadding = 14
         previewModel.fakeNotchGlowEnabled = true
         previewModel.terminalItems = [
-            TerminalWindowItem(id: UUID(), number: 1, displayID: 0, title: "codex", projectName: "NotchTerminal", lastCommand: "xcodebuild -project NotchTerminal.xcodeproj -scheme NotchTerminal test", icon: nil, preview: nil, isMinimized: false, isAlwaysOnTop: false, isActive: true),
-            TerminalWindowItem(id: UUID(), number: 2, displayID: 0, title: "claude", projectName: "docs", lastCommand: "swift test", icon: nil, preview: nil, isMinimized: true, isAlwaysOnTop: false, isActive: false)
+            TerminalWindowItem(id: UUID(), number: 1, displayID: 0, title: "codex", projectName: "NotchTerminal", workingDirectory: NSHomeDirectory() + "/project", lastCommand: "xcodebuild -project NotchTerminal.xcodeproj -scheme NotchTerminal test", icon: nil, preview: nil, isMinimized: false, isAlwaysOnTop: false, isActive: true),
+            TerminalWindowItem(id: UUID(), number: 2, displayID: 0, title: "claude", projectName: "docs", workingDirectory: NSHomeDirectory() + "/docs", lastCommand: "swift test", icon: nil, preview: nil, isMinimized: true, isAlwaysOnTop: false, isActive: false)
         ]
         _model = StateObject(wrappedValue: previewModel)
     }

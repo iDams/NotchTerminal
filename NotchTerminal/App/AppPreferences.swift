@@ -38,6 +38,9 @@ enum AppPreferences {
         static let startupOrbNotchOffsetY = "startupOrbNotchOffsetY"
         static let hitTestDebugOverlayEnabled = "hitTestDebugOverlayEnabled"
         static let enableCRTFilter = "enableCRTFilter"
+        static let experimentalProjectStatusCardEnabled = "experimentalProjectStatusCardEnabled"
+        static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
+        static let experimentalProjectStatusShowFolder = "experimentalProjectStatusShowFolder"
     }
 
     enum Defaults {
@@ -67,6 +70,9 @@ enum AppPreferences {
         static let startupOrbNotchOffsetY: Double = 4
         static let hitTestDebugOverlayEnabled = false
         static let enableCRTFilter = false
+        static let experimentalProjectStatusCardEnabled = false
+        static let experimentalProjectStatusShowGit = true
+        static let experimentalProjectStatusShowFolder = true
     }
 
     static func disabledNotchDisplayIDs(in defaults: UserDefaults = .standard) -> Set<CGDirectDisplayID> {

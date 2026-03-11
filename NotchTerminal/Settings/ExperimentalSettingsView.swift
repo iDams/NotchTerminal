@@ -14,7 +14,9 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.notchDockingSensitivity) var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
     @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
     @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
-
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusCardEnabled) var experimentalProjectStatusCardEnabled: Bool = AppPreferences.Defaults.experimentalProjectStatusCardEnabled
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowGit) var experimentalProjectStatusShowGit: Bool = AppPreferences.Defaults.experimentalProjectStatusShowGit
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowFolder) var experimentalProjectStatusShowFolder: Bool = AppPreferences.Defaults.experimentalProjectStatusShowFolder
     private var startupOrbPillOffsetXBinding: Binding<Double> {
         Binding(
             get: { startupOrbPillOffsetX - AppPreferences.Defaults.startupOrbPillOffsetX },
@@ -74,6 +76,7 @@ struct ExperimentalSettingsView: View {
                 dockingSection
                 debugSection
                 startupOrbSection
+                projectStatusCardSection
                 NotchTerminalSettingsSection(contentSpacing: 12) {
                     NotchTerminalSectionHeading(
                         title: "settings.experimental.effects".localized,
@@ -270,6 +273,42 @@ struct ExperimentalSettingsView: View {
                         valueFormatter: { "\(Int($0))" }
                     )
                 }
+            }
+        }
+    }
+
+    private var projectStatusCardSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
+                title: "Project Status Card",
+                subtitle: "Display contextual project information in the Notch overlay",
+                icon: "lanyardcard.fill"
+            )
+
+            NotchTerminalPreferenceToggleRow(
+                title: "Enable Project Status Card",
+                subtitle: "Show the card when Notch is expanded",
+                icon: "menubar.rectangle",
+                binding: $experimentalProjectStatusCardEnabled
+            )
+
+            if experimentalProjectStatusCardEnabled {
+                VStack(alignment: .leading, spacing: 12) {
+                    NotchTerminalPreferenceToggleRow(
+                        title: "Show Folder Name",
+                        subtitle: "Display the active terminal's project folder",
+                        icon: "folder",
+                        binding: $experimentalProjectStatusShowFolder
+                    )
+
+                    NotchTerminalPreferenceToggleRow(
+                        title: "Show Git Status",
+                        subtitle: "Display current branch and pending changes",
+                        icon: "arrow.triangle.branch",
+                        binding: $experimentalProjectStatusShowGit
+                    )
+                }
+                .padding(.leading, 32)
             }
         }
     }
