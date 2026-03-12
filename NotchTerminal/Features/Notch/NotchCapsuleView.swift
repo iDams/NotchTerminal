@@ -380,11 +380,29 @@ struct NotchCapsuleView: View {
                     ProjectStatusCardWrapper(
                         item: item,
                         showFolder: experimentalProjectStatusShowFolder,
-                        showGit: experimentalProjectStatusShowGit
+                        showGit: experimentalProjectStatusShowGit,
+                        isFloating: false
                     )
                     .id(item.id)
                     .padding(.top, model.hasPhysicalNotch ? 40 : (topControlsPaddingTop + 4))
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if !model.isExpanded && model.isHoveringClosedNotch && experimentalProjectStatusCardEnabled {
+                if let item = activeTerminal {
+                    ProjectStatusCardWrapper(
+                        item: item,
+                        showFolder: experimentalProjectStatusShowFolder,
+                        showGit: experimentalProjectStatusShowGit,
+                        isFloating: true
+                    )
+                    .id("hover-\(item.id)")
+                    // Push below the closed notch (height 26). 
+                    // Using alignmentGuide to offset it cleanly below the capsule.
+                    .alignmentGuide(.bottom) { d in d[.top] - 12 }
+                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
                 }
             }
         }
@@ -800,12 +818,14 @@ struct ProjectStatusCardWrapper: View {
     let item: TerminalWindowItem
     let showFolder: Bool
     let showGit: Bool
+    let isFloating: Bool
     @StateObject private var gitStatus: GitStatusService
     
-    init(item: TerminalWindowItem, showFolder: Bool, showGit: Bool) {
+    init(item: TerminalWindowItem, showFolder: Bool, showGit: Bool, isFloating: Bool = false) {
         self.item = item
         self.showFolder = showFolder
         self.showGit = showGit
+        self.isFloating = isFloating
         _gitStatus = StateObject(wrappedValue: GitStatusService(targetDirectory: URL(fileURLWithPath: item.workingDirectory)))
     }
     
@@ -814,7 +834,8 @@ struct ProjectStatusCardWrapper: View {
             gitStatus: gitStatus,
             projectName: item.projectName?.isEmpty == false ? item.projectName : URL(fileURLWithPath: item.workingDirectory).lastPathComponent,
             showFolder: showFolder,
-            showGit: showGit
+            showGit: showGit,
+            isFloating: isFloating
         )
         .onAppear {
             gitStatus.startMonitoring()

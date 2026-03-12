@@ -538,7 +538,10 @@ final class NotchOverlayController {
                         shouldExpand = true
                     }
                 }
+                
+                model.isHoveringClosedNotch = !shouldExpand
             } else {
+                model.isHoveringClosedNotch = false
                 pendingExpandWorkItems[displayID]?.cancel()
                 pendingExpandWorkItems.removeValue(forKey: displayID)
                 if model.isExpanded {
