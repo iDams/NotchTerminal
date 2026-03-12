@@ -35,6 +35,11 @@ struct NotchCapsuleView: View {
     @AppStorage(AppPreferences.Keys.auroraDisplayOverrideIDs) private var auroraDisplayOverrideIDsRaw = ""
     @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
     @AppStorage(AppPreferences.Keys.auroraDisplayThemeMap) private var auroraDisplayThemeMapRaw = ""
+    @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
+    @AppStorage(AppPreferences.Keys.experimentalFloatingMsgInterval) private var experimentalFloatingMsgInterval = AppPreferences.Defaults.experimentalFloatingMsgInterval
+
+    @State private var showingFloatingMessage = false
+    @State private var floatingMessageTimer: Timer?
 
     private var expandedWidth: CGFloat {
         let minWidth: CGFloat = 680
@@ -188,7 +193,53 @@ struct NotchCapsuleView: View {
         .padding(shadowPadding)
         // Ensure the entire Notch expanding structure is anchored to the top of the NSPanel
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .overlay(alignment: .top) {
+            if !model.isExpanded && showingFloatingMessage {
+                Text("Hello World 😉")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.black.opacity(0.85), in: Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+                    .padding(.top, shadowPadding + (model.hasPhysicalNotch ? 38 : 28) + 12)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+                    .zIndex(100)
+            }
+        }
+        .onAppear {
+            setupFloatingMessageTimer()
+        }
+        .onChange(of: experimentalFloatingMsgEnabled) { _, _ in
+            setupFloatingMessageTimer()
+        }
+        .onChange(of: experimentalFloatingMsgInterval) { _, _ in
+            setupFloatingMessageTimer()
+        }
         // Removed implicit animation modifier here to avoid repeated implicit animations during state changes
+    }
+
+    private func setupFloatingMessageTimer() {
+        floatingMessageTimer?.invalidate()
+        floatingMessageTimer = nil
+        showingFloatingMessage = false
+
+        guard experimentalFloatingMsgEnabled else { return }
+
+        floatingMessageTimer = Timer.scheduledTimer(withTimeInterval: experimentalFloatingMsgInterval, repeats: true) { _ in
+            guard !model.isExpanded else { return }
+            
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                showingFloatingMessage = true
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                withAnimation(.easeIn(duration: 0.2)) {
+                    showingFloatingMessage = false
+                }
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -376,7 +427,7 @@ struct NotchCapsuleView: View {
         }
         .overlay(alignment: .top) {
             if model.isExpanded && showExpandedControls && experimentalProjectStatusCardEnabled {
-                if let item = activeTerminal {
+                if let item = statusCardItem {
                     ProjectStatusCardWrapper(
                         item: item,
                         showFolder: experimentalProjectStatusShowFolder,
@@ -386,23 +437,6 @@ struct NotchCapsuleView: View {
                     .id(item.id)
                     .padding(.top, model.hasPhysicalNotch ? 40 : (topControlsPaddingTop + 4))
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if !model.isExpanded && model.isHoveringClosedNotch && experimentalProjectStatusCardEnabled {
-                if let item = activeTerminal {
-                    ProjectStatusCardWrapper(
-                        item: item,
-                        showFolder: experimentalProjectStatusShowFolder,
-                        showGit: experimentalProjectStatusShowGit,
-                        isFloating: true
-                    )
-                    .id("hover-\(item.id)")
-                    // Push below the closed notch (height 26). 
-                    // Using alignmentGuide to offset it cleanly below the capsule.
-                    .alignmentGuide(.bottom) { d in d[.top] - 12 }
-                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
                 }
             }
         }
@@ -680,6 +714,14 @@ struct NotchCapsuleView: View {
 
     private var activeTerminal: TerminalWindowItem? {
         model.visibleTerminalItems.first { $0.isActive } ?? model.visibleTerminalItems.first
+    }
+
+    private var statusCardItem: TerminalWindowItem? {
+        if let hoveredID = hoveredChipID ?? pendingHoverItemID ?? hoveredMinimizedItemID,
+           let hoveredItem = model.visibleTerminalItems.first(where: { $0.id == hoveredID }) {
+            return hoveredItem
+        }
+        return activeTerminal
     }
 
     @ViewBuilder

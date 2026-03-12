@@ -538,10 +538,7 @@ final class NotchOverlayController {
                         shouldExpand = true
                     }
                 }
-                
-                model.isHoveringClosedNotch = !shouldExpand
             } else {
-                model.isHoveringClosedNotch = false
                 pendingExpandWorkItems[displayID]?.cancel()
                 pendingExpandWorkItems.removeValue(forKey: displayID)
                 if model.isExpanded {
@@ -743,8 +740,7 @@ final class NotchOverlayController {
             )
             // Real-notch screens should open only when the cursor is very close
             // to the notch/top edge to avoid accidental expansion while browsing.
-            return adjustedRect
-                .insetBy(dx: -6, dy: -1)
+            return adjustedRect.insetBy(dx: -6, dy: -1)
         }
 
         let virtual = CGRect(

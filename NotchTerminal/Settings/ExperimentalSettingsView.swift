@@ -17,6 +17,8 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.experimentalProjectStatusCardEnabled) var experimentalProjectStatusCardEnabled: Bool = AppPreferences.Defaults.experimentalProjectStatusCardEnabled
     @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowGit) var experimentalProjectStatusShowGit: Bool = AppPreferences.Defaults.experimentalProjectStatusShowGit
     @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowFolder) var experimentalProjectStatusShowFolder: Bool = AppPreferences.Defaults.experimentalProjectStatusShowFolder
+    @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) var experimentalFloatingMsgEnabled: Bool = AppPreferences.Defaults.experimentalFloatingMsgEnabled
+    @AppStorage(AppPreferences.Keys.experimentalFloatingMsgInterval) var experimentalFloatingMsgInterval: Double = AppPreferences.Defaults.experimentalFloatingMsgInterval
     private var startupOrbPillOffsetXBinding: Binding<Double> {
         Binding(
             get: { startupOrbPillOffsetX - AppPreferences.Defaults.startupOrbPillOffsetX },
@@ -77,6 +79,7 @@ struct ExperimentalSettingsView: View {
                 debugSection
                 startupOrbSection
                 projectStatusCardSection
+                floatingMessageSection
                 NotchTerminalSettingsSection(contentSpacing: 12) {
                     NotchTerminalSectionHeading(
                         title: "settings.experimental.effects".localized,
@@ -309,6 +312,35 @@ struct ExperimentalSettingsView: View {
                     )
                 }
                 .padding(.leading, 32)
+            }
+        }
+    }
+
+    private var floatingMessageSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
+                title: "Periodic Floating Message (Hello World)",
+                subtitle: "Displays a customized message below the Notch occasionally.",
+                icon: "message.badge.filled.fill"
+            )
+
+            NotchTerminalPreferenceToggleRow(
+                title: "Enable Floating Message",
+                subtitle: "Show periodic message",
+                icon: "bubble.left.and.bubble.right",
+                binding: $experimentalFloatingMsgEnabled
+            )
+
+            if experimentalFloatingMsgEnabled {
+                NotchTerminalSliderPreferenceRow(
+                    title: "Message Interval",
+                    subtitle: "How often the message appears",
+                    icon: "timer",
+                    value: $experimentalFloatingMsgInterval,
+                    range: 10 ... 120,
+                    step: 5,
+                    valueFormatter: { "\(Int($0))s" }
+                )
             }
         }
     }

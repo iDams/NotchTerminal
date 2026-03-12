@@ -38,7 +38,6 @@ final class NotchViewModel: ObservableObject {
     @Published var isHoveringItem = false {
         didSet { if isHoveringItem { lastInteractionTime = Date() } }
     }
-    @Published var isHoveringClosedNotch = false
     
     var lastInteractionTime: Date = Date.distantPast
     var hasPreviewedDuringSession = false

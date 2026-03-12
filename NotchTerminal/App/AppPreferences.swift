@@ -41,6 +41,8 @@ enum AppPreferences {
         static let experimentalProjectStatusCardEnabled = "experimentalProjectStatusCardEnabled"
         static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
         static let experimentalProjectStatusShowFolder = "experimentalProjectStatusShowFolder"
+        static let experimentalFloatingMsgEnabled = "experimentalFloatingMsgEnabled"
+        static let experimentalFloatingMsgInterval = "experimentalFloatingMsgInterval"
     }
 
     enum Defaults {
@@ -73,6 +75,8 @@ enum AppPreferences {
         static let experimentalProjectStatusCardEnabled = false
         static let experimentalProjectStatusShowGit = true
         static let experimentalProjectStatusShowFolder = true
+        static let experimentalFloatingMsgEnabled = false
+        static let experimentalFloatingMsgInterval = 60.0
     }
 
     static func disabledNotchDisplayIDs(in defaults: UserDefaults = .standard) -> Set<CGDirectDisplayID> {
