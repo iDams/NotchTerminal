@@ -107,44 +107,10 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
                 
                 let visibleLine = String(chars).trimmingCharacters(in: .whitespacesAndNewlines)
                 
-                // Regex to find common command structures at the end of a messy prompt line
-                // Looks for: spaces followed by words like npm, pnpm, yarn, bun, git, cargo, make, vite, next, etc.
-                let knownCommands = ["npm", "pnpm", "yarn", "bun", "git", "cargo", "make", "vite", "next", "astro", "nuxt", "python", "python3", "node", "swift", "xcodebuild", "curl", "wget"]
-                
-                var extractedCommand = ""
-                
-                // Find rightmost occurrence of any known command
-                var bestMatchIndex: String.Index? = nil
-                for cmd in knownCommands {
-                    // Look for " cmd" or "^cmd" to avoid matching inside other words
-                    if let range = visibleLine.range(of: " \(cmd) ", options: .backwards) {
-                        if bestMatchIndex == nil || range.lowerBound > bestMatchIndex! {
-                            bestMatchIndex = visibleLine.index(after: range.lowerBound)
-                        }
-                    } else if visibleLine.hasPrefix("\(cmd) ") {
-                        if bestMatchIndex == nil {
-                            bestMatchIndex = visibleLine.startIndex
-                        }
-                    }
-                }
-                
-                if let idx = bestMatchIndex {
-                    extractedCommand = String(visibleLine[idx...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-                
-                let rawInputLine = currentInputLine.trimmingCharacters(in: .whitespacesAndNewlines)
-                
-                // If the user used the up arrow (OA/[A) but our regex didn't find a known command,
-                // fall back to splitting by multiple spaces which is common in custom prompts
-                if extractedCommand.isEmpty && (rawInputLine.contains("OA") || rawInputLine.contains("[A")) {
-                     let components = visibleLine.components(separatedBy: "  ").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-                     extractedCommand = components.last?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                }
-                
-                let isHistoryRecall = rawInputLine.contains("OA") || rawInputLine.contains("[A")
-                let finalCommand = isHistoryRecall || rawInputLine.isEmpty ? extractedCommand : rawInputLine
-                
-                if !finalCommand.isEmpty {
+                if let finalCommand = TerminalSubmittedCommandParser.parse(
+                    visibleLine: visibleLine,
+                    rawInputLine: currentInputLine
+                ) {
                     commandSubmitted?(finalCommand)
                 }
                 currentInputLine = ""
