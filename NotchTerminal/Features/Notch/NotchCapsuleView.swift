@@ -476,11 +476,15 @@ struct NotchCapsuleView: View {
     }
 
     private func requestCloseAll() {
-        if terminalActionConfiguration.confirmBeforeCloseAll {
-            requestCloseAllConfirmation(model.ownDisplayID)
-            return
+        switch NotchCapsuleActionLogic.resolveCloseAllAction(
+            confirmBeforeCloseAll: terminalActionConfiguration.confirmBeforeCloseAll,
+            ownDisplayID: model.ownDisplayID
+        ) {
+        case .requestConfirmation(let displayID):
+            requestCloseAllConfirmation(displayID)
+        case .closeImmediately:
+            closeAllWindows()
         }
-        closeAllWindows()
     }
 
     @ViewBuilder
@@ -654,8 +658,11 @@ struct NotchCapsuleView: View {
     }
 
     private func shiftActiveScreen(delta: Int) {
-        let targetIndex = model.activeScreenIndex + delta
-        guard targetIndex >= 0, targetIndex < model.availableScreens.count else { return }
+        guard let targetIndex = NotchCapsuleActionLogic.shiftedScreenIndex(
+            currentIndex: model.activeScreenIndex,
+            delta: delta,
+            availableCount: model.availableScreens.count
+        ) else { return }
         withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
             model.activeScreenIndex = targetIndex
         }
