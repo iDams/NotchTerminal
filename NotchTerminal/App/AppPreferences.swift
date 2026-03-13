@@ -2,6 +2,35 @@ import Foundation
 import CoreGraphics
 
 enum AppPreferences {
+    struct NotchDisplayConfiguration: Equatable {
+        let isEnabled: Bool
+        let offsetX: Double
+        let offsetY: Double
+        let widthAdjustment: Double
+    }
+
+    struct AuroraDisplayConfiguration: Equatable {
+        let usesCustomOverride: Bool
+        let backgroundEnabled: Bool
+        let theme: String
+    }
+
+    struct TerminalActionConfiguration: Equatable {
+        let showChipCloseButtonOnHover: Bool
+        let confirmBeforeCloseAll: Bool
+        let closeActionMode: String
+    }
+
+    struct ExperimentalFeatureConfiguration: Equatable {
+        let dragToNotchEnabled: Bool
+        let startupOrbEnabled: Bool
+        let hitTestDebugOverlayEnabled: Bool
+        let notchDockingSensitivity: Double
+        let projectStatusCardEnabled: Bool
+        let projectStatusShowGit: Bool
+        let projectStatusShowFolder: Bool
+    }
+
     enum Keys {
         static let disabledNotchDisplayIDs = "disabledNotchDisplayIDs"
         static let notchDisplayOffsetX = "notchDisplayOffsetX"
@@ -120,6 +149,15 @@ enum AppPreferences {
         defaults.set(rawValue, forKey: Keys.disabledNotchDisplayIDs)
     }
 
+    static func notchConfiguration(for displayID: CGDirectDisplayID, in defaults: UserDefaults = .standard) -> NotchDisplayConfiguration {
+        NotchDisplayConfiguration(
+            isEnabled: isNotchEnabled(for: displayID, in: defaults),
+            offsetX: notchOffsetX(for: displayID, in: defaults),
+            offsetY: notchOffsetY(for: displayID, in: defaults),
+            widthAdjustment: notchWidthAdjustment(for: displayID, in: defaults)
+        )
+    }
+
     static func notchOffsetX(for displayID: CGDirectDisplayID, in defaults: UserDefaults = .standard) -> Double {
         perDisplayDouble(for: displayID, key: Keys.notchDisplayOffsetX, in: defaults)
     }
@@ -196,9 +234,114 @@ enum AppPreferences {
         defaults.set(map, forKey: Keys.auroraDisplayThemeMap)
     }
 
+    static func auroraConfiguration(
+        for displayID: CGDirectDisplayID,
+        fallbackEnabled: Bool,
+        fallbackTheme: String,
+        in defaults: UserDefaults = .standard
+    ) -> AuroraDisplayConfiguration {
+        AuroraDisplayConfiguration(
+            usesCustomOverride: hasCustomAuroraOverride(for: displayID, in: defaults),
+            backgroundEnabled: auroraBackgroundEnabled(
+                for: displayID,
+                fallback: fallbackEnabled,
+                in: defaults
+            ),
+            theme: auroraTheme(
+                for: displayID,
+                fallback: fallbackTheme,
+                in: defaults
+            )
+        )
+    }
+
+    static func terminalActionConfiguration(in defaults: UserDefaults = .standard) -> TerminalActionConfiguration {
+        TerminalActionConfiguration(
+            showChipCloseButtonOnHover: bool(
+                forKey: Keys.showChipCloseButtonOnHover,
+                default: Defaults.showChipCloseButtonOnHover,
+                in: defaults
+            ),
+            confirmBeforeCloseAll: bool(
+                forKey: Keys.confirmBeforeCloseAll,
+                default: Defaults.confirmBeforeCloseAll,
+                in: defaults
+            ),
+            closeActionMode: string(
+                forKey: Keys.closeActionMode,
+                default: Defaults.closeActionMode,
+                in: defaults
+            )
+        )
+    }
+
+    static func experimentalFeatureConfiguration(in defaults: UserDefaults = .standard) -> ExperimentalFeatureConfiguration {
+        ExperimentalFeatureConfiguration(
+            dragToNotchEnabled: bool(
+                forKey: Keys.experimentalDragToNotchEnabled,
+                default: Defaults.experimentalDragToNotchEnabled,
+                in: defaults
+            ),
+            startupOrbEnabled: bool(
+                forKey: Keys.experimentalStartupOrbEnabled,
+                default: Defaults.experimentalStartupOrbEnabled,
+                in: defaults
+            ),
+            hitTestDebugOverlayEnabled: bool(
+                forKey: Keys.hitTestDebugOverlayEnabled,
+                default: Defaults.hitTestDebugOverlayEnabled,
+                in: defaults
+            ),
+            notchDockingSensitivity: double(
+                forKey: Keys.notchDockingSensitivity,
+                default: Defaults.notchDockingSensitivity,
+                in: defaults
+            ),
+            projectStatusCardEnabled: bool(
+                forKey: Keys.experimentalProjectStatusCardEnabled,
+                default: Defaults.experimentalProjectStatusCardEnabled,
+                in: defaults
+            ),
+            projectStatusShowGit: bool(
+                forKey: Keys.experimentalProjectStatusShowGit,
+                default: Defaults.experimentalProjectStatusShowGit,
+                in: defaults
+            ),
+            projectStatusShowFolder: bool(
+                forKey: Keys.experimentalProjectStatusShowFolder,
+                default: Defaults.experimentalProjectStatusShowFolder,
+                in: defaults
+            )
+        )
+    }
+
+    static func setConfirmBeforeCloseAll(_ isEnabled: Bool, in defaults: UserDefaults = .standard) {
+        defaults.set(isEnabled, forKey: Keys.confirmBeforeCloseAll)
+    }
+
     private static func perDisplayDouble(for displayID: CGDirectDisplayID, key: String, in defaults: UserDefaults) -> Double {
         let map = perDisplayDoubleMap(forKey: key, in: defaults)
         return map[String(displayID)] ?? 0
+    }
+
+    private static func bool(forKey key: String, default defaultValue: Bool, in defaults: UserDefaults) -> Bool {
+        guard defaults.object(forKey: key) != nil else { return defaultValue }
+        return defaults.bool(forKey: key)
+    }
+
+    private static func double(forKey key: String, default defaultValue: Double, in defaults: UserDefaults) -> Double {
+        guard let value = defaults.object(forKey: key) else { return defaultValue }
+        if let number = value as? NSNumber {
+            return number.doubleValue
+        }
+        if let doubleValue = value as? Double {
+            return doubleValue
+        }
+        return defaultValue
+    }
+
+    private static func string(forKey key: String, default defaultValue: String, in defaults: UserDefaults) -> String {
+        defaults.string(forKey: key) ?? defaultValue
     }
 
     private static func setPerDisplayDouble(_ value: Double, for displayID: CGDirectDisplayID, key: String, in defaults: UserDefaults) {

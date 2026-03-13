@@ -1,0 +1,144 @@
+import CoreGraphics
+import Foundation
+
+enum NotchOverlayGeometryLogic {
+    struct DisplayConfiguration {
+        let offsetX: CGFloat
+        let offsetY: CGFloat
+        let widthAdjustment: CGFloat
+    }
+
+    struct Constants {
+        let collapsedNoNotchSize: CGSize
+        let notchClosedWidthScale: CGFloat
+        let notchClosedHeightScale: CGFloat
+        let shadowPadding: CGFloat
+        let noNotchTopInset: CGFloat
+        let notchTopInset: CGFloat
+    }
+
+    static func closedSize(
+        screenNotchSize: CGSize,
+        fallbackNotchSize: CGSize,
+        hasPhysicalNotch: Bool,
+        widthOffset: CGFloat,
+        heightOffset: CGFloat,
+        configuration: DisplayConfiguration,
+        constants: Constants
+    ) -> CGSize {
+        guard hasPhysicalNotch else {
+            return CGSize(
+                width: max(26, constants.collapsedNoNotchSize.width + configuration.widthAdjustment),
+                height: constants.collapsedNoNotchSize.height
+            )
+        }
+
+        let raw = screenNotchSize == .zero ? fallbackNotchSize : screenNotchSize
+        return CGSize(
+            width: max(92, raw.width * constants.notchClosedWidthScale + widthOffset + configuration.widthAdjustment),
+            height: max(22, raw.height * constants.notchClosedHeightScale + heightOffset)
+        )
+    }
+
+    static func panelFrame(
+        screenFrame: CGRect,
+        hasPhysicalNotch: Bool,
+        configuration: DisplayConfiguration,
+        constants: Constants
+    ) -> CGRect {
+        let visualSize = CGSize(width: 1100, height: 160)
+        let shoulderExtra: CGFloat = hasPhysicalNotch ? 64 : 0
+        let topOvershoot: CGFloat = hasPhysicalNotch ? 6 : 0
+
+        let panelSize = CGSize(
+            width: visualSize.width + shoulderExtra + (constants.shadowPadding * 2),
+            height: visualSize.height + topOvershoot + (constants.shadowPadding * 2)
+        )
+        let topInset = hasPhysicalNotch ? constants.notchTopInset : constants.noNotchTopInset
+
+        let visualOrigin = CGPoint(
+            x: screenFrame.midX - (visualSize.width + shoulderExtra) / 2 + configuration.offsetX,
+            y: screenFrame.maxY - visualSize.height - topInset - configuration.offsetY
+        )
+
+        return CGRect(
+            x: visualOrigin.x - constants.shadowPadding,
+            y: visualOrigin.y - constants.shadowPadding,
+            width: panelSize.width,
+            height: panelSize.height
+        )
+    }
+
+    static func hardwareNotchRect(
+        screenFrame: CGRect,
+        notchSize: CGSize,
+        notchTopInset: CGFloat
+    ) -> CGRect {
+        guard notchSize != .zero else { return .zero }
+        return CGRect(
+            x: screenFrame.midX - notchSize.width / 2,
+            y: screenFrame.maxY - notchSize.height - notchTopInset,
+            width: notchSize.width,
+            height: notchSize.height
+        )
+    }
+
+    static func activationRect(
+        screenFrame: CGRect,
+        panelFrame: CGRect,
+        closedSize: CGSize,
+        hasPhysicalNotch: Bool,
+        isExpanded: Bool,
+        hardwareNotchRect: CGRect,
+        configuration: DisplayConfiguration,
+        constants: Constants
+    ) -> CGRect {
+        if isExpanded {
+            return panelFrame.insetBy(dx: -54, dy: -76)
+        }
+
+        if hasPhysicalNotch && hardwareNotchRect != .zero {
+            let adjustedRect = CGRect(
+                x: screenFrame.midX - closedSize.width / 2 + configuration.offsetX,
+                y: screenFrame.maxY - closedSize.height - constants.notchTopInset - configuration.offsetY,
+                width: closedSize.width,
+                height: closedSize.height
+            )
+            return adjustedRect.insetBy(dx: -6, dy: -1)
+        }
+
+        let virtual = CGRect(
+            x: screenFrame.midX - (constants.collapsedNoNotchSize.width + configuration.widthAdjustment) / 2 + configuration.offsetX,
+            y: screenFrame.maxY - constants.collapsedNoNotchSize.height - constants.noNotchTopInset,
+            width: max(26, constants.collapsedNoNotchSize.width + configuration.widthAdjustment),
+            height: constants.collapsedNoNotchSize.height
+        )
+        return virtual.offsetBy(dx: 0, dy: -configuration.offsetY).insetBy(dx: -2, dy: -2)
+    }
+
+    static func shouldAllowMouseEvents(
+        hasPhysicalNotch: Bool,
+        isExpanded: Bool,
+        screenFrame: CGRect,
+        cursor: CGPoint,
+        startupOrbRect: CGRect?,
+        configuration: DisplayConfiguration,
+        constants: Constants
+    ) -> Bool {
+        if isExpanded {
+            return true
+        }
+
+        guard !hasPhysicalNotch else { return false }
+
+        let virtual = CGRect(
+            x: screenFrame.midX - (constants.collapsedNoNotchSize.width + configuration.widthAdjustment) / 2 + configuration.offsetX,
+            y: screenFrame.maxY - constants.collapsedNoNotchSize.height - constants.noNotchTopInset,
+            width: max(26, constants.collapsedNoNotchSize.width + configuration.widthAdjustment),
+            height: constants.collapsedNoNotchSize.height
+        )
+        let notchRect = virtual.offsetBy(dx: 0, dy: -configuration.offsetY).insetBy(dx: -20, dy: -20)
+        let orbRect = startupOrbRect?.insetBy(dx: -8, dy: -8)
+        return notchRect.contains(cursor) || orbRect?.contains(cursor) == true
+    }
+}

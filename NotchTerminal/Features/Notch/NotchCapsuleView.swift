@@ -25,16 +25,6 @@ struct NotchCapsuleView: View {
     @State private var isHoveringPlus = false
     @State private var showsStartupPreview = false
     @State private var startupPreviewDismissWorkItem: DispatchWorkItem?
-    @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) private var showChipCloseButtonOnHover = AppPreferences.Defaults.showChipCloseButtonOnHover
-    @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) private var confirmBeforeCloseAll = AppPreferences.Defaults.confirmBeforeCloseAll
-    @AppStorage(AppPreferences.Keys.experimentalStartupOrbEnabled) private var experimentalStartupOrbEnabled = AppPreferences.Defaults.experimentalStartupOrbEnabled
-    @AppStorage(AppPreferences.Keys.experimentalProjectStatusCardEnabled) private var experimentalProjectStatusCardEnabled = AppPreferences.Defaults.experimentalProjectStatusCardEnabled
-    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowGit) private var experimentalProjectStatusShowGit = AppPreferences.Defaults.experimentalProjectStatusShowGit
-    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowFolder) private var experimentalProjectStatusShowFolder = AppPreferences.Defaults.experimentalProjectStatusShowFolder
-    @AppStorage(AppPreferences.Keys.hitTestDebugOverlayEnabled) private var hitTestDebugOverlayEnabled = AppPreferences.Defaults.hitTestDebugOverlayEnabled
-    @AppStorage(AppPreferences.Keys.auroraDisplayOverrideIDs) private var auroraDisplayOverrideIDsRaw = ""
-    @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
-    @AppStorage(AppPreferences.Keys.auroraDisplayThemeMap) private var auroraDisplayThemeMapRaw = ""
     @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
     @AppStorage(AppPreferences.Keys.experimentalAIProvider) private var experimentalAIProvider = AppPreferences.Defaults.experimentalAIProvider
     @AppStorage(AppPreferences.Keys.experimentalAICustomURL) private var experimentalAICustomURL = AppPreferences.Defaults.experimentalAICustomURL
@@ -67,22 +57,27 @@ struct NotchCapsuleView: View {
     }
 
     private var effectiveAuroraBackgroundEnabled: Bool {
-        _ = auroraDisplayOverrideIDsRaw
-        _ = auroraDisplayEnabledMapRaw
-        return AppPreferences.auroraBackgroundEnabled(
-            for: model.ownDisplayID,
-            fallback: model.auroraBackgroundEnabled
-        )
+        auroraConfiguration.backgroundEnabled
+    }
+
+    private var terminalActionConfiguration: AppPreferences.TerminalActionConfiguration {
+        AppPreferences.terminalActionConfiguration()
+    }
+
+    private var experimentalFeatures: AppPreferences.ExperimentalFeatureConfiguration {
+        AppPreferences.experimentalFeatureConfiguration()
     }
 
     private var effectiveAuroraTheme: NotchViewModel.AuroraTheme {
-        _ = auroraDisplayOverrideIDsRaw
-        _ = auroraDisplayThemeMapRaw
-        let rawValue = AppPreferences.auroraTheme(
+        NotchViewModel.AuroraTheme(rawValue: auroraConfiguration.theme) ?? model.auroraTheme
+    }
+
+    private var auroraConfiguration: AppPreferences.AuroraDisplayConfiguration {
+        AppPreferences.auroraConfiguration(
             for: model.ownDisplayID,
-            fallback: model.auroraTheme.rawValue
+            fallbackEnabled: model.auroraBackgroundEnabled,
+            fallbackTheme: model.auroraTheme.rawValue
         )
-        return NotchViewModel.AuroraTheme(rawValue: rawValue) ?? model.auroraTheme
     }
     
     init(
@@ -126,7 +121,7 @@ struct NotchCapsuleView: View {
                 showExpandedControls = model.isExpanded
             }
         }
-        .onChange(of: experimentalStartupOrbEnabled) { _, isEnabled in
+        .onChange(of: experimentalFeatures.startupOrbEnabled) { _, isEnabled in
             startupPreviewDismissWorkItem?.cancel()
             startupPreviewDismissWorkItem = nil
             guard isEnabled else {
@@ -287,7 +282,7 @@ struct NotchCapsuleView: View {
             }
             .buttonStyle(TerminalItemButtonStyle(item: item, pendingHoverItemID: pendingHoverItemID))
 
-            if showChipCloseButtonOnHover && hoveredChipID == item.id {
+            if terminalActionConfiguration.showChipCloseButtonOnHover && hoveredChipID == item.id {
                 Button {
                     hoveredChipID = nil
                     closeBlackWindow(item.id)
@@ -427,12 +422,12 @@ struct NotchCapsuleView: View {
             }
         }
         .overlay(alignment: .top) {
-            if model.isExpanded && showExpandedControls && experimentalProjectStatusCardEnabled {
+            if model.isExpanded && showExpandedControls && experimentalFeatures.projectStatusCardEnabled {
                 if let item = statusCardItem {
                     ProjectStatusCardWrapper(
                         item: item,
-                        showFolder: experimentalProjectStatusShowFolder,
-                        showGit: experimentalProjectStatusShowGit,
+                        showFolder: experimentalFeatures.projectStatusShowFolder,
+                        showGit: experimentalFeatures.projectStatusShowGit,
                         isFloating: false
                     )
                     .id(item.id)
@@ -481,11 +476,15 @@ struct NotchCapsuleView: View {
     }
 
     private func requestCloseAll() {
-        if confirmBeforeCloseAll {
-            requestCloseAllConfirmation(model.ownDisplayID)
-            return
+        switch NotchCapsuleActionLogic.resolveCloseAllAction(
+            confirmBeforeCloseAll: terminalActionConfiguration.confirmBeforeCloseAll,
+            ownDisplayID: model.ownDisplayID
+        ) {
+        case .requestConfirmation(let displayID):
+            requestCloseAllConfirmation(displayID)
+        case .closeImmediately:
+            closeAllWindows()
         }
-        closeAllWindows()
     }
 
     @ViewBuilder
@@ -659,8 +658,11 @@ struct NotchCapsuleView: View {
     }
 
     private func shiftActiveScreen(delta: Int) {
-        let targetIndex = model.activeScreenIndex + delta
-        guard targetIndex >= 0, targetIndex < model.availableScreens.count else { return }
+        guard let targetIndex = NotchCapsuleActionLogic.shiftedScreenIndex(
+            currentIndex: model.activeScreenIndex,
+            delta: delta,
+            availableCount: model.availableScreens.count
+        ) else { return }
         withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
             model.activeScreenIndex = targetIndex
         }
@@ -744,7 +746,7 @@ struct NotchCapsuleView: View {
 
     @ViewBuilder
     private var startupOrbOverlay: some View {
-        if experimentalStartupOrbEnabled {
+        if experimentalFeatures.startupOrbEnabled {
             StartupOrbView(
                 style: model.hasPhysicalNotch ? .physicalNotch : .pill,
                 hostWidth: capsuleWidth,
@@ -757,7 +759,7 @@ struct NotchCapsuleView: View {
 
     @ViewBuilder
     private var panelFrameDebugOverlay: some View {
-        if hitTestDebugOverlayEnabled && !model.hasPhysicalNotch {
+        if experimentalFeatures.hitTestDebugOverlayEnabled && !model.hasPhysicalNotch {
             GeometryReader { proxy in
                 Rectangle()
                     .fill(Color.orange.opacity(0.06))
@@ -773,7 +775,7 @@ struct NotchCapsuleView: View {
 
     @ViewBuilder
     private var hitTestDebugOverlay: some View {
-        if hitTestDebugOverlayEnabled && !model.hasPhysicalNotch && !model.isExpanded {
+        if experimentalFeatures.hitTestDebugOverlayEnabled && !model.hasPhysicalNotch && !model.isExpanded {
             ZStack {
                 RoundedRectangle(cornerRadius: notchCornerRadius + 20, style: .continuous)
                     .fill(Color.red.opacity(0.16))

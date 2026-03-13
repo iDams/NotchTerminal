@@ -19,6 +19,56 @@ struct WindowSessionSnapshot: Equatable {
 }
 
 enum WindowSessionLogic {
+    struct SnapshotProjection {
+        let id: UUID
+        let number: Int
+        let displayID: CGDirectDisplayID
+        let workingDirectory: String
+        let expandedFrame: CGRect
+        let isDockedToNotch: Bool
+        let isAlwaysOnTop: Bool
+        let isCompact: Bool
+        let isMaximized: Bool
+        let displayTitle: String
+        let projectRootPath: String?
+        let projectName: String?
+        let lastSubmittedCommand: String?
+        let preMaximizeFrame: CGRect?
+    }
+
+    static func snapshot(from projection: SnapshotProjection) -> WindowSessionSnapshot {
+        WindowSessionSnapshot(
+            id: projection.id,
+            number: projection.number,
+            displayID: projection.displayID,
+            workingDirectory: projection.workingDirectory,
+            expandedFrame: projection.expandedFrame,
+            isDockedToNotch: projection.isDockedToNotch,
+            isAlwaysOnTop: projection.isAlwaysOnTop,
+            isCompact: projection.isCompact,
+            isMaximized: projection.isMaximized,
+            displayTitle: projection.displayTitle,
+            projectRootPath: projection.projectRootPath,
+            projectName: projection.projectName,
+            lastSubmittedCommand: projection.lastSubmittedCommand,
+            preMaximizeFrame: projection.preMaximizeFrame
+        )
+    }
+
+    static func serializedSessions(
+        from snapshots: [WindowSessionSnapshot],
+        normalizeWorkingDirectory: (String) -> String,
+        creationTimestamp: Date = Date()
+    ) -> [TerminalSession] {
+        snapshots.map {
+            serializedSession(
+                from: $0,
+                normalizeWorkingDirectory: normalizeWorkingDirectory,
+                creationTimestamp: creationTimestamp
+            )
+        }
+    }
+
     static func serializedSession(
         from snapshot: WindowSessionSnapshot,
         normalizeWorkingDirectory: (String) -> String,

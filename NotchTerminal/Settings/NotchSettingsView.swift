@@ -6,9 +6,6 @@ struct NotchSettingsView: View {
     @State private var notchOffsetXValues: [CGDirectDisplayID: Double] = [:]
     @State private var notchOffsetYValues: [CGDirectDisplayID: Double] = [:]
     @State private var notchWidthValues: [CGDirectDisplayID: Double] = [:]
-    @AppStorage(AppPreferences.Keys.auroraDisplayOverrideIDs) private var auroraDisplayOverrideIDsRaw = ""
-    @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
-    @AppStorage(AppPreferences.Keys.auroraDisplayThemeMap) private var auroraDisplayThemeMapRaw = ""
     @AppStorage(AppPreferences.Keys.auroraBackgroundEnabled) private var globalAuroraBackgroundEnabled = AppPreferences.Defaults.auroraBackgroundEnabled
     @AppStorage(AppPreferences.Keys.auroraTheme) private var globalAuroraTheme: NotchViewModel.AuroraTheme = .classic
 
@@ -60,18 +57,18 @@ struct NotchSettingsView: View {
                 subtitle: "settings.notch.enabled.subtitle".localized,
                 icon: "power",
                 binding: Binding(
-                    get: { AppPreferences.isNotchEnabled(for: item.displayID) },
+                    get: { AppPreferences.notchConfiguration(for: item.displayID).isEnabled },
                     set: { AppPreferences.setNotchEnabled($0, for: item.displayID) }
                 )
             )
 
-            if AppPreferences.isNotchEnabled(for: item.displayID) {
+            if AppPreferences.notchConfiguration(for: item.displayID).isEnabled {
                 NotchTerminalSliderPreferenceRow(
                     title: "settings.notch.offsetX".localized,
                     subtitle: "settings.notch.offsetX.subtitle".localized,
                     icon: "arrow.left.and.right",
                     value: Binding(
-                        get: { notchOffsetXValues[item.displayID] ?? AppPreferences.notchOffsetX(for: item.displayID) },
+                        get: { notchOffsetXValues[item.displayID] ?? AppPreferences.notchConfiguration(for: item.displayID).offsetX },
                         set: {
                             notchOffsetXValues[item.displayID] = $0
                             AppPreferences.setNotchOffsetX($0, for: item.displayID)
@@ -87,7 +84,7 @@ struct NotchSettingsView: View {
                     subtitle: "settings.notch.offsetY.subtitle".localized,
                     icon: "arrow.up.and.down",
                     value: Binding(
-                        get: { notchOffsetYValues[item.displayID] ?? AppPreferences.notchOffsetY(for: item.displayID) },
+                        get: { notchOffsetYValues[item.displayID] ?? AppPreferences.notchConfiguration(for: item.displayID).offsetY },
                         set: {
                             notchOffsetYValues[item.displayID] = $0
                             AppPreferences.setNotchOffsetY($0, for: item.displayID)
@@ -103,7 +100,7 @@ struct NotchSettingsView: View {
                     subtitle: "settings.notch.width.subtitle".localized,
                     icon: "arrow.left.and.right.righttriangle.left.righttriangle.right",
                     value: Binding(
-                        get: { notchWidthValues[item.displayID] ?? AppPreferences.notchWidthAdjustment(for: item.displayID) },
+                        get: { notchWidthValues[item.displayID] ?? AppPreferences.notchConfiguration(for: item.displayID).widthAdjustment },
                         set: {
                             notchWidthValues[item.displayID] = $0
                             AppPreferences.setNotchWidthAdjustment($0, for: item.displayID)
@@ -121,39 +118,27 @@ struct NotchSettingsView: View {
                     subtitle: "settings.notch.customBackground.subtitle".localized,
                     icon: "paintpalette",
                     binding: Binding(
-                        get: {
-                            _ = auroraDisplayOverrideIDsRaw
-                            return AppPreferences.hasCustomAuroraOverride(for: item.displayID)
-                        },
+                        get: { auroraConfiguration(for: item.displayID).usesCustomOverride },
                         set: {
                             AppPreferences.setCustomAuroraOverrideEnabled($0, for: item.displayID)
                         }
                     )
                 )
 
-                if AppPreferences.hasCustomAuroraOverride(for: item.displayID) {
+                if auroraConfiguration(for: item.displayID).usesCustomOverride {
                     NotchTerminalPreferenceToggleRow(
                         title: "settings.notch.customBackground.enabled".localized,
                         subtitle: "settings.notch.customBackground.enabled.subtitle".localized,
                         icon: "waveform.circle",
                         binding: Binding(
-                            get: {
-                                _ = auroraDisplayEnabledMapRaw
-                                return AppPreferences.auroraBackgroundEnabled(
-                                    for: item.displayID,
-                                    fallback: globalAuroraBackgroundEnabled
-                                )
-                            },
+                            get: { auroraConfiguration(for: item.displayID).backgroundEnabled },
                             set: {
                                 AppPreferences.setAuroraBackgroundEnabled($0, for: item.displayID)
                             }
                         )
                     )
 
-                    if AppPreferences.auroraBackgroundEnabled(
-                        for: item.displayID,
-                        fallback: globalAuroraBackgroundEnabled
-                    ) {
+                    if auroraConfiguration(for: item.displayID).backgroundEnabled {
                         HStack(alignment: .center, spacing: 10) {
                             Image(systemName: "swatchpalette")
                                 .font(.system(size: 13, weight: .semibold))
@@ -173,14 +158,7 @@ struct NotchSettingsView: View {
                             Picker(
                                 "settings.auroraTheme".localized,
                                 selection: Binding(
-                                    get: {
-                                        _ = auroraDisplayThemeMapRaw
-                                        let rawValue = AppPreferences.auroraTheme(
-                                            for: item.displayID,
-                                            fallback: globalAuroraTheme.rawValue
-                                        )
-                                        return NotchViewModel.AuroraTheme(rawValue: rawValue) ?? globalAuroraTheme
-                                    },
+                                    get: { auroraThemeSelection(for: item.displayID) },
                                     set: {
                                         AppPreferences.setAuroraTheme($0.rawValue, for: item.displayID)
                                     }
@@ -230,14 +208,28 @@ struct NotchSettingsView: View {
 
         for screen in screens {
             guard let displayID = displayID(for: screen) else { continue }
-            nextX[displayID] = AppPreferences.notchOffsetX(for: displayID)
-            nextY[displayID] = AppPreferences.notchOffsetY(for: displayID)
-            nextWidth[displayID] = AppPreferences.notchWidthAdjustment(for: displayID)
+            let configuration = AppPreferences.notchConfiguration(for: displayID)
+            nextX[displayID] = configuration.offsetX
+            nextY[displayID] = configuration.offsetY
+            nextWidth[displayID] = configuration.widthAdjustment
         }
 
         notchOffsetXValues = nextX
         notchOffsetYValues = nextY
         notchWidthValues = nextWidth
+    }
+
+    private func auroraConfiguration(for displayID: CGDirectDisplayID) -> AppPreferences.AuroraDisplayConfiguration {
+        AppPreferences.auroraConfiguration(
+            for: displayID,
+            fallbackEnabled: globalAuroraBackgroundEnabled,
+            fallbackTheme: globalAuroraTheme.rawValue
+        )
+    }
+
+    private func auroraThemeSelection(for displayID: CGDirectDisplayID) -> NotchViewModel.AuroraTheme {
+        let configuration = auroraConfiguration(for: displayID)
+        return NotchViewModel.AuroraTheme(rawValue: configuration.theme) ?? globalAuroraTheme
     }
 
     private func displayID(for screen: NSScreen) -> CGDirectDisplayID? {

@@ -107,44 +107,10 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
                 
                 let visibleLine = String(chars).trimmingCharacters(in: .whitespacesAndNewlines)
                 
-                // Regex to find common command structures at the end of a messy prompt line
-                // Looks for: spaces followed by words like npm, pnpm, yarn, bun, git, cargo, make, vite, next, etc.
-                let knownCommands = ["npm", "pnpm", "yarn", "bun", "git", "cargo", "make", "vite", "next", "astro", "nuxt", "python", "python3", "node", "swift", "xcodebuild", "curl", "wget"]
-                
-                var extractedCommand = ""
-                
-                // Find rightmost occurrence of any known command
-                var bestMatchIndex: String.Index? = nil
-                for cmd in knownCommands {
-                    // Look for " cmd" or "^cmd" to avoid matching inside other words
-                    if let range = visibleLine.range(of: " \(cmd) ", options: .backwards) {
-                        if bestMatchIndex == nil || range.lowerBound > bestMatchIndex! {
-                            bestMatchIndex = visibleLine.index(after: range.lowerBound)
-                        }
-                    } else if visibleLine.hasPrefix("\(cmd) ") {
-                        if bestMatchIndex == nil {
-                            bestMatchIndex = visibleLine.startIndex
-                        }
-                    }
-                }
-                
-                if let idx = bestMatchIndex {
-                    extractedCommand = String(visibleLine[idx...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-                
-                let rawInputLine = currentInputLine.trimmingCharacters(in: .whitespacesAndNewlines)
-                
-                // If the user used the up arrow (OA/[A) but our regex didn't find a known command,
-                // fall back to splitting by multiple spaces which is common in custom prompts
-                if extractedCommand.isEmpty && (rawInputLine.contains("OA") || rawInputLine.contains("[A")) {
-                     let components = visibleLine.components(separatedBy: "  ").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-                     extractedCommand = components.last?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                }
-                
-                let isHistoryRecall = rawInputLine.contains("OA") || rawInputLine.contains("[A")
-                let finalCommand = isHistoryRecall || rawInputLine.isEmpty ? extractedCommand : rawInputLine
-                
-                if !finalCommand.isEmpty {
+                if let finalCommand = TerminalSubmittedCommandParser.parse(
+                    visibleLine: visibleLine,
+                    rawInputLine: currentInputLine
+                ) {
                     commandSubmitted?(finalCommand)
                 }
                 currentInputLine = ""
@@ -215,20 +181,17 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        guard let droppedURLs = fileURLs(from: sender), !droppedURLs.isEmpty else { return false }
+        guard let droppedURLs = fileURLs(from: sender),
+              let insertion = TerminalDropInteractionHelper.insertionText(for: droppedURLs) else {
+            return false
+        }
 
-        let insertion = droppedURLs
-            .map { shellQuotedPath($0.path(percentEncoded: false)) }
-            .joined(separator: " ") + " "
-
-        let bytes = Array(insertion.utf8)
-        send(source: self, data: bytes[...])
-        window?.makeFirstResponder(self)
+        sendTerminalInput(Array(insertion.utf8))
         return true
     }
 
     private func hasDroppableFileURLs(_ sender: NSDraggingInfo) -> Bool {
-        fileURLs(from: sender)?.isEmpty == false
+        TerminalDropInteractionHelper.hasDroppableFileURLs(fileURLs(from: sender))
     }
 
     private func fileURLs(from sender: NSDraggingInfo) -> [URL]? {
@@ -238,10 +201,6 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
             .urlReadingFileURLsOnly: true
         ]
         return pasteboard.readObjects(forClasses: classes, options: options) as? [URL]
-    }
-
-    private func shellQuotedPath(_ path: String) -> String {
-        "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     private func installWheelForwardMonitorIfNeeded() {
@@ -375,21 +334,22 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     }
 
     @objc func clearBuffer(_ sender: Any?) {
-        let clearCommand = Array("clear\n".utf8)
-        send(source: self, data: clearCommand[...])
-        window?.makeFirstResponder(self)
+        sendTerminalInput(Array("clear\n".utf8))
     }
 
     @objc func closeTerminalSession(_ sender: Any?) {
-        let exitCommand = Array("exit\n".utf8)
-        send(source: self, data: exitCommand[...])
-        window?.makeFirstResponder(self)
+        sendTerminalInput(Array("exit\n".utf8))
     }
 
     @objc func searchAction(_ sender: Any?) {
-        let reverseSearch: [UInt8] = [0x12]
-        send(source: self, data: reverseSearch[...])
-        window?.makeFirstResponder(self)
+        sendTerminalInput([0x12])
+    }
+
+    private func sendTerminalInput(_ bytes: [UInt8], refocus: Bool = true) {
+        send(source: self, data: bytes[...])
+        if refocus {
+            window?.makeFirstResponder(self)
+        }
     }
 
     private func installSelectionMonitorIfNeeded() {
@@ -433,14 +393,10 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
 
     private func updateSelectionAutoScroll(for event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        let overflowTop = max(0, point.y - bounds.maxY)
-        let overflowBottom = max(0, bounds.minY - point.y)
+        let delta = TerminalSelectionAutoScrollLogic.delta(for: point, in: bounds, rows: terminal.rows)
 
-        if overflowTop > 0 {
-            selectionAutoScrollDelta = -selectionScrollVelocity(for: overflowTop)
-            ensureSelectionAutoScrollTimer()
-        } else if overflowBottom > 0 {
-            selectionAutoScrollDelta = selectionScrollVelocity(for: overflowBottom)
+        if delta != 0 {
+            selectionAutoScrollDelta = delta
             ensureSelectionAutoScrollTimer()
         } else {
             stopSelectionAutoScroll()
@@ -471,13 +427,6 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
         selectionAutoScrollDelta = 0
         selectionAutoScrollTimer?.invalidate()
         selectionAutoScrollTimer = nil
-    }
-
-    private func selectionScrollVelocity(for overflow: CGFloat) -> Int {
-        if overflow > 36 { return max(terminal.rows, 20) }
-        if overflow > 20 { return 10 }
-        if overflow > 8 { return 3 }
-        return 1
     }
 
     private func isSelectionEventInsideTerminal(_ event: NSEvent) -> Bool {

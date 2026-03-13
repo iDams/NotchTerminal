@@ -71,6 +71,18 @@ final class TerminalCommandOrbClassifierTests: XCTestCase {
         XCTAssertTrue(event.isPersistent)
     }
 
+    func testAbsolutePathAndToolAliasesStillClassifyCorrectly() throws {
+        XCTAssertEqual(try XCTUnwrap(makeEvent("/usr/bin/git status --short")).kind, .git)
+        XCTAssertEqual(try XCTUnwrap(makeEvent("/opt/homebrew/bin/pytest tests")).kind, .test)
+        XCTAssertEqual(try XCTUnwrap(makeEvent("next dev --turbo")).kind, .package)
+    }
+
+    func testTrivialCommandsWithPrefixesRemainIgnored() {
+        XCTAssertNil(makeEvent("sudo ls"))
+        XCTAssertNil(makeEvent("FOO=1 env pwd"))
+        XCTAssertNil(makeEvent("command echo hello"))
+    }
+
     func testUnknownCommandFallsBackToGeneric() throws {
         let event = try XCTUnwrap(makeEvent("/opt/tools/custom-cli do-work"))
 

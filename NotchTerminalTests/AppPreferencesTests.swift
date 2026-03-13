@@ -95,6 +95,27 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertEqual(AppPreferences.auroraTheme(for: displayID, fallback: "default", in: defaults), "sunset")
     }
 
+    func testNotchConfigurationAggregatesDisplayPreferenceValues() {
+        let displayID: CGDirectDisplayID = 777
+
+        AppPreferences.setNotchEnabled(false, for: displayID, in: defaults)
+        AppPreferences.setNotchOffsetX(12, for: displayID, in: defaults)
+        AppPreferences.setNotchOffsetY(-4, for: displayID, in: defaults)
+        AppPreferences.setNotchWidthAdjustment(18, for: displayID, in: defaults)
+
+        let configuration = AppPreferences.notchConfiguration(for: displayID, in: defaults)
+
+        XCTAssertEqual(
+            configuration,
+            AppPreferences.NotchDisplayConfiguration(
+                isEnabled: false,
+                offsetX: 12,
+                offsetY: -4,
+                widthAdjustment: 18
+            )
+        )
+    }
+
     func testDisablingAuroraOverrideClearsPerDisplayBoolAndStringValues() {
         let displayID: CGDirectDisplayID = 555
 
@@ -112,5 +133,140 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertEqual(AppPreferences.auroraTheme(for: displayID, fallback: "fallback", in: defaults), "fallback")
         XCTAssertNil(defaults.dictionary(forKey: AppPreferences.Keys.auroraDisplayEnabledMap)?[String(displayID)])
         XCTAssertNil(defaults.dictionary(forKey: AppPreferences.Keys.auroraDisplayThemeMap)?[String(displayID)])
+    }
+
+    func testDisabledDisplayIDsPersistAsSortedStableList() {
+        let displayA: CGDirectDisplayID = 30
+        let displayB: CGDirectDisplayID = 10
+        let displayC: CGDirectDisplayID = 20
+
+        AppPreferences.setNotchEnabled(false, for: displayA, in: defaults)
+        AppPreferences.setNotchEnabled(false, for: displayB, in: defaults)
+        AppPreferences.setNotchEnabled(false, for: displayC, in: defaults)
+
+        XCTAssertEqual(
+            defaults.string(forKey: AppPreferences.Keys.disabledNotchDisplayIDs),
+            "10,20,30"
+        )
+    }
+
+    func testAuroraOverrideIsScopedPerDisplay() {
+        let first: CGDirectDisplayID = 601
+        let second: CGDirectDisplayID = 602
+
+        AppPreferences.setCustomAuroraOverrideEnabled(true, for: first, in: defaults)
+        AppPreferences.setAuroraBackgroundEnabled(true, for: first, in: defaults)
+        AppPreferences.setAuroraTheme("sunset", for: first, in: defaults)
+
+        XCTAssertTrue(AppPreferences.auroraBackgroundEnabled(for: first, fallback: false, in: defaults))
+        XCTAssertEqual(AppPreferences.auroraTheme(for: first, fallback: "classic", in: defaults), "sunset")
+
+        XCTAssertFalse(AppPreferences.hasCustomAuroraOverride(for: second, in: defaults))
+        XCTAssertFalse(AppPreferences.auroraBackgroundEnabled(for: second, fallback: false, in: defaults))
+        XCTAssertEqual(AppPreferences.auroraTheme(for: second, fallback: "classic", in: defaults), "classic")
+    }
+
+    func testAuroraConfigurationAggregatesOverrideAndFallbackValues() {
+        let displayID: CGDirectDisplayID = 888
+
+        let fallback = AppPreferences.auroraConfiguration(
+            for: displayID,
+            fallbackEnabled: true,
+            fallbackTheme: "matrix",
+            in: defaults
+        )
+
+        XCTAssertEqual(
+            fallback,
+            AppPreferences.AuroraDisplayConfiguration(
+                usesCustomOverride: false,
+                backgroundEnabled: true,
+                theme: "matrix"
+            )
+        )
+
+        AppPreferences.setCustomAuroraOverrideEnabled(true, for: displayID, in: defaults)
+        AppPreferences.setAuroraBackgroundEnabled(false, for: displayID, in: defaults)
+        AppPreferences.setAuroraTheme("sunset", for: displayID, in: defaults)
+
+        let custom = AppPreferences.auroraConfiguration(
+            for: displayID,
+            fallbackEnabled: true,
+            fallbackTheme: "matrix",
+            in: defaults
+        )
+
+        XCTAssertEqual(
+            custom,
+            AppPreferences.AuroraDisplayConfiguration(
+                usesCustomOverride: true,
+                backgroundEnabled: false,
+                theme: "sunset"
+            )
+        )
+    }
+
+    func testTerminalActionConfigurationUsesStoredValuesOrDefaults() {
+        let defaultsConfiguration = AppPreferences.terminalActionConfiguration(in: defaults)
+
+        XCTAssertEqual(
+            defaultsConfiguration,
+            AppPreferences.TerminalActionConfiguration(
+                showChipCloseButtonOnHover: AppPreferences.Defaults.showChipCloseButtonOnHover,
+                confirmBeforeCloseAll: AppPreferences.Defaults.confirmBeforeCloseAll,
+                closeActionMode: AppPreferences.Defaults.closeActionMode
+            )
+        )
+
+        defaults.set(false, forKey: AppPreferences.Keys.showChipCloseButtonOnHover)
+        AppPreferences.setConfirmBeforeCloseAll(false, in: defaults)
+        defaults.set("closeWindowOnly", forKey: AppPreferences.Keys.closeActionMode)
+
+        XCTAssertEqual(
+            AppPreferences.terminalActionConfiguration(in: defaults),
+            AppPreferences.TerminalActionConfiguration(
+                showChipCloseButtonOnHover: false,
+                confirmBeforeCloseAll: false,
+                closeActionMode: "closeWindowOnly"
+            )
+        )
+    }
+
+    func testExperimentalFeatureConfigurationUsesStoredValuesOrDefaults() {
+        let defaultsConfiguration = AppPreferences.experimentalFeatureConfiguration(in: defaults)
+
+        XCTAssertEqual(
+            defaultsConfiguration,
+            AppPreferences.ExperimentalFeatureConfiguration(
+                dragToNotchEnabled: AppPreferences.Defaults.experimentalDragToNotchEnabled,
+                startupOrbEnabled: AppPreferences.Defaults.experimentalStartupOrbEnabled,
+                hitTestDebugOverlayEnabled: AppPreferences.Defaults.hitTestDebugOverlayEnabled,
+                notchDockingSensitivity: AppPreferences.Defaults.notchDockingSensitivity,
+                projectStatusCardEnabled: AppPreferences.Defaults.experimentalProjectStatusCardEnabled,
+                projectStatusShowGit: AppPreferences.Defaults.experimentalProjectStatusShowGit,
+                projectStatusShowFolder: AppPreferences.Defaults.experimentalProjectStatusShowFolder
+            )
+        )
+
+        defaults.set(true, forKey: AppPreferences.Keys.experimentalDragToNotchEnabled)
+        defaults.set(true, forKey: AppPreferences.Keys.experimentalStartupOrbEnabled)
+        defaults.set(true, forKey: AppPreferences.Keys.hitTestDebugOverlayEnabled)
+        defaults.set(44.0, forKey: AppPreferences.Keys.notchDockingSensitivity)
+        defaults.set(true, forKey: AppPreferences.Keys.experimentalProjectStatusCardEnabled)
+        defaults.set(false, forKey: AppPreferences.Keys.experimentalProjectStatusShowGit)
+        defaults.set(false, forKey: AppPreferences.Keys.experimentalProjectStatusShowFolder)
+
+        XCTAssertEqual(
+            AppPreferences.experimentalFeatureConfiguration(in: defaults),
+            AppPreferences.ExperimentalFeatureConfiguration(
+                dragToNotchEnabled: true,
+                startupOrbEnabled: true,
+                hitTestDebugOverlayEnabled: true,
+                notchDockingSensitivity: 44,
+                projectStatusCardEnabled: true,
+                projectStatusShowGit: false,
+                projectStatusShowFolder: false
+            )
+        )
     }
 }

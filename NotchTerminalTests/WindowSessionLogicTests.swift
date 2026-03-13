@@ -90,6 +90,56 @@ final class WindowSessionLogicTests: XCTestCase {
         XCTAssertEqual(WindowSessionLogic.nextWindowNumber(from: []), 1)
     }
 
+    func testSnapshotProjectionMapsFieldsIntoSnapshot() {
+        let id = UUID()
+        let snapshot = WindowSessionLogic.snapshot(
+            from: .init(
+                id: id,
+                number: 8,
+                displayID: 77,
+                workingDirectory: "/tmp/app",
+                expandedFrame: CGRect(x: 5, y: 6, width: 700, height: 480),
+                isDockedToNotch: true,
+                isAlwaysOnTop: true,
+                isCompact: false,
+                isMaximized: true,
+                displayTitle: "codex",
+                projectRootPath: "/tmp",
+                projectName: "tmp",
+                lastSubmittedCommand: "npm run dev",
+                preMaximizeFrame: CGRect(x: 1, y: 2, width: 3, height: 4)
+            )
+        )
+
+        XCTAssertEqual(snapshot.id, id)
+        XCTAssertEqual(snapshot.number, 8)
+        XCTAssertEqual(snapshot.displayID, 77)
+        XCTAssertEqual(snapshot.workingDirectory, "/tmp/app")
+        XCTAssertEqual(snapshot.displayTitle, "codex")
+        XCTAssertEqual(snapshot.projectRootPath, "/tmp")
+        XCTAssertEqual(snapshot.projectName, "tmp")
+        XCTAssertEqual(snapshot.lastSubmittedCommand, "npm run dev")
+        XCTAssertEqual(snapshot.preMaximizeFrame, CGRect(x: 1, y: 2, width: 3, height: 4))
+    }
+
+    func testSerializedSessionsMapsMultipleSnapshots() {
+        let snapshots = [
+            makeSnapshot(number: 1, displayID: 11),
+            makeSnapshot(number: 2, displayID: 12)
+        ]
+
+        let sessions = WindowSessionLogic.serializedSessions(
+            from: snapshots,
+            normalizeWorkingDirectory: { $0 + "/normalized" },
+            creationTimestamp: Date(timeIntervalSince1970: 44)
+        )
+
+        XCTAssertEqual(sessions.count, 2)
+        XCTAssertEqual(sessions.map(\.lastKnownDisplayID), ["11", "12"])
+        XCTAssertEqual(sessions.map(\.workingDirectory), ["/tmp/normalized", "/tmp/normalized"])
+        XCTAssertTrue(sessions.allSatisfy { $0.creationTimestamp == Date(timeIntervalSince1970: 44) })
+    }
+
     private func makeSnapshot(number: Int, displayID: CGDirectDisplayID) -> WindowSessionSnapshot {
         WindowSessionSnapshot(
             id: UUID(),

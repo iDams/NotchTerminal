@@ -33,40 +33,17 @@ final class InteractiveTerminalPanel: NSPanel {
     }
 }
 
-struct TerminalWindowItem: Identifiable {
-    let id: UUID
-    let number: Int
-    let displayID: CGDirectDisplayID
-    let title: String
-    let projectName: String?
-    let workingDirectory: String
-    let lastCommand: String?
-    let icon: NSImage?
-    let preview: NSImage?
-    let isMinimized: Bool
-    let isAlwaysOnTop: Bool
-    let isActive: Bool
-}
-
 @MainActor
 final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
+    typealias NotchTarget = TerminalWindowDockTarget
+
     enum CloseActionMode: String {
         case closeWindowOnly
         case terminateProcessAndClose
     }
 
-    struct NotchTarget {
-        let displayID: CGDirectDisplayID
-        let frame: CGRect
-    }
-
     var onTerminalItemsChanged: (([TerminalWindowItem]) -> Void)?
     var onCommandOrbEvent: ((TerminalCommandOrbEvent) -> Void)?
-
-    private struct PendingOrbCommand {
-        let event: TerminalCommandOrbEvent
-        var hasFailed = false
-    }
 
     private struct WindowInstance {
         let id: UUID
@@ -97,11 +74,13 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     
     @AppStorage(AppPreferences.Keys.terminalDefaultWidth) private var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
     @AppStorage(AppPreferences.Keys.terminalDefaultHeight) private var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
-    @AppStorage(AppPreferences.Keys.notchDockingSensitivity) private var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
-    @AppStorage(AppPreferences.Keys.experimentalDragToNotchEnabled) private var experimentalDragToNotchEnabled: Bool = AppPreferences.Defaults.experimentalDragToNotchEnabled
 
     private var expandedSize: CGSize {
         CGSize(width: terminalDefaultWidth, height: terminalDefaultHeight)
+    }
+
+    private var experimentalPreferences: AppPreferences.ExperimentalFeatureConfiguration {
+        AppPreferences.experimentalFeatureConfiguration()
     }
     private var windows: [UUID: WindowInstance] = [:]
     private var activeWindowID: UUID?
@@ -110,51 +89,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private var dockSuppressionUntil: [UUID: Date] = [:]
     private var closingWithoutTerminate = Set<UUID>()
     private var nextNumber: Int = 1
-    private var pendingOrbCommands: [UUID: PendingOrbCommand] = [:]
+    private var pendingOrbCommands: [UUID: PendingOrbCommandState] = [:]
 
     private func defaultDisplayIcon() -> NSImage? {
         NSImage(named: "AppLogo")
-    }
-
-    private func restoredBranding(for session: TerminalSession?) -> CLICommandBranding {
-        guard let session else {
-            return CLICommandBranding(title: nil, icon: nil)
-        }
-
-        let trimmedTitle = session.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty, trimmedTitle != "NotchTerminal" else {
-            return CLICommandBranding(title: nil, icon: nil)
-        }
-
-        return CLICommandBrandingResolver.branding(for: trimmedTitle)
-    }
-
-    private func resolvedProjectContext(for workingDirectory: String, session: TerminalSession?) -> ProjectContext? {
-        if let resolved = ProjectContextResolver.resolve(from: workingDirectory) {
-            return resolved
-        }
-
-        guard let rootPath = session?.projectRootPath,
-              let projectName = session?.projectName,
-              !rootPath.isEmpty,
-              !projectName.isEmpty else {
-            return nil
-        }
-
-        return ProjectContext(rootPath: rootPath, displayName: projectName)
-    }
-
-    private func normalizedWorkingDirectory(_ raw: String?) -> String {
-        let fallback = NSHomeDirectory()
-        let candidate = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !candidate.isEmpty, candidate.hasPrefix("/"), candidate != "/" else { return fallback }
-
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: candidate, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
-            return fallback
-        }
-        return candidate
     }
 
     private func displayID(for screen: NSScreen) -> CGDirectDisplayID? {
@@ -168,23 +106,6 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         NSScreen.screens.first { screen in
             self.displayID(for: screen) == displayID
         }
-    }
-
-    private func dockThumbnailFrame(from sourceFrame: CGRect, notchFrame: CGRect?) -> CGRect {
-        let size = CGSize(width: 54, height: 54)
-        let origin: CGPoint
-        if let notchFrame {
-            origin = CGPoint(
-                x: notchFrame.midX - size.width / 2,
-                y: notchFrame.maxY - size.height
-            )
-        } else {
-            origin = CGPoint(
-                x: sourceFrame.midX - size.width / 2,
-                y: sourceFrame.maxY - size.height
-            )
-        }
-        return CGRect(origin: origin, size: size)
     }
 
     func createWindow(
@@ -201,13 +122,13 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         nextNumber += 1
 
         let panel = makePanel()
-        let restoredBranding = restoredBranding(for: session)
+        let restoredBranding = TerminalWindowContextResolver.restoredBranding(for: session)
         let restoredTitle: String = {
             let candidate = session?.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return candidate.isEmpty ? "NotchTerminal" : candidate
         }()
-        let workingDirectory = normalizedWorkingDirectory(session?.workingDirectory)
-        let projectContext = resolvedProjectContext(for: workingDirectory, session: session)
+        let workingDirectory = TerminalWindowContextResolver.normalizedWorkingDirectory(session?.workingDirectory)
+        let projectContext = TerminalWindowContextResolver.resolvedProjectContext(for: workingDirectory, session: session)
         let initialSize = session.map { CGSize(width: $0.windowWidth, height: $0.windowHeight) } ?? expandedSize
         let frame = frameForInitialShow(on: screen, size: initialSize)
         panel.setFrame(frame, display: true)
@@ -265,7 +186,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             targetFrame.origin.y = min(targetFrame.origin.y, maxAllowedY)
         }
         // Use the displayID saved at minimize time to find the correct notch position
-        let startFrame = dockThumbnailFrame(
+        let startFrame = TerminalWindowDockingLogic.dockThumbnailFrame(
             from: targetFrame,
             notchFrame: notchFrame(for: instance.displayID, in: instance)
         )
@@ -497,12 +418,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.isCompact.toggle()
 
         let targetSize = instance.isCompact ? compactSize : expandedSize
-        let currentFrame = instance.panel.frame
-        let targetOrigin = CGPoint(
-            x: currentFrame.midX - targetSize.width / 2,
-            y: currentFrame.maxY - targetSize.height
+        let targetFrame = TerminalWindowGeometryLogic.compactToggleFrame(
+            currentFrame: instance.panel.frame,
+            targetSize: targetSize
         )
-        let targetFrame = CGRect(origin: targetOrigin, size: targetSize)
 
         updateContent(for: id, isCompactOverride: instance.isCompact)
 
@@ -516,12 +435,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard var instance = windows[id] else { return }
         instance.isCompact = false
 
-        let current = instance.panel.frame
-        let targetFrame = CGRect(
-            x: current.minX,
-            y: current.maxY - expandedSize.height,
-            width: expandedSize.width,
-            height: expandedSize.height
+        let targetFrame = TerminalWindowGeometryLogic.resetFrame(
+            currentFrame: instance.panel.frame,
+            expandedSize: expandedSize
         )
 
         updateContent(for: id, isCompactOverride: false)
@@ -536,13 +452,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard var instance = windows[id] else { return }
 
         if instance.isMaximized {
-            // Restore to previous size
-            let restoreFrame = instance.preMaximizeFrame ?? CGRect(
-                origin: CGPoint(
-                    x: instance.panel.frame.midX - expandedSize.width / 2,
-                    y: instance.panel.frame.midY - expandedSize.height / 2
-                ),
-                size: expandedSize
+            let restoreFrame = TerminalWindowGeometryLogic.restoredFrameFromMaximize(
+                currentFrame: instance.panel.frame,
+                expandedSize: expandedSize,
+                preMaximizeFrame: instance.preMaximizeFrame
             )
             animatePanel(instance.panel, to: restoreFrame, duration: 0.22)
             instance.isMaximized = false
@@ -618,7 +531,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         if let preferredTarget {
             instance.displayID = preferredTarget.displayID
         }
-        let targetFrame = dockThumbnailFrame(
+        let targetFrame = TerminalWindowDockingLogic.dockThumbnailFrame(
             from: instance.panel.frame,
             notchFrame: preferredTarget?.frame ?? notchFrame(for: instance.displayID, in: instance)
         )
@@ -692,15 +605,16 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func publishTerminalItems() {
-        let items = windows.values
-            .map(makeTerminalItem(from:))
-            .sorted { $0.number < $1.number }
-        onTerminalItemsChanged?(items)
+        onTerminalItemsChanged?(TerminalWindowPresentationLogic.items(from: terminalPresentationSnapshots()))
     }
 
-    private func makeTerminalItem(from instance: WindowInstance) -> TerminalWindowItem {
+    private func terminalPresentationSnapshots() -> [TerminalWindowPresentationSnapshot] {
+        windows.values.map(makePresentationSnapshot(from:))
+    }
+
+    private func makePresentationSnapshot(from instance: WindowInstance) -> TerminalWindowPresentationSnapshot {
         let currentPreview = instance.isMinimized ? instance.previewSnapshot : capturePreview(from: instance.panel)
-        return TerminalWindowItem(
+        return TerminalWindowPresentationSnapshot(
             id: instance.id,
             number: instance.number,
             displayID: instance.displayID,
@@ -820,11 +734,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func frameForInitialShow(on screen: NSScreen, size: CGSize) -> CGRect {
-        let origin = CGPoint(
-            x: screen.frame.midX - size.width / 2,
-            y: screen.frame.maxY - size.height - 220
-        )
-        return CGRect(origin: origin, size: size)
+        TerminalWindowGeometryLogic.initialFrame(screenFrame: screen.frame, windowSize: size)
     }
 
     private func defaultTerminalFontSize() -> CGFloat {
@@ -871,7 +781,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
               let instance = windows[id],
               !instance.isMinimized else { return }
 
-        guard experimentalDragToNotchEnabled else {
+        guard experimentalPreferences.dragToNotchEnabled else {
             clearDockPreviewState(for: id)
             return
         }
@@ -900,71 +810,97 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func handleDragEnd() {
-        guard experimentalDragToNotchEnabled else {
-            clearAllDockPreviewState()
-            return
-        }
-
         // Remove the monitor immediately
         if let monitor = dragMonitor {
             NSEvent.removeMonitor(monitor)
             dragMonitor = nil
         }
 
-        // Check all pending dock targets
-        for (id, target) in pendingDockTargets {
-            guard let instance = windows[id], !instance.isMinimized else { continue }
-            if matchesPendingDockTarget(target, for: instance) {
-                postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
-                pendingDockTargets.removeValue(forKey: id)
-                minimizeWindow(id: id)
-                return
+        let matchedDisplayID: CGDirectDisplayID? = {
+            guard experimentalPreferences.dragToNotchEnabled else { return nil }
+            for (id, target) in pendingDockTargets {
+                guard let instance = windows[id], !instance.isMinimized else { continue }
+                if matchesPendingDockTarget(target, for: instance) {
+                    return target.displayID
+                }
+            }
+            return nil
+        }()
+
+        let resolution = TerminalWindowDockingLogic.dragEndResolution(
+            dragToNotchEnabled: experimentalPreferences.dragToNotchEnabled,
+            pendingTargets: Array(pendingDockTargets.values),
+            matchedMinimizeDisplayID: matchedDisplayID
+        )
+
+        for displayID in resolution.hoverDisplayIDsToClear {
+            postNotchDockHoverChanged(displayID: displayID, isHovering: false)
+        }
+
+        if let matchedDisplayID = resolution.targetToMinimize,
+           let matchedEntry = pendingDockTargets.first(where: { $0.value.displayID == matchedDisplayID }) {
+            pendingDockTargets.removeValue(forKey: matchedEntry.key)
+            minimizeWindow(id: matchedEntry.key)
+            return
+        }
+
+        if resolution.shouldRestoreAllPreviews {
+            for id in Array(dockingPreviewOriginalFrames.keys) {
+                restoreDockPreviewIfNeeded(id: id)
             }
         }
-        for target in pendingDockTargets.values {
-            postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
+        if resolution.shouldClearPendingTargets {
+            pendingDockTargets.removeAll()
         }
-        for id in Array(dockingPreviewOriginalFrames.keys) {
-            restoreDockPreviewIfNeeded(id: id)
-        }
-        pendingDockTargets.removeAll()
     }
 
     private func updateDockPreviewState(for id: UUID, panelFrame: CGRect, instance: WindowInstance) {
-        guard experimentalDragToNotchEnabled else {
-            clearDockPreviewState(for: id)
-            return
-        }
-
         let isDraggingWithMouse = (NSEvent.pressedMouseButtons & 0x1) != 0
-        if let suppressionUntil = dockSuppressionUntil[id], suppressionUntil > Date() {
-            if let previousTarget = pendingDockTargets[id] {
-                postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
-            }
-            pendingDockTargets.removeValue(forKey: id)
-            restoreDockPreviewIfNeeded(id: id)
-            return
-        } else {
-            dockSuppressionUntil.removeValue(forKey: id)
-        }
-
+        let now = Date()
+        let previousTarget = pendingDockTargets[id]
         let nearTarget = closestDockTarget(for: panelFrame, in: instance)
 
-        if let nearTarget, isDraggingWithMouse {
+        let previousTargetIsPill: Bool = {
+            guard let previousTarget else { return false }
+            let baseFrame = notchFrame(for: previousTarget.displayID, in: instance) ?? previousTarget.frame
+            return TerminalWindowDockingLogic.isPillShape(frame: baseFrame)
+        }()
+
+        let update = TerminalWindowDockingLogic.previewUpdate(
+            dragToNotchEnabled: experimentalPreferences.dragToNotchEnabled,
+            isDraggingWithMouse: isDraggingWithMouse,
+            now: now,
+            suppressionUntil: dockSuppressionUntil[id],
+            previousTarget: previousTarget,
+            nearTarget: nearTarget,
+            previousTargetIsPill: previousTargetIsPill
+        )
+
+        if let previousTarget, previousTarget.displayID != update.hoverDisplayID {
+            postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
+        }
+
+        if let hoverDisplayID = update.hoverDisplayID,
+           previousTarget?.displayID != hoverDisplayID,
+           let nearTarget {
             pendingDockTargets[id] = nearTarget
-            postNotchDockHoverChanged(displayID: nearTarget.displayID, isHovering: true)
+            postNotchDockHoverChanged(displayID: hoverDisplayID, isHovering: true)
+        }
+
+        if update.shouldPreview {
             applyDockPreviewIfNeeded(id: id)
+            dockSuppressionUntil[id] = update.suppressionUntil
             return
         }
 
-        if let previousTarget = pendingDockTargets[id] {
-            postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
-            if isPillDockTarget(previousTarget, for: instance) && isDraggingWithMouse {
-                dockSuppressionUntil[id] = Date().addingTimeInterval(0.45)
-            }
+        if update.shouldClearPendingTarget {
+            pendingDockTargets.removeValue(forKey: id)
         }
-        pendingDockTargets.removeValue(forKey: id)
-        restoreDockPreviewIfNeeded(id: id)
+        dockSuppressionUntil[id] = update.suppressionUntil
+
+        if update.shouldRestorePreview {
+            restoreDockPreviewIfNeeded(id: id)
+        }
     }
 
     private func postNotchDockHoverChanged(displayID: CGDirectDisplayID, isHovering: Bool) {
@@ -979,27 +915,52 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func clearDockPreviewState(for id: UUID) {
-        if let previousTarget = pendingDockTargets[id] {
-            postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
+        let resolution = TerminalWindowDockingLogic.clearPreviewResolution(
+            pendingTargets: pendingDockTargets[id].map { [$0] } ?? [],
+            scope: .singleTarget
+        )
+
+        for displayID in resolution.hoverDisplayIDsToClear {
+            postNotchDockHoverChanged(displayID: displayID, isHovering: false)
         }
-        pendingDockTargets.removeValue(forKey: id)
-        dockSuppressionUntil.removeValue(forKey: id)
-        restoreDockPreviewIfNeeded(id: id)
+        if resolution.shouldClearPendingTargets {
+            pendingDockTargets.removeValue(forKey: id)
+        }
+        if resolution.shouldClearSuppression {
+            dockSuppressionUntil.removeValue(forKey: id)
+        }
+        if resolution.shouldRestorePreview {
+            restoreDockPreviewIfNeeded(id: id)
+        }
     }
 
     private func clearAllDockPreviewState() {
-        if let monitor = dragMonitor {
+        let resolution = TerminalWindowDockingLogic.clearPreviewResolution(
+            pendingTargets: Array(pendingDockTargets.values),
+            scope: .allTargets
+        )
+
+        if resolution.shouldRemoveMonitor, let monitor = dragMonitor {
             NSEvent.removeMonitor(monitor)
             dragMonitor = nil
         }
-        for target in pendingDockTargets.values {
-            postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
+
+        for displayID in resolution.hoverDisplayIDsToClear {
+            postNotchDockHoverChanged(displayID: displayID, isHovering: false)
         }
-        for id in Array(dockingPreviewOriginalFrames.keys) {
-            restoreDockPreviewIfNeeded(id: id)
+
+        if resolution.shouldRestoreAllPreviews {
+            for id in Array(dockingPreviewOriginalFrames.keys) {
+                restoreDockPreviewIfNeeded(id: id)
+            }
         }
-        pendingDockTargets.removeAll()
-        dockSuppressionUntil.removeAll()
+
+        if resolution.shouldClearPendingTargets {
+            pendingDockTargets.removeAll()
+        }
+        if resolution.shouldClearSuppression {
+            dockSuppressionUntil.removeAll()
+        }
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
@@ -1046,16 +1007,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 1)
         instance.panel.orderFrontRegardless()
 
-        // Temporary visual shrink while the dragged window is in notch dock range.
-        // This is only a preview and is restored if the drop is canceled.
-        let width = max(300, original.width * 0.74)
-        let height = max(190, original.height * 0.74)
-        let previewSize = CGSize(width: width, height: height)
-        let previewOrigin = CGPoint(
-            x: original.midX - (previewSize.width / 2),
-            y: original.maxY - previewSize.height
-        )
-        let previewFrame = CGRect(origin: previewOrigin, size: previewSize)
+        let previewFrame = TerminalWindowDockingLogic.previewFrame(for: original)
 
         animatePanel(instance.panel, to: previewFrame, duration: 0.12)
     }
@@ -1072,32 +1024,32 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     func currentSessions() -> [TerminalSession] {
-        sessionSnapshots().map { snapshot in
-            WindowSessionLogic.serializedSession(
-                from: snapshot,
-                normalizeWorkingDirectory: normalizedWorkingDirectory(_:),
-                creationTimestamp: Date()
-            )
-        }
+        WindowSessionLogic.serializedSessions(
+            from: sessionSnapshots(),
+            normalizeWorkingDirectory: { TerminalWindowContextResolver.normalizedWorkingDirectory($0) },
+            creationTimestamp: Date()
+        )
     }
 
     private func sessionSnapshots() -> [WindowSessionSnapshot] {
         windows.values.map { instance in
-            WindowSessionSnapshot(
-                id: instance.id,
-                number: instance.number,
-                displayID: instance.displayID,
-                workingDirectory: instance.currentDirectory,
-                expandedFrame: instance.expandedFrame,
-                isDockedToNotch: instance.isMinimized,
-                isAlwaysOnTop: instance.isAlwaysOnTop,
-                isCompact: instance.isCompact,
-                isMaximized: instance.isMaximized,
-                displayTitle: instance.displayTitle,
-                projectRootPath: instance.projectRootPath,
-                projectName: instance.projectName,
-                lastSubmittedCommand: instance.lastSubmittedCommand,
-                preMaximizeFrame: instance.preMaximizeFrame
+            WindowSessionLogic.snapshot(
+                from: .init(
+                    id: instance.id,
+                    number: instance.number,
+                    displayID: instance.displayID,
+                    workingDirectory: instance.currentDirectory,
+                    expandedFrame: instance.expandedFrame,
+                    isDockedToNotch: instance.isMinimized,
+                    isAlwaysOnTop: instance.isAlwaysOnTop,
+                    isCompact: instance.isCompact,
+                    isMaximized: instance.isMaximized,
+                    displayTitle: instance.displayTitle,
+                    projectRootPath: instance.projectRootPath,
+                    projectName: instance.projectName,
+                    lastSubmittedCommand: instance.lastSubmittedCommand,
+                    preMaximizeFrame: instance.preMaximizeFrame
+                )
             )
         }
     }
@@ -1152,44 +1104,35 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     private func handleCommandSubmitted(id: UUID, command: String) {
         guard var instance = windows[id] else { return }
-        let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let branding = CLICommandBrandingResolver.branding(for: command)
-        instance.lastSubmittedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if let orbEvent = TerminalCommandOrbClassifier.makeEvent(
+        let update = TerminalCommandLifecycleLogic.submittedCommandUpdate(
             command: command,
+            currentDisplayTitle: instance.displayTitle,
+            currentDisplayIcon: instance.displayIcon,
+            defaultDisplayIcon: defaultDisplayIcon(),
             displayID: instance.displayID,
             terminalNumber: instance.number
-        ) {
-            pendingOrbCommands[id] = PendingOrbCommand(event: orbEvent)
-            onCommandOrbEvent?(orbEvent)
+        )
+
+        instance.lastSubmittedCommand = update.lastSubmittedCommand
+
+        if let pending = update.pendingOrbCommand {
+            pendingOrbCommands[id] = pending
         } else {
             pendingOrbCommands.removeValue(forKey: id)
         }
 
-        if let newTitle = branding.title {
-            guard instance.displayTitle != newTitle || instance.displayIcon !== branding.icon else { return }
-            instance.displayTitle = newTitle
-            instance.displayIcon = branding.icon
-            instance.preferMouseReporting = (newTitle == "opencode")
-        } else {
-            // Keep branding for in-CLI slash commands, but reset when leaving the CLI.
-            if trimmed == "exit" || trimmed == "quit" {
-                instance.displayTitle = "NotchTerminal"
-                instance.displayIcon = defaultDisplayIcon()
-                instance.preferMouseReporting = false
-            } else if trimmed.hasPrefix("/") {
-                return
-            } else if instance.displayIcon != nil {
-                // If a regular shell command appears after branding was active,
-                // assume we returned to the shell and clear branding.
-                instance.displayTitle = "NotchTerminal"
-                instance.displayIcon = defaultDisplayIcon()
-                instance.preferMouseReporting = false
-            } else {
-                return
-            }
+        if let orbEvent = update.emittedOrbEvent {
+            onCommandOrbEvent?(orbEvent)
         }
+
+        guard let brandingState = update.brandingState else {
+            windows[id] = instance
+            return
+        }
+
+        instance.displayTitle = brandingState.displayTitle
+        instance.displayIcon = brandingState.displayIcon
+        instance.preferMouseReporting = brandingState.preferMouseReporting
 
         windows[id] = instance
         updateContent(for: id)
@@ -1197,49 +1140,40 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func handleCommandOutput(id: UUID, text: String) {
-        guard var pending = pendingOrbCommands[id], !pending.hasFailed else { return }
-        guard outputLooksLikeFailure(text) else { return }
-        pending.hasFailed = true
-        pendingOrbCommands[id] = pending
-        onCommandOrbEvent?(TerminalCommandOrbClassifier.makeCompletionEvent(from: pending.event, status: .error))
+        guard let pending = pendingOrbCommands[id],
+              let (failed, event) = TerminalCommandLifecycleLogic.failedOrbState(for: text, pending: pending) else {
+            return
+        }
+        pendingOrbCommands[id] = failed
+        onCommandOrbEvent?(event)
     }
 
     private func handleDirectoryChanged(id: UUID, directory: String) {
         guard var instance = windows[id] else { return }
 
-        instance.currentDirectory = normalizedWorkingDirectory(Self.parseDirectoryPath(directory))
-        let projectContext = ProjectContextResolver.resolve(from: instance.currentDirectory)
-        instance.projectRootPath = projectContext?.rootPath
-        instance.projectName = projectContext?.displayName
-        if let pending = pendingOrbCommands[id] {
+        let update = TerminalCommandLifecycleLogic.directoryChangeUpdate(
+            rawDirectory: Self.parseDirectoryPath(directory),
+            pending: pendingOrbCommands[id]
+        )
+
+        instance.currentDirectory = update.normalizedWorkingDirectory
+        instance.projectRootPath = update.projectContext?.rootPath
+        instance.projectName = update.projectContext?.displayName
+
+        if let pending = update.remainingPendingOrbCommand {
+            pendingOrbCommands[id] = pending
+        } else {
             pendingOrbCommands.removeValue(forKey: id)
-            if !pending.hasFailed {
-                onCommandOrbEvent?(TerminalCommandOrbClassifier.makeCompletionEvent(from: pending.event, status: .success))
-            }
+        }
+        if let completionEvent = update.emittedCompletionEvent {
+            onCommandOrbEvent?(completionEvent)
         }
 
         windows[id] = instance
     }
 
-    private func outputLooksLikeFailure(_ text: String) -> Bool {
-        let lowered = text.lowercased()
-        let patterns = [
-            "npm error",
-            "npm err!",
-            "enoent",
-            "command failed",
-            "error:",
-            "fatal:",
-            "traceback (most recent call last)",
-            "build failed",
-            "test failed",
-            "no such file or directory"
-        ]
-        return patterns.contains { lowered.contains($0) }
-    }
-
     private func preferredCloseActionMode() -> CloseActionMode {
-        let raw = UserDefaults.standard.string(forKey: AppPreferences.Keys.closeActionMode) ?? AppPreferences.Defaults.closeActionMode
+        let raw = AppPreferences.terminalActionConfiguration().closeActionMode
         return CloseActionMode(rawValue: raw) ?? .terminateProcessAndClose
     }
 
@@ -1248,41 +1182,24 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func closestDockTarget(for windowFrame: CGRect, in instance: WindowInstance) -> NotchTarget? {
-        guard experimentalDragToNotchEnabled else { return nil }
+        let preferences = experimentalPreferences
+        guard preferences.dragToNotchEnabled else { return nil }
 
-        // Use top-center of window (where the title bar is) for proximity detection
-        let topCenter = CGPoint(x: windowFrame.midX, y: windowFrame.maxY)
         let targets = instance.notchTargetsProvider()
 
-        let candidate = targets
-            .map { target -> (NotchTarget, CGFloat, CGRect) in
-                let sensitivity = CGFloat(notchDockingSensitivity)
-                
-                // CRITICAL FIX: `target.frame` is the NSPanel frame, which expands dynamically
-                // when the UI grid opens, becoming huge. 
-                // We MUST dock into the closed notch frame exclusively.
-                let baseFrame = self.notchFrame(for: target.displayID, in: instance) ?? target.frame
-                let expanded: CGRect
-                if isPillDockTarget(target, for: instance) {
-                    expanded = baseFrame.insetBy(dx: -sensitivity, dy: -(sensitivity * 0.38))
-                } else {
-                    expanded = baseFrame.insetBy(dx: -sensitivity, dy: -(sensitivity * 0.75))
-                }
-                
-                let dx = topCenter.x - expanded.midX
-                let dy = topCenter.y - expanded.midY
-                let dist2 = (dx * dx) + (dy * dy)
-                return (target, dist2, expanded)
-            }
-            .filter { $0.2.contains(topCenter) }
-            .min { $0.1 < $1.1 }
+        let candidates = targets.map { target in
+            // CRITICAL FIX: `target.frame` is the NSPanel frame, which expands dynamically
+            // when the UI grid opens, becoming huge.
+            // We MUST dock into the closed notch frame exclusively.
+            let baseFrame = self.notchFrame(for: target.displayID, in: instance) ?? target.frame
+            return TerminalWindowDockingLogic.Candidate(target: target, effectiveFrame: baseFrame)
+        }
 
-        return candidate?.0
-    }
-
-    private func isPillDockTarget(_ target: NotchTarget, for instance: WindowInstance) -> Bool {
-        guard let screen = screen(for: target.displayID) ?? screen(for: instance.displayID) else { return true }
-        return screen.notchSize == .zero
+        return TerminalWindowDockingLogic.closestTarget(
+            to: windowFrame,
+            sensitivity: CGFloat(preferences.notchDockingSensitivity),
+            candidates: candidates
+        )
     }
 }
 
