@@ -205,4 +205,68 @@ final class AppPreferencesTests: XCTestCase {
             )
         )
     }
+
+    func testTerminalActionConfigurationUsesStoredValuesOrDefaults() {
+        let defaultsConfiguration = AppPreferences.terminalActionConfiguration(in: defaults)
+
+        XCTAssertEqual(
+            defaultsConfiguration,
+            AppPreferences.TerminalActionConfiguration(
+                showChipCloseButtonOnHover: AppPreferences.Defaults.showChipCloseButtonOnHover,
+                confirmBeforeCloseAll: AppPreferences.Defaults.confirmBeforeCloseAll,
+                closeActionMode: AppPreferences.Defaults.closeActionMode
+            )
+        )
+
+        defaults.set(false, forKey: AppPreferences.Keys.showChipCloseButtonOnHover)
+        AppPreferences.setConfirmBeforeCloseAll(false, in: defaults)
+        defaults.set("closeWindowOnly", forKey: AppPreferences.Keys.closeActionMode)
+
+        XCTAssertEqual(
+            AppPreferences.terminalActionConfiguration(in: defaults),
+            AppPreferences.TerminalActionConfiguration(
+                showChipCloseButtonOnHover: false,
+                confirmBeforeCloseAll: false,
+                closeActionMode: "closeWindowOnly"
+            )
+        )
+    }
+
+    func testExperimentalFeatureConfigurationUsesStoredValuesOrDefaults() {
+        let defaultsConfiguration = AppPreferences.experimentalFeatureConfiguration(in: defaults)
+
+        XCTAssertEqual(
+            defaultsConfiguration,
+            AppPreferences.ExperimentalFeatureConfiguration(
+                dragToNotchEnabled: AppPreferences.Defaults.experimentalDragToNotchEnabled,
+                startupOrbEnabled: AppPreferences.Defaults.experimentalStartupOrbEnabled,
+                hitTestDebugOverlayEnabled: AppPreferences.Defaults.hitTestDebugOverlayEnabled,
+                notchDockingSensitivity: AppPreferences.Defaults.notchDockingSensitivity,
+                projectStatusCardEnabled: AppPreferences.Defaults.experimentalProjectStatusCardEnabled,
+                projectStatusShowGit: AppPreferences.Defaults.experimentalProjectStatusShowGit,
+                projectStatusShowFolder: AppPreferences.Defaults.experimentalProjectStatusShowFolder
+            )
+        )
+
+        defaults.set(true, forKey: AppPreferences.Keys.experimentalDragToNotchEnabled)
+        defaults.set(true, forKey: AppPreferences.Keys.experimentalStartupOrbEnabled)
+        defaults.set(true, forKey: AppPreferences.Keys.hitTestDebugOverlayEnabled)
+        defaults.set(44.0, forKey: AppPreferences.Keys.notchDockingSensitivity)
+        defaults.set(true, forKey: AppPreferences.Keys.experimentalProjectStatusCardEnabled)
+        defaults.set(false, forKey: AppPreferences.Keys.experimentalProjectStatusShowGit)
+        defaults.set(false, forKey: AppPreferences.Keys.experimentalProjectStatusShowFolder)
+
+        XCTAssertEqual(
+            AppPreferences.experimentalFeatureConfiguration(in: defaults),
+            AppPreferences.ExperimentalFeatureConfiguration(
+                dragToNotchEnabled: true,
+                startupOrbEnabled: true,
+                hitTestDebugOverlayEnabled: true,
+                notchDockingSensitivity: 44,
+                projectStatusCardEnabled: true,
+                projectStatusShowGit: false,
+                projectStatusShowFolder: false
+            )
+        )
+    }
 }

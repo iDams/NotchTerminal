@@ -4,19 +4,65 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.enableCRTFilter) var enableCRTFilter: Bool = AppPreferences.Defaults.enableCRTFilter
     @AppStorage(AppPreferences.Keys.fakeNotchGlowEnabled) var fakeNotchGlowEnabled: Bool = AppPreferences.Defaults.fakeNotchGlowEnabled
     @AppStorage(AppPreferences.Keys.fakeNotchGlowTheme) var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
-    @AppStorage(AppPreferences.Keys.experimentalDragToNotchEnabled) var experimentalDragToNotchEnabled: Bool = AppPreferences.Defaults.experimentalDragToNotchEnabled
-    @AppStorage(AppPreferences.Keys.experimentalStartupOrbEnabled) var experimentalStartupOrbEnabled: Bool = AppPreferences.Defaults.experimentalStartupOrbEnabled
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetX) var startupOrbPillOffsetX: Double = AppPreferences.Defaults.startupOrbPillOffsetX
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetY) var startupOrbPillOffsetY: Double = AppPreferences.Defaults.startupOrbPillOffsetY
     @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetX) var startupOrbNotchOffsetX: Double = AppPreferences.Defaults.startupOrbNotchOffsetX
     @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetY) var startupOrbNotchOffsetY: Double = AppPreferences.Defaults.startupOrbNotchOffsetY
-    @AppStorage(AppPreferences.Keys.hitTestDebugOverlayEnabled) var hitTestDebugOverlayEnabled: Bool = AppPreferences.Defaults.hitTestDebugOverlayEnabled
-    @AppStorage(AppPreferences.Keys.notchDockingSensitivity) var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
     @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
     @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
-    @AppStorage(AppPreferences.Keys.experimentalProjectStatusCardEnabled) var experimentalProjectStatusCardEnabled: Bool = AppPreferences.Defaults.experimentalProjectStatusCardEnabled
-    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowGit) var experimentalProjectStatusShowGit: Bool = AppPreferences.Defaults.experimentalProjectStatusShowGit
-    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowFolder) var experimentalProjectStatusShowFolder: Bool = AppPreferences.Defaults.experimentalProjectStatusShowFolder
+
+    private var experimentalFeatures: AppPreferences.ExperimentalFeatureConfiguration {
+        AppPreferences.experimentalFeatureConfiguration()
+    }
+
+    private var dragToNotchBinding: Binding<Bool> {
+        Binding(
+            get: { experimentalFeatures.dragToNotchEnabled },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalDragToNotchEnabled) }
+        )
+    }
+
+    private var startupOrbEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { experimentalFeatures.startupOrbEnabled },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalStartupOrbEnabled) }
+        )
+    }
+
+    private var hitTestDebugOverlayBinding: Binding<Bool> {
+        Binding(
+            get: { experimentalFeatures.hitTestDebugOverlayEnabled },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.hitTestDebugOverlayEnabled) }
+        )
+    }
+
+    private var notchDockingSensitivityBinding: Binding<Double> {
+        Binding(
+            get: { experimentalFeatures.notchDockingSensitivity },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.notchDockingSensitivity) }
+        )
+    }
+
+    private var projectStatusCardEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { experimentalFeatures.projectStatusCardEnabled },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalProjectStatusCardEnabled) }
+        )
+    }
+
+    private var projectStatusShowGitBinding: Binding<Bool> {
+        Binding(
+            get: { experimentalFeatures.projectStatusShowGit },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalProjectStatusShowGit) }
+        )
+    }
+
+    private var projectStatusShowFolderBinding: Binding<Bool> {
+        Binding(
+            get: { experimentalFeatures.projectStatusShowFolder },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalProjectStatusShowFolder) }
+        )
+    }
 
     private var startupOrbPillOffsetXBinding: Binding<Double> {
         Binding(
@@ -181,14 +227,14 @@ struct ExperimentalSettingsView: View {
                 title: "settings.experimental.startupOrb".localized,
                 subtitle: "settings.experimental.startupOrb.subtitle".localized,
                 icon: "circle.grid.2x1.right.filled",
-                binding: $experimentalStartupOrbEnabled
+                binding: startupOrbEnabledBinding
             )
 
-            if experimentalStartupOrbEnabled && hasAnyNoNotch {
+            if experimentalFeatures.startupOrbEnabled && hasAnyNoNotch {
                 startupOrbPillSection
             }
 
-            if experimentalStartupOrbEnabled && hasAnyPhysicalNotch {
+            if experimentalFeatures.startupOrbEnabled && hasAnyPhysicalNotch {
                 startupOrbNotchSection
             }
         }
@@ -206,15 +252,15 @@ struct ExperimentalSettingsView: View {
                 title: "settings.experimental.dragToNotch".localized,
                 subtitle: "settings.experimental.dragToNotch.subtitle".localized,
                 icon: "arrow.down.to.line.compact",
-                binding: $experimentalDragToNotchEnabled
+                binding: dragToNotchBinding
             )
 
-            if experimentalDragToNotchEnabled {
+            if experimentalFeatures.dragToNotchEnabled {
                 NotchTerminalSliderPreferenceRow(
                     title: "settings.notchDockingSensitivity".localized,
                     subtitle: "settings.notchDockingSensitivity.subtitle".localized,
                     icon: "record.circle",
-                    value: $notchDockingSensitivity,
+                    value: notchDockingSensitivityBinding,
                     range: 0 ... 100,
                     step: 2,
                     valueFormatter: { "\(Int($0)) pt" }
@@ -235,7 +281,7 @@ struct ExperimentalSettingsView: View {
                 title: "settings.experimental.hitTestDebugOverlay".localized,
                 subtitle: "settings.experimental.hitTestDebugOverlay.subtitle".localized,
                 icon: "viewfinder.circle",
-                binding: $hitTestDebugOverlayEnabled
+                binding: hitTestDebugOverlayBinding
             )
         }
     }
@@ -290,23 +336,23 @@ struct ExperimentalSettingsView: View {
                 title: "Enable Project Status Card",
                 subtitle: "Show the card when Notch is expanded",
                 icon: "menubar.rectangle",
-                binding: $experimentalProjectStatusCardEnabled
+                binding: projectStatusCardEnabledBinding
             )
 
-            if experimentalProjectStatusCardEnabled {
+            if experimentalFeatures.projectStatusCardEnabled {
                 VStack(alignment: .leading, spacing: 12) {
                     NotchTerminalPreferenceToggleRow(
                         title: "Show Folder Name",
                         subtitle: "Display the active terminal's project folder",
                         icon: "folder",
-                        binding: $experimentalProjectStatusShowFolder
+                        binding: projectStatusShowFolderBinding
                     )
 
                     NotchTerminalPreferenceToggleRow(
                         title: "Show Git Status",
                         subtitle: "Display current branch and pending changes",
                         icon: "arrow.triangle.branch",
-                        binding: $experimentalProjectStatusShowGit
+                        binding: projectStatusShowGitBinding
                     )
                 }
                 .padding(.leading, 32)

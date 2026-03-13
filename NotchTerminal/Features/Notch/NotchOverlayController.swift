@@ -8,8 +8,7 @@ class PassthroughHostingView<Content: View>: NSHostingView<Content> {
     var model: NotchViewModel?
 
     private var experimentalStartupOrbEnabled: Bool {
-        UserDefaults.standard.object(forKey: AppPreferences.Keys.experimentalStartupOrbEnabled) as? Bool
-            ?? AppPreferences.Defaults.experimentalStartupOrbEnabled
+        AppPreferences.experimentalFeatureConfiguration().startupOrbEnabled
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
@@ -756,8 +755,7 @@ final class NotchOverlayController {
     }
 
     private func startupOrbScreenRect(for screen: NSScreen, model: NotchViewModel) -> CGRect? {
-        let isEnabled = UserDefaults.standard.object(forKey: AppPreferences.Keys.experimentalStartupOrbEnabled) as? Bool
-            ?? AppPreferences.Defaults.experimentalStartupOrbEnabled
+        let isEnabled = AppPreferences.experimentalFeatureConfiguration().startupOrbEnabled
         guard isEnabled, !model.hasPhysicalNotch, !model.isExpanded else { return nil }
         let configuration = displayID(for: screen).map { AppPreferences.notchConfiguration(for: $0) }
         let hostRect = StartupOrbGeometry.hostRectOnScreen(
@@ -861,8 +859,7 @@ final class NotchOverlayController {
     }
 
     private func enqueueCommandOrbEvent(_ event: TerminalCommandOrbEvent) {
-        let isEnabled = UserDefaults.standard.object(forKey: AppPreferences.Keys.experimentalStartupOrbEnabled) as? Bool
-            ?? AppPreferences.Defaults.experimentalStartupOrbEnabled
+        let isEnabled = AppPreferences.experimentalFeatureConfiguration().startupOrbEnabled
         guard isEnabled,
               AppPreferences.isNotchEnabled(for: event.displayID),
               let model = modelsByDisplay[event.displayID] else { return }
@@ -942,7 +939,7 @@ final class NotchOverlayController {
         let response = alert.runModal()
 
         if alert.suppressionButton?.state == .on {
-            UserDefaults.standard.set(false, forKey: AppPreferences.Keys.confirmBeforeCloseAll)
+            AppPreferences.setConfirmBeforeCloseAll(false)
         }
         if response == .alertFirstButtonReturn {
             blackWindowController.closeAllWindows()

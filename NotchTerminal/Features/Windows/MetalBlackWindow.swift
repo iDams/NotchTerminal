@@ -97,11 +97,13 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     
     @AppStorage(AppPreferences.Keys.terminalDefaultWidth) private var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
     @AppStorage(AppPreferences.Keys.terminalDefaultHeight) private var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
-    @AppStorage(AppPreferences.Keys.notchDockingSensitivity) private var notchDockingSensitivity: Double = AppPreferences.Defaults.notchDockingSensitivity
-    @AppStorage(AppPreferences.Keys.experimentalDragToNotchEnabled) private var experimentalDragToNotchEnabled: Bool = AppPreferences.Defaults.experimentalDragToNotchEnabled
 
     private var expandedSize: CGSize {
         CGSize(width: terminalDefaultWidth, height: terminalDefaultHeight)
+    }
+
+    private var experimentalPreferences: AppPreferences.ExperimentalFeatureConfiguration {
+        AppPreferences.experimentalFeatureConfiguration()
     }
     private var windows: [UUID: WindowInstance] = [:]
     private var activeWindowID: UUID?
@@ -871,7 +873,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
               let instance = windows[id],
               !instance.isMinimized else { return }
 
-        guard experimentalDragToNotchEnabled else {
+        guard experimentalPreferences.dragToNotchEnabled else {
             clearDockPreviewState(for: id)
             return
         }
@@ -900,7 +902,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func handleDragEnd() {
-        guard experimentalDragToNotchEnabled else {
+        guard experimentalPreferences.dragToNotchEnabled else {
             clearAllDockPreviewState()
             return
         }
@@ -931,7 +933,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func updateDockPreviewState(for id: UUID, panelFrame: CGRect, instance: WindowInstance) {
-        guard experimentalDragToNotchEnabled else {
+        guard experimentalPreferences.dragToNotchEnabled else {
             clearDockPreviewState(for: id)
             return
         }
@@ -1239,7 +1241,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func preferredCloseActionMode() -> CloseActionMode {
-        let raw = UserDefaults.standard.string(forKey: AppPreferences.Keys.closeActionMode) ?? AppPreferences.Defaults.closeActionMode
+        let raw = AppPreferences.terminalActionConfiguration().closeActionMode
         return CloseActionMode(rawValue: raw) ?? .terminateProcessAndClose
     }
 
@@ -1248,7 +1250,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func closestDockTarget(for windowFrame: CGRect, in instance: WindowInstance) -> NotchTarget? {
-        guard experimentalDragToNotchEnabled else { return nil }
+        let preferences = experimentalPreferences
+        guard preferences.dragToNotchEnabled else { return nil }
 
         // Use top-center of window (where the title bar is) for proximity detection
         let topCenter = CGPoint(x: windowFrame.midX, y: windowFrame.maxY)
@@ -1256,7 +1259,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         let candidate = targets
             .map { target -> (NotchTarget, CGFloat, CGRect) in
-                let sensitivity = CGFloat(notchDockingSensitivity)
+                let sensitivity = CGFloat(preferences.notchDockingSensitivity)
                 
                 // CRITICAL FIX: `target.frame` is the NSPanel frame, which expands dynamically
                 // when the UI grid opens, becoming huge. 

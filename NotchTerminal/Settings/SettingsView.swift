@@ -150,14 +150,35 @@ struct GeneralSettingsView: View {
     @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
     @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
     @AppStorage(AppPreferences.Keys.preventCloseOnMouseLeave) var preventCloseOnMouseLeave: Bool = AppPreferences.Defaults.preventCloseOnMouseLeave
-    @AppStorage(AppPreferences.Keys.showChipCloseButtonOnHover) var showChipCloseButtonOnHover: Bool = AppPreferences.Defaults.showChipCloseButtonOnHover
-    @AppStorage(AppPreferences.Keys.confirmBeforeCloseAll) var confirmBeforeCloseAll: Bool = AppPreferences.Defaults.confirmBeforeCloseAll
-    @AppStorage(AppPreferences.Keys.closeActionMode) var closeActionMode: String = AppPreferences.Defaults.closeActionMode
-
     @ObservedObject private var languageManager = LanguageManager.shared
     @ObservedObject private var persistenceHealth = PersistenceHealth.shared
     @State private var selectedLanguage: String = LanguageManager.shared.currentLanguage
     @State private var useSystemLanguage: Bool = !LanguageManager.shared.userHasSelectedLanguage
+
+    private var terminalActionConfiguration: AppPreferences.TerminalActionConfiguration {
+        AppPreferences.terminalActionConfiguration()
+    }
+
+    private var showChipCloseButtonBinding: Binding<Bool> {
+        Binding(
+            get: { terminalActionConfiguration.showChipCloseButtonOnHover },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.showChipCloseButtonOnHover) }
+        )
+    }
+
+    private var confirmBeforeCloseAllBinding: Binding<Bool> {
+        Binding(
+            get: { terminalActionConfiguration.confirmBeforeCloseAll },
+            set: { AppPreferences.setConfirmBeforeCloseAll($0) }
+        )
+    }
+
+    private var closeActionModeBinding: Binding<String> {
+        Binding(
+            get: { terminalActionConfiguration.closeActionMode },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.closeActionMode) }
+        )
+    }
 
     private var languageKey: String {
         LanguageManager.shared.currentLanguage
@@ -331,14 +352,14 @@ struct GeneralSettingsView: View {
                 title: "settings.showChipCloseButton".localized,
                 subtitle: "settings.showChipCloseButton.subtitle".localized,
                 icon: "xmark.circle",
-                binding: $showChipCloseButtonOnHover
+                binding: showChipCloseButtonBinding
             )
 
             NotchTerminalPreferenceToggleRow(
                 title: "settings.confirmBeforeCloseAll".localized,
                 subtitle: "settings.confirmBeforeCloseAll.subtitle".localized,
                 icon: "exclamationmark.triangle",
-                binding: $confirmBeforeCloseAll
+                binding: confirmBeforeCloseAllBinding
             )
 
             HStack(alignment: .center, spacing: 10) {
@@ -357,7 +378,7 @@ struct GeneralSettingsView: View {
 
                 Spacer(minLength: 8)
 
-                Picker("settings.closeActionMode".localized, selection: $closeActionMode) {
+                Picker("settings.closeActionMode".localized, selection: closeActionModeBinding) {
                     ForEach(CloseActionDisplayMode.allCases) { mode in
                         Text(mode.title).tag(mode.rawValue)
                     }
