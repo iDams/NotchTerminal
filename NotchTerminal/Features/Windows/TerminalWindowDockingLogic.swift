@@ -22,6 +22,15 @@ enum TerminalWindowDockingLogic {
         let shouldClearPendingTargets: Bool
     }
 
+    struct ClearPreviewResolution: Equatable {
+        let hoverDisplayIDsToClear: [CGDirectDisplayID]
+        let shouldClearSuppression: Bool
+        let shouldRestorePreview: Bool
+        let shouldRemoveMonitor: Bool
+        let shouldRestoreAllPreviews: Bool
+        let shouldClearPendingTargets: Bool
+    }
+
     struct Candidate {
         let target: TerminalWindowDockTarget
         let effectiveFrame: CGRect
@@ -151,6 +160,37 @@ enum TerminalWindowDockingLogic {
             shouldRestoreAllPreviews: true,
             shouldClearPendingTargets: true
         )
+    }
+
+    static func clearPreviewResolution(
+        pendingTargets: [TerminalWindowDockTarget],
+        scope: ClearPreviewScope
+    ) -> ClearPreviewResolution {
+        switch scope {
+        case .singleTarget:
+            return ClearPreviewResolution(
+                hoverDisplayIDsToClear: pendingTargets.map(\.displayID),
+                shouldClearSuppression: true,
+                shouldRestorePreview: true,
+                shouldRemoveMonitor: false,
+                shouldRestoreAllPreviews: false,
+                shouldClearPendingTargets: true
+            )
+        case .allTargets:
+            return ClearPreviewResolution(
+                hoverDisplayIDsToClear: pendingTargets.map(\.displayID),
+                shouldClearSuppression: true,
+                shouldRestorePreview: false,
+                shouldRemoveMonitor: true,
+                shouldRestoreAllPreviews: true,
+                shouldClearPendingTargets: true
+            )
+        }
+    }
+
+    enum ClearPreviewScope {
+        case singleTarget
+        case allTargets
     }
 
     private static func expandedTargetFrame(_ frame: CGRect, sensitivity: CGFloat) -> CGRect {

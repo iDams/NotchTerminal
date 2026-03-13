@@ -176,4 +176,35 @@ final class TerminalWindowDockingLogicTests: XCTestCase {
         XCTAssertTrue(resolution.shouldRestoreAllPreviews)
         XCTAssertTrue(resolution.shouldClearPendingTargets)
     }
+
+    func testClearPreviewResolutionForSingleTargetRestoresOnlyThatPreview() {
+        let resolution = TerminalWindowDockingLogic.clearPreviewResolution(
+            pendingTargets: [TerminalWindowDockTarget(displayID: 4, frame: .zero)],
+            scope: .singleTarget
+        )
+
+        XCTAssertEqual(resolution.hoverDisplayIDsToClear, [4])
+        XCTAssertTrue(resolution.shouldClearSuppression)
+        XCTAssertTrue(resolution.shouldRestorePreview)
+        XCTAssertFalse(resolution.shouldRemoveMonitor)
+        XCTAssertFalse(resolution.shouldRestoreAllPreviews)
+        XCTAssertTrue(resolution.shouldClearPendingTargets)
+    }
+
+    func testClearPreviewResolutionForAllTargetsRestoresAllAndRemovesMonitor() {
+        let resolution = TerminalWindowDockingLogic.clearPreviewResolution(
+            pendingTargets: [
+                TerminalWindowDockTarget(displayID: 4, frame: .zero),
+                TerminalWindowDockTarget(displayID: 8, frame: .zero)
+            ],
+            scope: .allTargets
+        )
+
+        XCTAssertEqual(resolution.hoverDisplayIDsToClear, [4, 8])
+        XCTAssertTrue(resolution.shouldClearSuppression)
+        XCTAssertFalse(resolution.shouldRestorePreview)
+        XCTAssertTrue(resolution.shouldRemoveMonitor)
+        XCTAssertTrue(resolution.shouldRestoreAllPreviews)
+        XCTAssertTrue(resolution.shouldClearPendingTargets)
+    }
 }

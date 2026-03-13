@@ -931,27 +931,52 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func clearDockPreviewState(for id: UUID) {
-        if let previousTarget = pendingDockTargets[id] {
-            postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
+        let resolution = TerminalWindowDockingLogic.clearPreviewResolution(
+            pendingTargets: pendingDockTargets[id].map { [$0] } ?? [],
+            scope: .singleTarget
+        )
+
+        for displayID in resolution.hoverDisplayIDsToClear {
+            postNotchDockHoverChanged(displayID: displayID, isHovering: false)
         }
-        pendingDockTargets.removeValue(forKey: id)
-        dockSuppressionUntil.removeValue(forKey: id)
-        restoreDockPreviewIfNeeded(id: id)
+        if resolution.shouldClearPendingTargets {
+            pendingDockTargets.removeValue(forKey: id)
+        }
+        if resolution.shouldClearSuppression {
+            dockSuppressionUntil.removeValue(forKey: id)
+        }
+        if resolution.shouldRestorePreview {
+            restoreDockPreviewIfNeeded(id: id)
+        }
     }
 
     private func clearAllDockPreviewState() {
-        if let monitor = dragMonitor {
+        let resolution = TerminalWindowDockingLogic.clearPreviewResolution(
+            pendingTargets: Array(pendingDockTargets.values),
+            scope: .allTargets
+        )
+
+        if resolution.shouldRemoveMonitor, let monitor = dragMonitor {
             NSEvent.removeMonitor(monitor)
             dragMonitor = nil
         }
-        for target in pendingDockTargets.values {
-            postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
+
+        for displayID in resolution.hoverDisplayIDsToClear {
+            postNotchDockHoverChanged(displayID: displayID, isHovering: false)
         }
-        for id in Array(dockingPreviewOriginalFrames.keys) {
-            restoreDockPreviewIfNeeded(id: id)
+
+        if resolution.shouldRestoreAllPreviews {
+            for id in Array(dockingPreviewOriginalFrames.keys) {
+                restoreDockPreviewIfNeeded(id: id)
+            }
         }
-        pendingDockTargets.removeAll()
-        dockSuppressionUntil.removeAll()
+
+        if resolution.shouldClearPendingTargets {
+            pendingDockTargets.removeAll()
+        }
+        if resolution.shouldClearSuppression {
+            dockSuppressionUntil.removeAll()
+        }
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
