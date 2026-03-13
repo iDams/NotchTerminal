@@ -186,9 +186,7 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
             return false
         }
 
-        let bytes = Array(insertion.utf8)
-        send(source: self, data: bytes[...])
-        window?.makeFirstResponder(self)
+        sendTerminalInput(Array(insertion.utf8))
         return true
     }
 
@@ -336,21 +334,22 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     }
 
     @objc func clearBuffer(_ sender: Any?) {
-        let clearCommand = Array("clear\n".utf8)
-        send(source: self, data: clearCommand[...])
-        window?.makeFirstResponder(self)
+        sendTerminalInput(Array("clear\n".utf8))
     }
 
     @objc func closeTerminalSession(_ sender: Any?) {
-        let exitCommand = Array("exit\n".utf8)
-        send(source: self, data: exitCommand[...])
-        window?.makeFirstResponder(self)
+        sendTerminalInput(Array("exit\n".utf8))
     }
 
     @objc func searchAction(_ sender: Any?) {
-        let reverseSearch: [UInt8] = [0x12]
-        send(source: self, data: reverseSearch[...])
-        window?.makeFirstResponder(self)
+        sendTerminalInput([0x12])
+    }
+
+    private func sendTerminalInput(_ bytes: [UInt8], refocus: Bool = true) {
+        send(source: self, data: bytes[...])
+        if refocus {
+            window?.makeFirstResponder(self)
+        }
     }
 
     private func installSelectionMonitorIfNeeded() {
