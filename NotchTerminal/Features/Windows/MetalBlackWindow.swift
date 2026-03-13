@@ -423,12 +423,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.isCompact.toggle()
 
         let targetSize = instance.isCompact ? compactSize : expandedSize
-        let currentFrame = instance.panel.frame
-        let targetOrigin = CGPoint(
-            x: currentFrame.midX - targetSize.width / 2,
-            y: currentFrame.maxY - targetSize.height
+        let targetFrame = TerminalWindowGeometryLogic.compactToggleFrame(
+            currentFrame: instance.panel.frame,
+            targetSize: targetSize
         )
-        let targetFrame = CGRect(origin: targetOrigin, size: targetSize)
 
         updateContent(for: id, isCompactOverride: instance.isCompact)
 
@@ -442,12 +440,9 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard var instance = windows[id] else { return }
         instance.isCompact = false
 
-        let current = instance.panel.frame
-        let targetFrame = CGRect(
-            x: current.minX,
-            y: current.maxY - expandedSize.height,
-            width: expandedSize.width,
-            height: expandedSize.height
+        let targetFrame = TerminalWindowGeometryLogic.resetFrame(
+            currentFrame: instance.panel.frame,
+            expandedSize: expandedSize
         )
 
         updateContent(for: id, isCompactOverride: false)
@@ -462,13 +457,10 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         guard var instance = windows[id] else { return }
 
         if instance.isMaximized {
-            // Restore to previous size
-            let restoreFrame = instance.preMaximizeFrame ?? CGRect(
-                origin: CGPoint(
-                    x: instance.panel.frame.midX - expandedSize.width / 2,
-                    y: instance.panel.frame.midY - expandedSize.height / 2
-                ),
-                size: expandedSize
+            let restoreFrame = TerminalWindowGeometryLogic.restoredFrameFromMaximize(
+                currentFrame: instance.panel.frame,
+                expandedSize: expandedSize,
+                preMaximizeFrame: instance.preMaximizeFrame
             )
             animatePanel(instance.panel, to: restoreFrame, duration: 0.22)
             instance.isMaximized = false
@@ -747,11 +739,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func frameForInitialShow(on screen: NSScreen, size: CGSize) -> CGRect {
-        let origin = CGPoint(
-            x: screen.frame.midX - size.width / 2,
-            y: screen.frame.maxY - size.height - 220
-        )
-        return CGRect(origin: origin, size: size)
+        TerminalWindowGeometryLogic.initialFrame(screenFrame: screen.frame, windowSize: size)
     }
 
     private func defaultTerminalFontSize() -> CGFloat {
