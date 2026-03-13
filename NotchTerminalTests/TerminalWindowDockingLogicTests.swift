@@ -55,4 +55,80 @@ final class TerminalWindowDockingLogicTests: XCTestCase {
         XCTAssertTrue(TerminalWindowDockingLogic.isPillShape(frame: CGRect(x: 0, y: 0, width: 160, height: 32)))
         XCTAssertFalse(TerminalWindowDockingLogic.isPillShape(frame: CGRect(x: 0, y: 0, width: 120, height: 100)))
     }
+
+    func testPreviewUpdateClearsPreviewWhenFeatureDisabled() {
+        let update = TerminalWindowDockingLogic.previewUpdate(
+            dragToNotchEnabled: false,
+            isDraggingWithMouse: true,
+            now: Date(timeIntervalSince1970: 100),
+            suppressionUntil: nil,
+            previousTarget: TerminalWindowDockTarget(displayID: 1, frame: .zero),
+            nearTarget: TerminalWindowDockTarget(displayID: 2, frame: .zero),
+            previousTargetIsPill: true
+        )
+
+        XCTAssertEqual(update.hoverDisplayID, nil)
+        XCTAssertFalse(update.shouldPreview)
+        XCTAssertTrue(update.shouldRestorePreview)
+        XCTAssertTrue(update.shouldClearPendingTarget)
+        XCTAssertNil(update.suppressionUntil)
+    }
+
+    func testPreviewUpdateKeepsSuppressedStateUntilTimeoutExpires() {
+        let until = Date(timeIntervalSince1970: 200)
+        let update = TerminalWindowDockingLogic.previewUpdate(
+            dragToNotchEnabled: true,
+            isDraggingWithMouse: true,
+            now: Date(timeIntervalSince1970: 150),
+            suppressionUntil: until,
+            previousTarget: TerminalWindowDockTarget(displayID: 1, frame: .zero),
+            nearTarget: TerminalWindowDockTarget(displayID: 1, frame: .zero),
+            previousTargetIsPill: true
+        )
+
+        XCTAssertEqual(update.suppressionUntil, until)
+        XCTAssertFalse(update.shouldPreview)
+        XCTAssertTrue(update.shouldRestorePreview)
+        XCTAssertTrue(update.shouldClearPendingTarget)
+    }
+
+    func testPreviewUpdateEntersPreviewWhenNearTargetExistsDuringDrag() {
+        let nearTarget = TerminalWindowDockTarget(displayID: 7, frame: .zero)
+
+        let update = TerminalWindowDockingLogic.previewUpdate(
+            dragToNotchEnabled: true,
+            isDraggingWithMouse: true,
+            now: Date(timeIntervalSince1970: 100),
+            suppressionUntil: nil,
+            previousTarget: nil,
+            nearTarget: nearTarget,
+            previousTargetIsPill: false
+        )
+
+        XCTAssertEqual(update.hoverDisplayID, 7)
+        XCTAssertTrue(update.shouldPreview)
+        XCTAssertFalse(update.shouldRestorePreview)
+        XCTAssertFalse(update.shouldClearPendingTarget)
+        XCTAssertNil(update.suppressionUntil)
+    }
+
+    func testPreviewUpdateStartsSuppressionWhenLeavingPillTargetWhileDragging() {
+        let now = Date(timeIntervalSince1970: 300)
+
+        let update = TerminalWindowDockingLogic.previewUpdate(
+            dragToNotchEnabled: true,
+            isDraggingWithMouse: true,
+            now: now,
+            suppressionUntil: nil,
+            previousTarget: TerminalWindowDockTarget(displayID: 5, frame: .zero),
+            nearTarget: nil,
+            previousTargetIsPill: true
+        )
+
+        XCTAssertNil(update.hoverDisplayID)
+        XCTAssertFalse(update.shouldPreview)
+        XCTAssertTrue(update.shouldRestorePreview)
+        XCTAssertTrue(update.shouldClearPendingTarget)
+        XCTAssertEqual(update.suppressionUntil, now.addingTimeInterval(0.45))
+    }
 }

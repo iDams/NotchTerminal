@@ -857,41 +857,52 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func updateDockPreviewState(for id: UUID, panelFrame: CGRect, instance: WindowInstance) {
-        guard experimentalPreferences.dragToNotchEnabled else {
-            clearDockPreviewState(for: id)
-            return
-        }
-
         let isDraggingWithMouse = (NSEvent.pressedMouseButtons & 0x1) != 0
-        if let suppressionUntil = dockSuppressionUntil[id], suppressionUntil > Date() {
-            if let previousTarget = pendingDockTargets[id] {
-                postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
-            }
-            pendingDockTargets.removeValue(forKey: id)
-            restoreDockPreviewIfNeeded(id: id)
-            return
-        } else {
-            dockSuppressionUntil.removeValue(forKey: id)
-        }
-
+        let now = Date()
+        let previousTarget = pendingDockTargets[id]
         let nearTarget = closestDockTarget(for: panelFrame, in: instance)
 
-        if let nearTarget, isDraggingWithMouse {
+        let previousTargetIsPill: Bool = {
+            guard let previousTarget else { return false }
+            let baseFrame = notchFrame(for: previousTarget.displayID, in: instance) ?? previousTarget.frame
+            return TerminalWindowDockingLogic.isPillShape(frame: baseFrame)
+        }()
+
+        let update = TerminalWindowDockingLogic.previewUpdate(
+            dragToNotchEnabled: experimentalPreferences.dragToNotchEnabled,
+            isDraggingWithMouse: isDraggingWithMouse,
+            now: now,
+            suppressionUntil: dockSuppressionUntil[id],
+            previousTarget: previousTarget,
+            nearTarget: nearTarget,
+            previousTargetIsPill: previousTargetIsPill
+        )
+
+        if let previousTarget, previousTarget.displayID != update.hoverDisplayID {
+            postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
+        }
+
+        if let hoverDisplayID = update.hoverDisplayID,
+           previousTarget?.displayID != hoverDisplayID,
+           let nearTarget {
             pendingDockTargets[id] = nearTarget
-            postNotchDockHoverChanged(displayID: nearTarget.displayID, isHovering: true)
+            postNotchDockHoverChanged(displayID: hoverDisplayID, isHovering: true)
+        }
+
+        if update.shouldPreview {
             applyDockPreviewIfNeeded(id: id)
+            dockSuppressionUntil[id] = update.suppressionUntil
             return
         }
 
-        if let previousTarget = pendingDockTargets[id] {
-            postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
-            let baseFrame = notchFrame(for: previousTarget.displayID, in: instance) ?? previousTarget.frame
-            if TerminalWindowDockingLogic.isPillShape(frame: baseFrame) && isDraggingWithMouse {
-                dockSuppressionUntil[id] = Date().addingTimeInterval(0.45)
-            }
+        if update.shouldClearPendingTarget {
+            pendingDockTargets.removeValue(forKey: id)
         }
-        pendingDockTargets.removeValue(forKey: id)
-        restoreDockPreviewIfNeeded(id: id)
+        dockSuppressionUntil[id] = update.suppressionUntil
+
+        if update.shouldRestorePreview {
+            restoreDockPreviewIfNeeded(id: id)
+        }
     }
 
     private func postNotchDockHoverChanged(displayID: CGDirectDisplayID, isHovering: Bool) {

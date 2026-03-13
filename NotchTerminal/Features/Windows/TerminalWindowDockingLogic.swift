@@ -1,3 +1,4 @@
+import Foundation
 import CoreGraphics
 
 struct TerminalWindowDockTarget: Equatable {
@@ -6,6 +7,14 @@ struct TerminalWindowDockTarget: Equatable {
 }
 
 enum TerminalWindowDockingLogic {
+    struct PreviewUpdate: Equatable {
+        let hoverDisplayID: CGDirectDisplayID?
+        let shouldPreview: Bool
+        let shouldRestorePreview: Bool
+        let shouldClearPendingTarget: Bool
+        let suppressionUntil: Date?
+    }
+
     struct Candidate {
         let target: TerminalWindowDockTarget
         let effectiveFrame: CGRect
@@ -54,6 +63,56 @@ enum TerminalWindowDockingLogic {
 
     static func isPillShape(frame: CGRect) -> Bool {
         frame.width > frame.height * 2.2
+    }
+
+    static func previewUpdate(
+        dragToNotchEnabled: Bool,
+        isDraggingWithMouse: Bool,
+        now: Date,
+        suppressionUntil: Date?,
+        previousTarget: TerminalWindowDockTarget?,
+        nearTarget: TerminalWindowDockTarget?,
+        previousTargetIsPill: Bool
+    ) -> PreviewUpdate {
+        guard dragToNotchEnabled else {
+            return PreviewUpdate(
+                hoverDisplayID: nil,
+                shouldPreview: false,
+                shouldRestorePreview: true,
+                shouldClearPendingTarget: true,
+                suppressionUntil: nil
+            )
+        }
+
+        if let suppressionUntil, suppressionUntil > now {
+            return PreviewUpdate(
+                hoverDisplayID: nil,
+                shouldPreview: false,
+                shouldRestorePreview: true,
+                shouldClearPendingTarget: true,
+                suppressionUntil: suppressionUntil
+            )
+        }
+
+        if let nearTarget, isDraggingWithMouse {
+            return PreviewUpdate(
+                hoverDisplayID: nearTarget.displayID,
+                shouldPreview: true,
+                shouldRestorePreview: false,
+                shouldClearPendingTarget: false,
+                suppressionUntil: nil
+            )
+        }
+
+        return PreviewUpdate(
+            hoverDisplayID: nil,
+            shouldPreview: false,
+            shouldRestorePreview: true,
+            shouldClearPendingTarget: true,
+            suppressionUntil: previousTargetIsPill && isDraggingWithMouse
+                ? now.addingTimeInterval(0.45)
+                : nil
+        )
     }
 
     private static func expandedTargetFrame(_ frame: CGRect, sensitivity: CGFloat) -> CGRect {
