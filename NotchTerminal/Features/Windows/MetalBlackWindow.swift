@@ -35,14 +35,11 @@ final class InteractiveTerminalPanel: NSPanel {
 
 @MainActor
 final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
+    typealias NotchTarget = TerminalWindowDockTarget
+
     enum CloseActionMode: String {
         case closeWindowOnly
         case terminateProcessAndClose
-    }
-
-    struct NotchTarget {
-        let displayID: CGDirectDisplayID
-        let frame: CGRect
     }
 
     var onTerminalItemsChanged: (([TerminalWindowItem]) -> Void)?
@@ -114,23 +111,6 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         NSScreen.screens.first { screen in
             self.displayID(for: screen) == displayID
         }
-    }
-
-    private func dockThumbnailFrame(from sourceFrame: CGRect, notchFrame: CGRect?) -> CGRect {
-        let size = CGSize(width: 54, height: 54)
-        let origin: CGPoint
-        if let notchFrame {
-            origin = CGPoint(
-                x: notchFrame.midX - size.width / 2,
-                y: notchFrame.maxY - size.height
-            )
-        } else {
-            origin = CGPoint(
-                x: sourceFrame.midX - size.width / 2,
-                y: sourceFrame.maxY - size.height
-            )
-        }
-        return CGRect(origin: origin, size: size)
     }
 
     func createWindow(
@@ -211,7 +191,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             targetFrame.origin.y = min(targetFrame.origin.y, maxAllowedY)
         }
         // Use the displayID saved at minimize time to find the correct notch position
-        let startFrame = dockThumbnailFrame(
+        let startFrame = TerminalWindowDockingLogic.dockThumbnailFrame(
             from: targetFrame,
             notchFrame: notchFrame(for: instance.displayID, in: instance)
         )
@@ -564,7 +544,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         if let preferredTarget {
             instance.displayID = preferredTarget.displayID
         }
-        let targetFrame = dockThumbnailFrame(
+        let targetFrame = TerminalWindowDockingLogic.dockThumbnailFrame(
             from: instance.panel.frame,
             notchFrame: preferredTarget?.frame ?? notchFrame(for: instance.displayID, in: instance)
         )
@@ -905,7 +885,8 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
         if let previousTarget = pendingDockTargets[id] {
             postNotchDockHoverChanged(displayID: previousTarget.displayID, isHovering: false)
-            if isPillDockTarget(previousTarget, for: instance) && isDraggingWithMouse {
+            let baseFrame = notchFrame(for: previousTarget.displayID, in: instance) ?? previousTarget.frame
+            if TerminalWindowDockingLogic.isPillShape(frame: baseFrame) && isDraggingWithMouse {
                 dockSuppressionUntil[id] = Date().addingTimeInterval(0.45)
             }
         }
@@ -992,16 +973,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         instance.panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 1)
         instance.panel.orderFrontRegardless()
 
-        // Temporary visual shrink while the dragged window is in notch dock range.
-        // This is only a preview and is restored if the drop is canceled.
-        let width = max(300, original.width * 0.74)
-        let height = max(190, original.height * 0.74)
-        let previewSize = CGSize(width: width, height: height)
-        let previewOrigin = CGPoint(
-            x: original.midX - (previewSize.width / 2),
-            y: original.maxY - previewSize.height
-        )
-        let previewFrame = CGRect(origin: previewOrigin, size: previewSize)
+        let previewFrame = TerminalWindowDockingLogic.previewFrame(for: original)
 
         animatePanel(instance.panel, to: previewFrame, duration: 0.12)
     }
@@ -1197,39 +1169,21 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         let preferences = experimentalPreferences
         guard preferences.dragToNotchEnabled else { return nil }
 
-        // Use top-center of window (where the title bar is) for proximity detection
-        let topCenter = CGPoint(x: windowFrame.midX, y: windowFrame.maxY)
         let targets = instance.notchTargetsProvider()
 
-        let candidate = targets
-            .map { target -> (NotchTarget, CGFloat, CGRect) in
-                let sensitivity = CGFloat(preferences.notchDockingSensitivity)
-                
-                // CRITICAL FIX: `target.frame` is the NSPanel frame, which expands dynamically
-                // when the UI grid opens, becoming huge. 
-                // We MUST dock into the closed notch frame exclusively.
-                let baseFrame = self.notchFrame(for: target.displayID, in: instance) ?? target.frame
-                let expanded: CGRect
-                if isPillDockTarget(target, for: instance) {
-                    expanded = baseFrame.insetBy(dx: -sensitivity, dy: -(sensitivity * 0.38))
-                } else {
-                    expanded = baseFrame.insetBy(dx: -sensitivity, dy: -(sensitivity * 0.75))
-                }
-                
-                let dx = topCenter.x - expanded.midX
-                let dy = topCenter.y - expanded.midY
-                let dist2 = (dx * dx) + (dy * dy)
-                return (target, dist2, expanded)
-            }
-            .filter { $0.2.contains(topCenter) }
-            .min { $0.1 < $1.1 }
+        let candidates = targets.map { target in
+            // CRITICAL FIX: `target.frame` is the NSPanel frame, which expands dynamically
+            // when the UI grid opens, becoming huge.
+            // We MUST dock into the closed notch frame exclusively.
+            let baseFrame = self.notchFrame(for: target.displayID, in: instance) ?? target.frame
+            return TerminalWindowDockingLogic.Candidate(target: target, effectiveFrame: baseFrame)
+        }
 
-        return candidate?.0
-    }
-
-    private func isPillDockTarget(_ target: NotchTarget, for instance: WindowInstance) -> Bool {
-        guard let screen = screen(for: target.displayID) ?? screen(for: instance.displayID) else { return true }
-        return screen.notchSize == .zero
+        return TerminalWindowDockingLogic.closestTarget(
+            to: windowFrame,
+            sensitivity: CGFloat(preferences.notchDockingSensitivity),
+            candidates: candidates
+        )
     }
 }
 
