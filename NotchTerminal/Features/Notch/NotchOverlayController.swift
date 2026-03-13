@@ -859,25 +859,29 @@ final class NotchOverlayController {
     }
 
     private func enqueueCommandOrbEvent(_ event: TerminalCommandOrbEvent) {
-        let isEnabled = AppPreferences.experimentalFeatureConfiguration().startupOrbEnabled
-        guard isEnabled,
-              AppPreferences.isNotchEnabled(for: event.displayID),
-              let model = modelsByDisplay[event.displayID] else { return }
+        guard let model = modelsByDisplay[event.displayID] else { return }
 
-        if event.status != .running {
-            if model.activeCommandOrbEvent?.terminalNumber == event.terminalNumber {
-                model.activeCommandOrbEvent = nil
-            }
-        }
+        let update = NotchCommandOrbLogic.enqueue(
+            event: event,
+            isStartupOrbEnabled: AppPreferences.experimentalFeatureConfiguration().startupOrbEnabled,
+            isNotchEnabled: AppPreferences.isNotchEnabled(for: event.displayID),
+            existingQueue: commandOrbQueues[event.displayID, default: []],
+            activeEvent: model.activeCommandOrbEvent,
+            displayedEvent: model.commandOrbEvent
+        )
+
+        guard !update.shouldIgnore else { return }
+        model.activeCommandOrbEvent = update.activeEvent
+        commandOrbQueues[event.displayID] = update.queuedEvents
 
         if event.isPersistent && event.status == .running {
-            model.activeCommandOrbEvent = event
             return
         }
 
-        commandOrbQueues[event.displayID, default: []].append(event)
-        guard model.commandOrbEvent == nil else { return }
-        showNextCommandOrbEvent(on: event.displayID)
+        if let displayedEvent = update.displayedEvent, model.commandOrbEvent == nil {
+            model.commandOrbEvent = displayedEvent
+            scheduleCommandOrbDismiss(for: event.displayID, event: displayedEvent)
+        }
     }
 
     private func showNextCommandOrbEvent(on displayID: CGDirectDisplayID) {
@@ -889,18 +893,28 @@ final class NotchOverlayController {
         model.commandOrbEvent = nextEvent
 
         commandOrbDismissWorkItems[displayID]?.cancel()
+        scheduleCommandOrbDismiss(for: displayID, event: nextEvent)
+    }
+
+    private func scheduleCommandOrbDismiss(for displayID: CGDirectDisplayID, event: TerminalCommandOrbEvent) {
+        commandOrbDismissWorkItems[displayID]?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
             guard let self, let model = self.modelsByDisplay[displayID] else { return }
-            model.commandOrbEvent = nil
+            let update = NotchCommandOrbLogic.dismiss(
+                displayedEvent: model.commandOrbEvent,
+                queue: self.commandOrbQueues[displayID, default: []]
+            )
+            model.commandOrbEvent = update.displayedEvent
+            self.commandOrbQueues[displayID] = update.queuedEvents
             self.commandOrbDismissWorkItems[displayID] = nil
-            if !(self.commandOrbQueues[displayID]?.isEmpty ?? true) {
+            if let nextEvent = update.displayedEvent {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
-                    self?.showNextCommandOrbEvent(on: displayID)
+                    self?.scheduleCommandOrbDismiss(for: displayID, event: nextEvent)
                 }
             }
         }
         commandOrbDismissWorkItems[displayID] = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + nextEvent.duration, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + event.duration, execute: workItem)
     }
 
     private func handleGlobalShortcut(_ event: NSEvent) -> Bool {
