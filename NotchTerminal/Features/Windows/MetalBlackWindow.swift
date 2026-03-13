@@ -103,47 +103,6 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         NSImage(named: "AppLogo")
     }
 
-    private func restoredBranding(for session: TerminalSession?) -> CLICommandBranding {
-        guard let session else {
-            return CLICommandBranding(title: nil, icon: nil)
-        }
-
-        let trimmedTitle = session.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty, trimmedTitle != "NotchTerminal" else {
-            return CLICommandBranding(title: nil, icon: nil)
-        }
-
-        return CLICommandBrandingResolver.branding(for: trimmedTitle)
-    }
-
-    private func resolvedProjectContext(for workingDirectory: String, session: TerminalSession?) -> ProjectContext? {
-        if let resolved = ProjectContextResolver.resolve(from: workingDirectory) {
-            return resolved
-        }
-
-        guard let rootPath = session?.projectRootPath,
-              let projectName = session?.projectName,
-              !rootPath.isEmpty,
-              !projectName.isEmpty else {
-            return nil
-        }
-
-        return ProjectContext(rootPath: rootPath, displayName: projectName)
-    }
-
-    private func normalizedWorkingDirectory(_ raw: String?) -> String {
-        let fallback = NSHomeDirectory()
-        let candidate = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !candidate.isEmpty, candidate.hasPrefix("/"), candidate != "/" else { return fallback }
-
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: candidate, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
-            return fallback
-        }
-        return candidate
-    }
-
     private func displayID(for screen: NSScreen) -> CGDirectDisplayID? {
         guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
             return nil
@@ -188,13 +147,13 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         nextNumber += 1
 
         let panel = makePanel()
-        let restoredBranding = restoredBranding(for: session)
+        let restoredBranding = TerminalWindowContextResolver.restoredBranding(for: session)
         let restoredTitle: String = {
             let candidate = session?.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return candidate.isEmpty ? "NotchTerminal" : candidate
         }()
-        let workingDirectory = normalizedWorkingDirectory(session?.workingDirectory)
-        let projectContext = resolvedProjectContext(for: workingDirectory, session: session)
+        let workingDirectory = TerminalWindowContextResolver.normalizedWorkingDirectory(session?.workingDirectory)
+        let projectContext = TerminalWindowContextResolver.resolvedProjectContext(for: workingDirectory, session: session)
         let initialSize = session.map { CGSize(width: $0.windowWidth, height: $0.windowHeight) } ?? expandedSize
         let frame = frameForInitialShow(on: screen, size: initialSize)
         panel.setFrame(frame, display: true)
@@ -1062,7 +1021,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         sessionSnapshots().map { snapshot in
             WindowSessionLogic.serializedSession(
                 from: snapshot,
-                normalizeWorkingDirectory: normalizedWorkingDirectory(_:),
+                normalizeWorkingDirectory: { TerminalWindowContextResolver.normalizedWorkingDirectory($0) },
                 creationTimestamp: Date()
             )
         }
@@ -1194,7 +1153,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func handleDirectoryChanged(id: UUID, directory: String) {
         guard var instance = windows[id] else { return }
 
-        instance.currentDirectory = normalizedWorkingDirectory(Self.parseDirectoryPath(directory))
+        instance.currentDirectory = TerminalWindowContextResolver.normalizedWorkingDirectory(Self.parseDirectoryPath(directory))
         let projectContext = ProjectContextResolver.resolve(from: instance.currentDirectory)
         instance.projectRootPath = projectContext?.rootPath
         instance.projectName = projectContext?.displayName
