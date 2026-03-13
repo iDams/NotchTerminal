@@ -181,11 +181,10 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        guard let droppedURLs = fileURLs(from: sender), !droppedURLs.isEmpty else { return false }
-
-        let insertion = droppedURLs
-            .map { shellQuotedPath($0.path(percentEncoded: false)) }
-            .joined(separator: " ") + " "
+        guard let droppedURLs = fileURLs(from: sender),
+              let insertion = TerminalDropInteractionHelper.insertionText(for: droppedURLs) else {
+            return false
+        }
 
         let bytes = Array(insertion.utf8)
         send(source: self, data: bytes[...])
@@ -194,7 +193,7 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     }
 
     private func hasDroppableFileURLs(_ sender: NSDraggingInfo) -> Bool {
-        fileURLs(from: sender)?.isEmpty == false
+        TerminalDropInteractionHelper.hasDroppableFileURLs(fileURLs(from: sender))
     }
 
     private func fileURLs(from sender: NSDraggingInfo) -> [URL]? {
@@ -204,10 +203,6 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
             .urlReadingFileURLsOnly: true
         ]
         return pasteboard.readObjects(forClasses: classes, options: options) as? [URL]
-    }
-
-    private func shellQuotedPath(_ path: String) -> String {
-        "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     private func installWheelForwardMonitorIfNeeded() {
@@ -399,14 +394,10 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
 
     private func updateSelectionAutoScroll(for event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        let overflowTop = max(0, point.y - bounds.maxY)
-        let overflowBottom = max(0, bounds.minY - point.y)
+        let delta = TerminalSelectionAutoScrollLogic.delta(for: point, in: bounds, rows: terminal.rows)
 
-        if overflowTop > 0 {
-            selectionAutoScrollDelta = -selectionScrollVelocity(for: overflowTop)
-            ensureSelectionAutoScrollTimer()
-        } else if overflowBottom > 0 {
-            selectionAutoScrollDelta = selectionScrollVelocity(for: overflowBottom)
+        if delta != 0 {
+            selectionAutoScrollDelta = delta
             ensureSelectionAutoScrollTimer()
         } else {
             stopSelectionAutoScroll()
@@ -437,13 +428,6 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
         selectionAutoScrollDelta = 0
         selectionAutoScrollTimer?.invalidate()
         selectionAutoScrollTimer = nil
-    }
-
-    private func selectionScrollVelocity(for overflow: CGFloat) -> Int {
-        if overflow > 36 { return max(terminal.rows, 20) }
-        if overflow > 20 { return 10 }
-        if overflow > 8 { return 3 }
-        return 1
     }
 
     private func isSelectionEventInsideTerminal(_ event: NSEvent) -> Bool {
