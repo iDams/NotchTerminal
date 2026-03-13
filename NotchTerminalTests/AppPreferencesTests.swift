@@ -113,4 +113,35 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertNil(defaults.dictionary(forKey: AppPreferences.Keys.auroraDisplayEnabledMap)?[String(displayID)])
         XCTAssertNil(defaults.dictionary(forKey: AppPreferences.Keys.auroraDisplayThemeMap)?[String(displayID)])
     }
+
+    func testDisabledDisplayIDsPersistAsSortedStableList() {
+        let displayA: CGDirectDisplayID = 30
+        let displayB: CGDirectDisplayID = 10
+        let displayC: CGDirectDisplayID = 20
+
+        AppPreferences.setNotchEnabled(false, for: displayA, in: defaults)
+        AppPreferences.setNotchEnabled(false, for: displayB, in: defaults)
+        AppPreferences.setNotchEnabled(false, for: displayC, in: defaults)
+
+        XCTAssertEqual(
+            defaults.string(forKey: AppPreferences.Keys.disabledNotchDisplayIDs),
+            "10,20,30"
+        )
+    }
+
+    func testAuroraOverrideIsScopedPerDisplay() {
+        let first: CGDirectDisplayID = 601
+        let second: CGDirectDisplayID = 602
+
+        AppPreferences.setCustomAuroraOverrideEnabled(true, for: first, in: defaults)
+        AppPreferences.setAuroraBackgroundEnabled(true, for: first, in: defaults)
+        AppPreferences.setAuroraTheme("sunset", for: first, in: defaults)
+
+        XCTAssertTrue(AppPreferences.auroraBackgroundEnabled(for: first, fallback: false, in: defaults))
+        XCTAssertEqual(AppPreferences.auroraTheme(for: first, fallback: "classic", in: defaults), "sunset")
+
+        XCTAssertFalse(AppPreferences.hasCustomAuroraOverride(for: second, in: defaults))
+        XCTAssertFalse(AppPreferences.auroraBackgroundEnabled(for: second, fallback: false, in: defaults))
+        XCTAssertEqual(AppPreferences.auroraTheme(for: second, fallback: "classic", in: defaults), "classic")
+    }
 }

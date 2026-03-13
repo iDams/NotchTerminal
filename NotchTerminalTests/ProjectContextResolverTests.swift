@@ -34,6 +34,19 @@ final class ProjectContextResolverTests: XCTestCase {
         XCTAssertNil(ProjectContextResolver.resolve(from: plain.path))
     }
 
+    func testResolveSupportsXcodeProjectMarkerInAncestor() throws {
+        let root = makeTempDirectory()
+        let project = root.appendingPathComponent("DesktopApp", isDirectory: true)
+        let nested = project.appendingPathComponent("Sources/UI/Components", isDirectory: true)
+
+        try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: project.appendingPathComponent("DesktopApp.xcodeproj").path, contents: Data())
+
+        let context = ProjectContextResolver.resolve(from: nested.path)
+
+        XCTAssertEqual(context, ProjectContext(rootPath: project.path, displayName: "DesktopApp"))
+    }
+
     private func makeTempDirectory() -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
