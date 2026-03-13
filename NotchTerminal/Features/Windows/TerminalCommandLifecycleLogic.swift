@@ -20,6 +20,13 @@ enum TerminalCommandLifecycleLogic {
         let emittedOrbEvent: TerminalCommandOrbEvent?
     }
 
+    struct DirectoryChangeUpdate {
+        let normalizedWorkingDirectory: String
+        let projectContext: ProjectContext?
+        let remainingPendingOrbCommand: PendingOrbCommandState?
+        let emittedCompletionEvent: TerminalCommandOrbEvent?
+    }
+
     static func submittedCommandUpdate(
         command: String,
         currentDisplayTitle: String,
@@ -83,6 +90,38 @@ enum TerminalCommandLifecycleLogic {
         var failed = pending
         failed.hasFailed = true
         return (failed, TerminalCommandOrbClassifier.makeCompletionEvent(from: pending.event, status: .error))
+    }
+
+    static func directoryChangeUpdate(
+        rawDirectory: String,
+        pending: PendingOrbCommandState?,
+        fileManager: FileManager = .default
+    ) -> DirectoryChangeUpdate {
+        let normalizedWorkingDirectory = TerminalWindowContextResolver.normalizedWorkingDirectory(
+            rawDirectory,
+            fileManager: fileManager
+        )
+        let projectContext = ProjectContextResolver.resolve(from: normalizedWorkingDirectory, fileManager: fileManager)
+
+        guard let pending else {
+            return DirectoryChangeUpdate(
+                normalizedWorkingDirectory: normalizedWorkingDirectory,
+                projectContext: projectContext,
+                remainingPendingOrbCommand: nil,
+                emittedCompletionEvent: nil
+            )
+        }
+
+        let completionEvent = pending.hasFailed
+            ? nil
+            : TerminalCommandOrbClassifier.makeCompletionEvent(from: pending.event, status: .success)
+
+        return DirectoryChangeUpdate(
+            normalizedWorkingDirectory: normalizedWorkingDirectory,
+            projectContext: projectContext,
+            remainingPendingOrbCommand: nil,
+            emittedCompletionEvent: completionEvent
+        )
     }
 
     static func outputLooksLikeFailure(_ text: String) -> Bool {

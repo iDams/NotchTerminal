@@ -1151,15 +1151,22 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private func handleDirectoryChanged(id: UUID, directory: String) {
         guard var instance = windows[id] else { return }
 
-        instance.currentDirectory = TerminalWindowContextResolver.normalizedWorkingDirectory(Self.parseDirectoryPath(directory))
-        let projectContext = ProjectContextResolver.resolve(from: instance.currentDirectory)
-        instance.projectRootPath = projectContext?.rootPath
-        instance.projectName = projectContext?.displayName
-        if let pending = pendingOrbCommands[id] {
+        let update = TerminalCommandLifecycleLogic.directoryChangeUpdate(
+            rawDirectory: Self.parseDirectoryPath(directory),
+            pending: pendingOrbCommands[id]
+        )
+
+        instance.currentDirectory = update.normalizedWorkingDirectory
+        instance.projectRootPath = update.projectContext?.rootPath
+        instance.projectName = update.projectContext?.displayName
+
+        if let pending = update.remainingPendingOrbCommand {
+            pendingOrbCommands[id] = pending
+        } else {
             pendingOrbCommands.removeValue(forKey: id)
-            if !pending.hasFailed {
-                onCommandOrbEvent?(TerminalCommandOrbClassifier.makeCompletionEvent(from: pending.event, status: .success))
-            }
+        }
+        if let completionEvent = update.emittedCompletionEvent {
+            onCommandOrbEvent?(completionEvent)
         }
 
         windows[id] = instance
