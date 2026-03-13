@@ -15,6 +15,13 @@ enum TerminalWindowDockingLogic {
         let suppressionUntil: Date?
     }
 
+    struct DragEndResolution: Equatable {
+        let targetToMinimize: CGDirectDisplayID?
+        let hoverDisplayIDsToClear: [CGDirectDisplayID]
+        let shouldRestoreAllPreviews: Bool
+        let shouldClearPendingTargets: Bool
+    }
+
     struct Candidate {
         let target: TerminalWindowDockTarget
         let effectiveFrame: CGRect
@@ -112,6 +119,37 @@ enum TerminalWindowDockingLogic {
             suppressionUntil: previousTargetIsPill && isDraggingWithMouse
                 ? now.addingTimeInterval(0.45)
                 : nil
+        )
+    }
+
+    static func dragEndResolution(
+        dragToNotchEnabled: Bool,
+        pendingTargets: [TerminalWindowDockTarget],
+        matchedMinimizeDisplayID: CGDirectDisplayID?
+    ) -> DragEndResolution {
+        guard dragToNotchEnabled else {
+            return DragEndResolution(
+                targetToMinimize: nil,
+                hoverDisplayIDsToClear: pendingTargets.map(\.displayID),
+                shouldRestoreAllPreviews: true,
+                shouldClearPendingTargets: true
+            )
+        }
+
+        if let matchedMinimizeDisplayID {
+            return DragEndResolution(
+                targetToMinimize: matchedMinimizeDisplayID,
+                hoverDisplayIDsToClear: [matchedMinimizeDisplayID],
+                shouldRestoreAllPreviews: false,
+                shouldClearPendingTargets: false
+            )
+        }
+
+        return DragEndResolution(
+            targetToMinimize: nil,
+            hoverDisplayIDsToClear: pendingTargets.map(\.displayID),
+            shouldRestoreAllPreviews: true,
+            shouldClearPendingTargets: true
         )
     }
 

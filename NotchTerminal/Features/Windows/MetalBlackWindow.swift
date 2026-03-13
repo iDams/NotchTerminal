@@ -826,34 +826,48 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func handleDragEnd() {
-        guard experimentalPreferences.dragToNotchEnabled else {
-            clearAllDockPreviewState()
-            return
-        }
-
         // Remove the monitor immediately
         if let monitor = dragMonitor {
             NSEvent.removeMonitor(monitor)
             dragMonitor = nil
         }
 
-        // Check all pending dock targets
-        for (id, target) in pendingDockTargets {
-            guard let instance = windows[id], !instance.isMinimized else { continue }
-            if matchesPendingDockTarget(target, for: instance) {
-                postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
-                pendingDockTargets.removeValue(forKey: id)
-                minimizeWindow(id: id)
-                return
+        let matchedDisplayID: CGDirectDisplayID? = {
+            guard experimentalPreferences.dragToNotchEnabled else { return nil }
+            for (id, target) in pendingDockTargets {
+                guard let instance = windows[id], !instance.isMinimized else { continue }
+                if matchesPendingDockTarget(target, for: instance) {
+                    return target.displayID
+                }
+            }
+            return nil
+        }()
+
+        let resolution = TerminalWindowDockingLogic.dragEndResolution(
+            dragToNotchEnabled: experimentalPreferences.dragToNotchEnabled,
+            pendingTargets: Array(pendingDockTargets.values),
+            matchedMinimizeDisplayID: matchedDisplayID
+        )
+
+        for displayID in resolution.hoverDisplayIDsToClear {
+            postNotchDockHoverChanged(displayID: displayID, isHovering: false)
+        }
+
+        if let matchedDisplayID = resolution.targetToMinimize,
+           let matchedEntry = pendingDockTargets.first(where: { $0.value.displayID == matchedDisplayID }) {
+            pendingDockTargets.removeValue(forKey: matchedEntry.key)
+            minimizeWindow(id: matchedEntry.key)
+            return
+        }
+
+        if resolution.shouldRestoreAllPreviews {
+            for id in Array(dockingPreviewOriginalFrames.keys) {
+                restoreDockPreviewIfNeeded(id: id)
             }
         }
-        for target in pendingDockTargets.values {
-            postNotchDockHoverChanged(displayID: target.displayID, isHovering: false)
+        if resolution.shouldClearPendingTargets {
+            pendingDockTargets.removeAll()
         }
-        for id in Array(dockingPreviewOriginalFrames.keys) {
-            restoreDockPreviewIfNeeded(id: id)
-        }
-        pendingDockTargets.removeAll()
     }
 
     private func updateDockPreviewState(for id: UUID, panelFrame: CGRect, instance: WindowInstance) {

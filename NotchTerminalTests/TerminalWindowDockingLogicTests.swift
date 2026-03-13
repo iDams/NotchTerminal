@@ -131,4 +131,49 @@ final class TerminalWindowDockingLogicTests: XCTestCase {
         XCTAssertTrue(update.shouldClearPendingTarget)
         XCTAssertEqual(update.suppressionUntil, now.addingTimeInterval(0.45))
     }
+
+    func testDragEndResolutionMinimizesMatchedTargetOnly() {
+        let resolution = TerminalWindowDockingLogic.dragEndResolution(
+            dragToNotchEnabled: true,
+            pendingTargets: [
+                TerminalWindowDockTarget(displayID: 2, frame: .zero),
+                TerminalWindowDockTarget(displayID: 7, frame: .zero)
+            ],
+            matchedMinimizeDisplayID: 7
+        )
+
+        XCTAssertEqual(resolution.targetToMinimize, 7)
+        XCTAssertEqual(resolution.hoverDisplayIDsToClear, [7])
+        XCTAssertFalse(resolution.shouldRestoreAllPreviews)
+        XCTAssertFalse(resolution.shouldClearPendingTargets)
+    }
+
+    func testDragEndResolutionClearsAllWhenNoTargetMatches() {
+        let resolution = TerminalWindowDockingLogic.dragEndResolution(
+            dragToNotchEnabled: true,
+            pendingTargets: [
+                TerminalWindowDockTarget(displayID: 2, frame: .zero),
+                TerminalWindowDockTarget(displayID: 7, frame: .zero)
+            ],
+            matchedMinimizeDisplayID: nil
+        )
+
+        XCTAssertNil(resolution.targetToMinimize)
+        XCTAssertEqual(resolution.hoverDisplayIDsToClear, [2, 7])
+        XCTAssertTrue(resolution.shouldRestoreAllPreviews)
+        XCTAssertTrue(resolution.shouldClearPendingTargets)
+    }
+
+    func testDragEndResolutionClearsEverythingWhenFeatureDisabled() {
+        let resolution = TerminalWindowDockingLogic.dragEndResolution(
+            dragToNotchEnabled: false,
+            pendingTargets: [TerminalWindowDockTarget(displayID: 3, frame: .zero)],
+            matchedMinimizeDisplayID: 3
+        )
+
+        XCTAssertNil(resolution.targetToMinimize)
+        XCTAssertEqual(resolution.hoverDisplayIDsToClear, [3])
+        XCTAssertTrue(resolution.shouldRestoreAllPreviews)
+        XCTAssertTrue(resolution.shouldClearPendingTargets)
+    }
 }
