@@ -618,15 +618,16 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func publishTerminalItems() {
-        let items = windows.values
-            .map(makeTerminalItem(from:))
-            .sorted { $0.number < $1.number }
-        onTerminalItemsChanged?(items)
+        onTerminalItemsChanged?(TerminalWindowPresentationLogic.items(from: terminalPresentationSnapshots()))
     }
 
-    private func makeTerminalItem(from instance: WindowInstance) -> TerminalWindowItem {
+    private func terminalPresentationSnapshots() -> [TerminalWindowPresentationSnapshot] {
+        windows.values.map(makePresentationSnapshot(from:))
+    }
+
+    private func makePresentationSnapshot(from instance: WindowInstance) -> TerminalWindowPresentationSnapshot {
         let currentPreview = instance.isMinimized ? instance.previewSnapshot : capturePreview(from: instance.panel)
-        return TerminalWindowItem(
+        return TerminalWindowPresentationSnapshot(
             id: instance.id,
             number: instance.number,
             displayID: instance.displayID,
