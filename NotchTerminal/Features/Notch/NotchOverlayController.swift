@@ -665,9 +665,10 @@ final class NotchOverlayController {
     private func frameForPanel(on screen: NSScreen, model: NotchViewModel) -> CGRect {
         let hasNotch = model.hasPhysicalNotch
         let displayID = displayID(for: screen)
-        let horizontalOffset = displayID.map { CGFloat(AppPreferences.notchOffsetX(for: $0)) } ?? 0
-        let verticalOffset = displayID.map { CGFloat(AppPreferences.notchOffsetY(for: $0)) } ?? 0
-        let widthAdjustment = displayID.map { CGFloat(AppPreferences.notchWidthAdjustment(for: $0)) } ?? 0
+        let configuration = displayID.map { AppPreferences.notchConfiguration(for: $0) }
+        let horizontalOffset = configuration.map { CGFloat($0.offsetX) } ?? 0
+        let verticalOffset = configuration.map { CGFloat($0.offsetY) } ?? 0
+        let widthAdjustment = configuration.map { CGFloat($0.widthAdjustment) } ?? 0
 
         let closedSize: NSSize = {
             guard hasNotch else {
@@ -719,9 +720,10 @@ final class NotchOverlayController {
     private func notchActivationRect(for screen: NSScreen, model: NotchViewModel) -> CGRect {
         let hasNotch = model.hasPhysicalNotch
         let displayID = displayID(for: screen)
-        let horizontalOffset = displayID.map { CGFloat(AppPreferences.notchOffsetX(for: $0)) } ?? 0
-        let verticalOffset = displayID.map { CGFloat(AppPreferences.notchOffsetY(for: $0)) } ?? 0
-        let widthAdjustment = displayID.map { CGFloat(AppPreferences.notchWidthAdjustment(for: $0)) } ?? 0
+        let configuration = displayID.map { AppPreferences.notchConfiguration(for: $0) }
+        let horizontalOffset = configuration.map { CGFloat($0.offsetX) } ?? 0
+        let verticalOffset = configuration.map { CGFloat($0.offsetY) } ?? 0
+        let widthAdjustment = configuration.map { CGFloat($0.widthAdjustment) } ?? 0
 
         if model.isExpanded {
             // While expanded, keep a larger interaction zone so moving to previews
@@ -757,14 +759,15 @@ final class NotchOverlayController {
         let isEnabled = UserDefaults.standard.object(forKey: AppPreferences.Keys.experimentalStartupOrbEnabled) as? Bool
             ?? AppPreferences.Defaults.experimentalStartupOrbEnabled
         guard isEnabled, !model.hasPhysicalNotch, !model.isExpanded else { return nil }
+        let configuration = displayID(for: screen).map { AppPreferences.notchConfiguration(for: $0) }
         let hostRect = StartupOrbGeometry.hostRectOnScreen(
             screenFrame: screen.frame,
-            hostWidth: max(26, collapsedNoNotchSize.width + (displayID(for: screen).map { CGFloat(AppPreferences.notchWidthAdjustment(for: $0)) } ?? 0)),
+            hostWidth: max(26, collapsedNoNotchSize.width + (configuration.map { CGFloat($0.widthAdjustment) } ?? 0)),
             hostHeight: collapsedNoNotchSize.height,
             topInset: noNotchTopInset
         )
-        let horizontalOffset = displayID(for: screen).map { CGFloat(AppPreferences.notchOffsetX(for: $0)) } ?? 0
-        let verticalOffset = displayID(for: screen).map { CGFloat(AppPreferences.notchOffsetY(for: $0)) } ?? 0
+        let horizontalOffset = configuration.map { CGFloat($0.offsetX) } ?? 0
+        let verticalOffset = configuration.map { CGFloat($0.offsetY) } ?? 0
         return StartupOrbGeometry.detachedFrame(
             alignedTo: hostRect.offsetBy(dx: horizontalOffset, dy: -verticalOffset),
             style: .pill
@@ -777,9 +780,10 @@ final class NotchOverlayController {
         }
 
         if !model.hasPhysicalNotch {
-            let horizontalOffset = displayID(for: screen).map { CGFloat(AppPreferences.notchOffsetX(for: $0)) } ?? 0
-            let verticalOffset = displayID(for: screen).map { CGFloat(AppPreferences.notchOffsetY(for: $0)) } ?? 0
-            let widthAdjustment = displayID(for: screen).map { CGFloat(AppPreferences.notchWidthAdjustment(for: $0)) } ?? 0
+            let configuration = displayID(for: screen).map { AppPreferences.notchConfiguration(for: $0) }
+            let horizontalOffset = configuration.map { CGFloat($0.offsetX) } ?? 0
+            let verticalOffset = configuration.map { CGFloat($0.offsetY) } ?? 0
+            let widthAdjustment = configuration.map { CGFloat($0.widthAdjustment) } ?? 0
             let virtual = CGRect(
                 x: screen.frame.midX - (collapsedNoNotchSize.width + widthAdjustment) / 2 + horizontalOffset,
                 y: screen.frame.maxY - collapsedNoNotchSize.height - noNotchTopInset,
@@ -1148,8 +1152,9 @@ final class NotchOverlayController {
 
             let size = model.closedSize
             let topInset: CGFloat = model.hasPhysicalNotch ? notchTopInset : noNotchTopInset
-            let horizontalOffset = CGFloat(AppPreferences.notchOffsetX(for: key))
-            let verticalOffset = CGFloat(AppPreferences.notchOffsetY(for: key))
+            let configuration = AppPreferences.notchConfiguration(for: key)
+            let horizontalOffset = CGFloat(configuration.offsetX)
+            let verticalOffset = CGFloat(configuration.offsetY)
             let origin = CGPoint(
                 x: screen.frame.midX - size.width / 2.0 + horizontalOffset,
                 y: screen.frame.maxY - size.height - topInset - verticalOffset

@@ -95,6 +95,27 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertEqual(AppPreferences.auroraTheme(for: displayID, fallback: "default", in: defaults), "sunset")
     }
 
+    func testNotchConfigurationAggregatesDisplayPreferenceValues() {
+        let displayID: CGDirectDisplayID = 777
+
+        AppPreferences.setNotchEnabled(false, for: displayID, in: defaults)
+        AppPreferences.setNotchOffsetX(12, for: displayID, in: defaults)
+        AppPreferences.setNotchOffsetY(-4, for: displayID, in: defaults)
+        AppPreferences.setNotchWidthAdjustment(18, for: displayID, in: defaults)
+
+        let configuration = AppPreferences.notchConfiguration(for: displayID, in: defaults)
+
+        XCTAssertEqual(
+            configuration,
+            AppPreferences.NotchDisplayConfiguration(
+                isEnabled: false,
+                offsetX: 12,
+                offsetY: -4,
+                widthAdjustment: 18
+            )
+        )
+    }
+
     func testDisablingAuroraOverrideClearsPerDisplayBoolAndStringValues() {
         let displayID: CGDirectDisplayID = 555
 
@@ -143,5 +164,45 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertFalse(AppPreferences.hasCustomAuroraOverride(for: second, in: defaults))
         XCTAssertFalse(AppPreferences.auroraBackgroundEnabled(for: second, fallback: false, in: defaults))
         XCTAssertEqual(AppPreferences.auroraTheme(for: second, fallback: "classic", in: defaults), "classic")
+    }
+
+    func testAuroraConfigurationAggregatesOverrideAndFallbackValues() {
+        let displayID: CGDirectDisplayID = 888
+
+        let fallback = AppPreferences.auroraConfiguration(
+            for: displayID,
+            fallbackEnabled: true,
+            fallbackTheme: "matrix",
+            in: defaults
+        )
+
+        XCTAssertEqual(
+            fallback,
+            AppPreferences.AuroraDisplayConfiguration(
+                usesCustomOverride: false,
+                backgroundEnabled: true,
+                theme: "matrix"
+            )
+        )
+
+        AppPreferences.setCustomAuroraOverrideEnabled(true, for: displayID, in: defaults)
+        AppPreferences.setAuroraBackgroundEnabled(false, for: displayID, in: defaults)
+        AppPreferences.setAuroraTheme("sunset", for: displayID, in: defaults)
+
+        let custom = AppPreferences.auroraConfiguration(
+            for: displayID,
+            fallbackEnabled: true,
+            fallbackTheme: "matrix",
+            in: defaults
+        )
+
+        XCTAssertEqual(
+            custom,
+            AppPreferences.AuroraDisplayConfiguration(
+                usesCustomOverride: true,
+                backgroundEnabled: false,
+                theme: "sunset"
+            )
+        )
     }
 }

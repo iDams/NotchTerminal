@@ -32,9 +32,6 @@ struct NotchCapsuleView: View {
     @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowGit) private var experimentalProjectStatusShowGit = AppPreferences.Defaults.experimentalProjectStatusShowGit
     @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowFolder) private var experimentalProjectStatusShowFolder = AppPreferences.Defaults.experimentalProjectStatusShowFolder
     @AppStorage(AppPreferences.Keys.hitTestDebugOverlayEnabled) private var hitTestDebugOverlayEnabled = AppPreferences.Defaults.hitTestDebugOverlayEnabled
-    @AppStorage(AppPreferences.Keys.auroraDisplayOverrideIDs) private var auroraDisplayOverrideIDsRaw = ""
-    @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
-    @AppStorage(AppPreferences.Keys.auroraDisplayThemeMap) private var auroraDisplayThemeMapRaw = ""
     @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
     @AppStorage(AppPreferences.Keys.experimentalAIProvider) private var experimentalAIProvider = AppPreferences.Defaults.experimentalAIProvider
     @AppStorage(AppPreferences.Keys.experimentalAICustomURL) private var experimentalAICustomURL = AppPreferences.Defaults.experimentalAICustomURL
@@ -67,22 +64,19 @@ struct NotchCapsuleView: View {
     }
 
     private var effectiveAuroraBackgroundEnabled: Bool {
-        _ = auroraDisplayOverrideIDsRaw
-        _ = auroraDisplayEnabledMapRaw
-        return AppPreferences.auroraBackgroundEnabled(
-            for: model.ownDisplayID,
-            fallback: model.auroraBackgroundEnabled
-        )
+        auroraConfiguration.backgroundEnabled
     }
 
     private var effectiveAuroraTheme: NotchViewModel.AuroraTheme {
-        _ = auroraDisplayOverrideIDsRaw
-        _ = auroraDisplayThemeMapRaw
-        let rawValue = AppPreferences.auroraTheme(
+        NotchViewModel.AuroraTheme(rawValue: auroraConfiguration.theme) ?? model.auroraTheme
+    }
+
+    private var auroraConfiguration: AppPreferences.AuroraDisplayConfiguration {
+        AppPreferences.auroraConfiguration(
             for: model.ownDisplayID,
-            fallback: model.auroraTheme.rawValue
+            fallbackEnabled: model.auroraBackgroundEnabled,
+            fallbackTheme: model.auroraTheme.rawValue
         )
-        return NotchViewModel.AuroraTheme(rawValue: rawValue) ?? model.auroraTheme
     }
     
     init(

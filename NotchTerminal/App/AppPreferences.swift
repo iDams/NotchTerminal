@@ -2,6 +2,19 @@ import Foundation
 import CoreGraphics
 
 enum AppPreferences {
+    struct NotchDisplayConfiguration: Equatable {
+        let isEnabled: Bool
+        let offsetX: Double
+        let offsetY: Double
+        let widthAdjustment: Double
+    }
+
+    struct AuroraDisplayConfiguration: Equatable {
+        let usesCustomOverride: Bool
+        let backgroundEnabled: Bool
+        let theme: String
+    }
+
     enum Keys {
         static let disabledNotchDisplayIDs = "disabledNotchDisplayIDs"
         static let notchDisplayOffsetX = "notchDisplayOffsetX"
@@ -120,6 +133,15 @@ enum AppPreferences {
         defaults.set(rawValue, forKey: Keys.disabledNotchDisplayIDs)
     }
 
+    static func notchConfiguration(for displayID: CGDirectDisplayID, in defaults: UserDefaults = .standard) -> NotchDisplayConfiguration {
+        NotchDisplayConfiguration(
+            isEnabled: isNotchEnabled(for: displayID, in: defaults),
+            offsetX: notchOffsetX(for: displayID, in: defaults),
+            offsetY: notchOffsetY(for: displayID, in: defaults),
+            widthAdjustment: notchWidthAdjustment(for: displayID, in: defaults)
+        )
+    }
+
     static func notchOffsetX(for displayID: CGDirectDisplayID, in defaults: UserDefaults = .standard) -> Double {
         perDisplayDouble(for: displayID, key: Keys.notchDisplayOffsetX, in: defaults)
     }
@@ -194,6 +216,27 @@ enum AppPreferences {
         var map = perDisplayStringMap(forKey: Keys.auroraDisplayThemeMap, in: defaults)
         map[String(displayID)] = rawValue
         defaults.set(map, forKey: Keys.auroraDisplayThemeMap)
+    }
+
+    static func auroraConfiguration(
+        for displayID: CGDirectDisplayID,
+        fallbackEnabled: Bool,
+        fallbackTheme: String,
+        in defaults: UserDefaults = .standard
+    ) -> AuroraDisplayConfiguration {
+        AuroraDisplayConfiguration(
+            usesCustomOverride: hasCustomAuroraOverride(for: displayID, in: defaults),
+            backgroundEnabled: auroraBackgroundEnabled(
+                for: displayID,
+                fallback: fallbackEnabled,
+                in: defaults
+            ),
+            theme: auroraTheme(
+                for: displayID,
+                fallback: fallbackTheme,
+                in: defaults
+            )
+        )
     }
 
     private static func perDisplayDouble(for displayID: CGDirectDisplayID, key: String, in defaults: UserDefaults) -> Double {
