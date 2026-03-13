@@ -1041,32 +1041,32 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     func currentSessions() -> [TerminalSession] {
-        sessionSnapshots().map { snapshot in
-            WindowSessionLogic.serializedSession(
-                from: snapshot,
-                normalizeWorkingDirectory: { TerminalWindowContextResolver.normalizedWorkingDirectory($0) },
-                creationTimestamp: Date()
-            )
-        }
+        WindowSessionLogic.serializedSessions(
+            from: sessionSnapshots(),
+            normalizeWorkingDirectory: { TerminalWindowContextResolver.normalizedWorkingDirectory($0) },
+            creationTimestamp: Date()
+        )
     }
 
     private func sessionSnapshots() -> [WindowSessionSnapshot] {
         windows.values.map { instance in
-            WindowSessionSnapshot(
-                id: instance.id,
-                number: instance.number,
-                displayID: instance.displayID,
-                workingDirectory: instance.currentDirectory,
-                expandedFrame: instance.expandedFrame,
-                isDockedToNotch: instance.isMinimized,
-                isAlwaysOnTop: instance.isAlwaysOnTop,
-                isCompact: instance.isCompact,
-                isMaximized: instance.isMaximized,
-                displayTitle: instance.displayTitle,
-                projectRootPath: instance.projectRootPath,
-                projectName: instance.projectName,
-                lastSubmittedCommand: instance.lastSubmittedCommand,
-                preMaximizeFrame: instance.preMaximizeFrame
+            WindowSessionLogic.snapshot(
+                from: .init(
+                    id: instance.id,
+                    number: instance.number,
+                    displayID: instance.displayID,
+                    workingDirectory: instance.currentDirectory,
+                    expandedFrame: instance.expandedFrame,
+                    isDockedToNotch: instance.isMinimized,
+                    isAlwaysOnTop: instance.isAlwaysOnTop,
+                    isCompact: instance.isCompact,
+                    isMaximized: instance.isMaximized,
+                    displayTitle: instance.displayTitle,
+                    projectRootPath: instance.projectRootPath,
+                    projectName: instance.projectName,
+                    lastSubmittedCommand: instance.lastSubmittedCommand,
+                    preMaximizeFrame: instance.preMaximizeFrame
+                )
             )
         }
     }
