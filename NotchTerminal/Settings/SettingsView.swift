@@ -6,6 +6,7 @@ private enum SettingsTab: Hashable {
     case notch
     case appearance
     case about
+    case aiCronjobs
     case experimental
 
     init(uiTestValue: String) {
@@ -16,6 +17,8 @@ private enum SettingsTab: Hashable {
             self = .appearance
         case "about":
             self = .about
+        case "aicronjobs":
+            self = .aiCronjobs
         case "experimental":
             self = .experimental
         default:
@@ -47,6 +50,8 @@ struct SettingsView: View {
             return 560
         case .about:
             return 640
+        case .aiCronjobs:
+            return 560
         case .experimental:
             return 320
         }
@@ -76,6 +81,12 @@ struct SettingsView: View {
                 .tag(SettingsTab.about)
                 .tabItem {
                     Label("settings.about".localized, systemImage: "info.circle")
+                }
+
+            AICronjobsSettingsView()
+                .tag(SettingsTab.aiCronjobs)
+                .tabItem {
+                    Label("NotchAgent", systemImage: "cpu")
                 }
 
             if showExperimentalSettings {

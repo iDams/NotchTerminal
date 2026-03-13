@@ -42,7 +42,11 @@ enum AppPreferences {
         static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
         static let experimentalProjectStatusShowFolder = "experimentalProjectStatusShowFolder"
         static let experimentalFloatingMsgEnabled = "experimentalFloatingMsgEnabled"
-        static let experimentalFloatingMsgInterval = "experimentalFloatingMsgInterval"
+        static let experimentalAIProvider = "experimentalAIProvider"
+        static let experimentalAICustomURL = "experimentalAICustomURL"
+        static let experimentalAIApiKey = "experimentalAIApiKey"
+        static let experimentalAIModel = "experimentalAIModel"
+        static let experimentalAICronjobsData = "experimentalAICronjobsData"
     }
 
     enum Defaults {
@@ -76,7 +80,11 @@ enum AppPreferences {
         static let experimentalProjectStatusShowGit = true
         static let experimentalProjectStatusShowFolder = true
         static let experimentalFloatingMsgEnabled = false
-        static let experimentalFloatingMsgInterval = 60.0
+        static let experimentalAIProvider = "openai"
+        static let experimentalAICustomURL = "https://api.openai.com/v1"
+        static let experimentalAIApiKey = ""
+        static let experimentalAIModel = "gpt-3.5-turbo"
+        static let experimentalAICronjobsData: [AICronjob] = []
     }
 
     static func disabledNotchDisplayIDs(in defaults: UserDefaults = .standard) -> Set<CGDirectDisplayID> {

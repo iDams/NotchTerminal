@@ -36,10 +36,14 @@ struct NotchCapsuleView: View {
     @AppStorage(AppPreferences.Keys.auroraDisplayEnabledMap) private var auroraDisplayEnabledMapRaw = ""
     @AppStorage(AppPreferences.Keys.auroraDisplayThemeMap) private var auroraDisplayThemeMapRaw = ""
     @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
-    @AppStorage(AppPreferences.Keys.experimentalFloatingMsgInterval) private var experimentalFloatingMsgInterval = AppPreferences.Defaults.experimentalFloatingMsgInterval
+    @AppStorage(AppPreferences.Keys.experimentalAIProvider) private var experimentalAIProvider = AppPreferences.Defaults.experimentalAIProvider
+    @AppStorage(AppPreferences.Keys.experimentalAICustomURL) private var experimentalAICustomURL = AppPreferences.Defaults.experimentalAICustomURL
+    @AppStorage(AppPreferences.Keys.experimentalAIApiKey) private var experimentalAIApiKey = AppPreferences.Defaults.experimentalAIApiKey
+    @AppStorage(AppPreferences.Keys.experimentalAIModel) private var experimentalAIModel = AppPreferences.Defaults.experimentalAIModel
+    @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) private var experimentalAICronjobsData = AppPreferences.Defaults.experimentalAICronjobsData
 
     @State private var showingFloatingMessage = false
-    @State private var floatingMessageTimer: Timer?
+    @State private var floatingMessageText = "Hello World 😉"
 
     private var expandedWidth: CGFloat {
         let minWidth: CGFloat = 680
@@ -195,48 +199,45 @@ struct NotchCapsuleView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .top) {
             if !model.isExpanded && showingFloatingMessage {
-                Text("Hello World 😉")
+                Text(floatingMessageText)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.black.opacity(0.85), in: Capsule())
-                    .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 1))
-                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+                    .background {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.black.opacity(0.85))
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
+                    }
+                    .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
                     .padding(.top, shadowPadding + (model.hasPhysicalNotch ? 38 : 28) + 12)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)).combined(with: .move(edge: .top)))
                     .zIndex(100)
             }
         }
-        .onAppear {
-            setupFloatingMessageTimer()
-        }
-        .onChange(of: experimentalFloatingMsgEnabled) { _, _ in
-            setupFloatingMessageTimer()
-        }
-        .onChange(of: experimentalFloatingMsgInterval) { _, _ in
-            setupFloatingMessageTimer()
+        .onReceive(NotificationCenter.default.publisher(for: AICronjobManager.newMessageNotification)) { notification in
+            if let text = notification.userInfo?["text"] as? String {
+                showFloatingMessage(text)
+            }
         }
         // Removed implicit animation modifier here to avoid repeated implicit animations during state changes
     }
 
-    private func setupFloatingMessageTimer() {
-        floatingMessageTimer?.invalidate()
-        floatingMessageTimer = nil
-        showingFloatingMessage = false
 
-        guard experimentalFloatingMsgEnabled else { return }
-
-        floatingMessageTimer = Timer.scheduledTimer(withTimeInterval: experimentalFloatingMsgInterval, repeats: true) { _ in
-            guard !model.isExpanded else { return }
+    private func showFloatingMessage(_ text: String) {
+        Task { @MainActor in
+            self.floatingMessageText = text
+            guard !self.model.isExpanded else { return }
             
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                showingFloatingMessage = true
+                self.showingFloatingMessage = true
             }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            
+            // Auto hide after 5 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                 withAnimation(.easeIn(duration: 0.2)) {
-                    showingFloatingMessage = false
+                    self.showingFloatingMessage = false
                 }
             }
         }
@@ -732,11 +733,11 @@ struct NotchCapsuleView: View {
                 shoulderRadius: shoulderRadius,
                 overshoot: 6.0
             )
-                .foregroundStyle(Color(red: 0, green: 0, blue: 0).opacity(model.isExpanded || model.isHoveringPreview ? 1.0 : 0.01))
-                .animation(.easeInOut(duration: 0.22), value: model.isExpanded || model.isHoveringPreview)
+            .fill(Color.black.opacity(model.isExpanded || model.isHoveringPreview ? 1.0 : 0.01))
+            .animation(.easeInOut(duration: 0.22), value: model.isExpanded || model.isHoveringPreview)
         } else {
             RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                .foregroundStyle(Color(red: 0, green: 0, blue: 0))
+                .fill(Color.black)
                 .animation(.easeInOut(duration: 0.22), value: model.isExpanded || model.isHoveringPreview)
         }
     }

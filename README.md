@@ -63,6 +63,15 @@ It combines:
 - Stores terminal sessions via SwiftData
 - Restores sessions on launch (work in progress)
 
+### NotchAgent (Experimental)
+- Scheduled AI cronjobs that run prompts on a timer or via macOS `launchd`
+- Two execution modes:
+  - **App Timer**: runs while NotchTerminal is open
+  - **Machine Daemon**: runs via native macOS `launchd`, even when the app is closed
+- User-friendly interval picker (1min–daily) or advanced custom cron expression
+- Results displayed in the Notch overlay (if app is open) and/or macOS Notification Center
+- Supports OpenAI, OpenRouter (free), and custom API endpoints
+
 ## Requirements
 
 - macOS 14+
@@ -120,6 +129,12 @@ The shared `Config/Signing.xcconfig` includes that file optionally, so collabora
   - CRT Filter
   - Hit-test debug overlay
   - Extra notch geometry offsets for physical-notch displays
+- `NotchAgent`
+  - Experimental tab for scheduled AI background tasks
+  - Global AI provider configuration (OpenAI / OpenRouter / Custom)
+  - Cronjob list with enable/disable, test, edit, and delete
+  - Per-job execution mode (App Timer or Machine Daemon)
+  - Interval picker or advanced cron expression
 
 ## Project Structure
 

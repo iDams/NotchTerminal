@@ -4,10 +4,25 @@ import QuartzCore
 import MetalKit
 import Combine
 import SwiftData
+import UserNotifications
 
 @main
 struct NotchTerminalApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    init() {
+        // Machine Daemon Mode (launched by launchd)
+        if let idx = CommandLine.arguments.firstIndex(of: "--run-cronjob"), idx + 1 < CommandLine.arguments.count {
+            let jobId = CommandLine.arguments[idx + 1]
+            Task {
+                await AICronjobManager.executeBackgroundJob(id: jobId)
+                // Give UNUserNotificationCenter XPC messages time to flush before killing process
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                exit(0)
+            }
+            RunLoop.main.run()
+        }
+    }
 
     var body: some Scene {
         Settings {
@@ -26,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupEditMenu()
+        requestNotificationPermissions()
         if UITestSupport.isEnabled {
             _ = NSApp.setActivationPolicy(.regular)
         } else {
@@ -44,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             modelContainer = try ModelContainer(for: TerminalSession.self)
             persistenceHealth.markAvailable()
+            _ = AICronjobManager.shared // Start AI loop
         } catch {
             let details = PersistenceHealth.userFacingDetails(for: error)
             persistenceHealth.markUnavailable(details: details)
@@ -77,7 +94,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editMenuItem.submenu = editMenu
         
         // Standard macOS Edit actions. Because NotchTerminal is a LSUIElement (Accessory),
-        // we must manually provide these for Cmd+C/V/A to be routed to the focused TerminalView.
+        // we must manually provide these for Cmd+C/V/Z/A to be routed to the focused View.
+        editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        editMenu.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
         editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
@@ -94,12 +115,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func applyDockIconPreference() {
         let showDockIcon = UserDefaults.standard.bool(forKey: AppPreferences.Keys.showDockIcon)
-        _ = NSApp.setActivationPolicy(showDockIcon ? .regular : .accessory)
-        if showDockIcon {
-            NSApp.activate(ignoringOtherApps: false)
+        let policy: NSApplication.ActivationPolicy = showDockIcon ? .regular : .accessory
+        if NSApp.activationPolicy() != policy {
+            NSApp.setActivationPolicy(policy)
+            if showDockIcon {
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
     }
-
+    
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if granted {
+                print("✅ [AppDelegate] Notification permissions granted.")
+            } else if let error = error {
+                print("❌ [AppDelegate] Notification permissions error: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     @MainActor
     private func presentUITestWindow() {
         if let uiTestWindow {
