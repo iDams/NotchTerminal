@@ -45,11 +45,6 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     var onTerminalItemsChanged: (([TerminalWindowItem]) -> Void)?
     var onCommandOrbEvent: ((TerminalCommandOrbEvent) -> Void)?
 
-    private struct PendingOrbCommand {
-        let event: TerminalCommandOrbEvent
-        var hasFailed = false
-    }
-
     private struct WindowInstance {
         let id: UUID
         var number: Int
@@ -94,7 +89,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     private var dockSuppressionUntil: [UUID: Date] = [:]
     private var closingWithoutTerminate = Set<UUID>()
     private var nextNumber: Int = 1
-    private var pendingOrbCommands: [UUID: PendingOrbCommand] = [:]
+    private var pendingOrbCommands: [UUID: PendingOrbCommandState] = [:]
 
     private func defaultDisplayIcon() -> NSImage? {
         NSImage(named: "AppLogo")
@@ -1109,44 +1104,35 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
 
     private func handleCommandSubmitted(id: UUID, command: String) {
         guard var instance = windows[id] else { return }
-        let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let branding = CLICommandBrandingResolver.branding(for: command)
-        instance.lastSubmittedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if let orbEvent = TerminalCommandOrbClassifier.makeEvent(
+        let update = TerminalCommandLifecycleLogic.submittedCommandUpdate(
             command: command,
+            currentDisplayTitle: instance.displayTitle,
+            currentDisplayIcon: instance.displayIcon,
+            defaultDisplayIcon: defaultDisplayIcon(),
             displayID: instance.displayID,
             terminalNumber: instance.number
-        ) {
-            pendingOrbCommands[id] = PendingOrbCommand(event: orbEvent)
-            onCommandOrbEvent?(orbEvent)
+        )
+
+        instance.lastSubmittedCommand = update.lastSubmittedCommand
+
+        if let pending = update.pendingOrbCommand {
+            pendingOrbCommands[id] = pending
         } else {
             pendingOrbCommands.removeValue(forKey: id)
         }
 
-        if let newTitle = branding.title {
-            guard instance.displayTitle != newTitle || instance.displayIcon !== branding.icon else { return }
-            instance.displayTitle = newTitle
-            instance.displayIcon = branding.icon
-            instance.preferMouseReporting = (newTitle == "opencode")
-        } else {
-            // Keep branding for in-CLI slash commands, but reset when leaving the CLI.
-            if trimmed == "exit" || trimmed == "quit" {
-                instance.displayTitle = "NotchTerminal"
-                instance.displayIcon = defaultDisplayIcon()
-                instance.preferMouseReporting = false
-            } else if trimmed.hasPrefix("/") {
-                return
-            } else if instance.displayIcon != nil {
-                // If a regular shell command appears after branding was active,
-                // assume we returned to the shell and clear branding.
-                instance.displayTitle = "NotchTerminal"
-                instance.displayIcon = defaultDisplayIcon()
-                instance.preferMouseReporting = false
-            } else {
-                return
-            }
+        if let orbEvent = update.emittedOrbEvent {
+            onCommandOrbEvent?(orbEvent)
         }
+
+        guard let brandingState = update.brandingState else {
+            windows[id] = instance
+            return
+        }
+
+        instance.displayTitle = brandingState.displayTitle
+        instance.displayIcon = brandingState.displayIcon
+        instance.preferMouseReporting = brandingState.preferMouseReporting
 
         windows[id] = instance
         updateContent(for: id)
@@ -1154,11 +1140,12 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
     }
 
     private func handleCommandOutput(id: UUID, text: String) {
-        guard var pending = pendingOrbCommands[id], !pending.hasFailed else { return }
-        guard outputLooksLikeFailure(text) else { return }
-        pending.hasFailed = true
-        pendingOrbCommands[id] = pending
-        onCommandOrbEvent?(TerminalCommandOrbClassifier.makeCompletionEvent(from: pending.event, status: .error))
+        guard let pending = pendingOrbCommands[id],
+              let (failed, event) = TerminalCommandLifecycleLogic.failedOrbState(for: text, pending: pending) else {
+            return
+        }
+        pendingOrbCommands[id] = failed
+        onCommandOrbEvent?(event)
     }
 
     private func handleDirectoryChanged(id: UUID, directory: String) {
@@ -1176,23 +1163,6 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
 
         windows[id] = instance
-    }
-
-    private func outputLooksLikeFailure(_ text: String) -> Bool {
-        let lowered = text.lowercased()
-        let patterns = [
-            "npm error",
-            "npm err!",
-            "enoent",
-            "command failed",
-            "error:",
-            "fatal:",
-            "traceback (most recent call last)",
-            "build failed",
-            "test failed",
-            "no such file or directory"
-        ]
-        return patterns.contains { lowered.contains($0) }
     }
 
     private func preferredCloseActionMode() -> CloseActionMode {
