@@ -161,8 +161,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "persistence.alert.title".localized
         alert.informativeText = String(format: "persistence.alert.message".localized, details)
         alert.alertStyle = .warning
+        alert.addButton(withTitle: "Reset Data Store")
         alert.addButton(withTitle: "OK")
         NSApp.activate(ignoringOtherApps: true)
-        alert.runModal()
+        let response = alert.runModal()
+        
+        if response == .alertFirstButtonReturn {
+            resetDataStore()
+        }
+    }
+    
+    private func resetDataStore() {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let storeFiles = ["default.store", "default.store-shm", "default.store-wal"]
+        
+        for file in storeFiles {
+            let url = appSupport.appendingPathComponent(file)
+            try? FileManager.default.removeItem(at: url)
+        }
+        
+        // Relaunch the app
+        let bundlePath = Bundle.main.bundlePath
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments = ["-n", bundlePath]
+        try? task.run()
+        
+        NSApp.terminate(nil)
     }
 }
