@@ -298,84 +298,17 @@ public final class AICronjobManager: ObservableObject {
         let customURL = defaults.string(forKey: AppPreferences.Keys.experimentalAICustomURL) ?? "https://api.openai.com/v1"
         let model = defaults.string(forKey: AppPreferences.Keys.experimentalAIModel) ?? "gpt-3.5-turbo"
         
-        guard !apiKey.isEmpty else {
-            print("❌ [BackgroundJob] API Key is empty")
-            await sendBackgroundNotification(title: "NotchAgent: \(job.name)", body: "API Key Missing")
-            return
-        }
-        
-        let baseURL: String
-        switch provider {
-        case "openrouter": baseURL = "https://openrouter.ai/api/v1"
-        case "custom": baseURL = customURL
-        default: baseURL = "https://api.openai.com/v1"
-        }
-        
-        let safeURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        guard let url = URL(string: "\(safeURL)/chat/completions") else {
-            await sendBackgroundNotification(title: "NotchAgent: \(job.name)", body: "Invalid URL")
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        if provider == "openrouter" {
-            request.setValue("https://notchterminal.app", forHTTPHeaderField: "HTTP-Referer")
-            request.setValue("NotchTerminal", forHTTPHeaderField: "X-Title")
-        }
-        
-        let finalModel = provider == "openrouter" ? "openrouter/free" : model
-        var body: [String: Any] = [
-            "model": finalModel,
-            "messages": [
-                ["role": "system", "content": "You are a helpful assistant integrated into a macOS Notch widget. Keep your answers extremely short, ideally 1 sentence or a few words."],
-                ["role": "user", "content": job.prompt]
-            ],
-            "max_tokens": 250
-        ]
-        if provider == "openrouter" {
-            body["reasoning"] = ["enabled": true]
-        }
-        
-        guard let httpBody = try? JSONSerialization.data(withJSONObject: body) else { return }
-        request.httpBody = httpBody
-        
-        do {
-            print("🚀 [BackgroundJob] Sending request to \(safeURL)/chat/completions")
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            if let rawString = String(data: data, encoding: .utf8) {
-                print("📦 [BackgroundJob] Raw Response:\n\(rawString)")
+        await runAgentLoop(
+            job: job,
+            provider: provider,
+            apiKey: apiKey,
+            customURL: customURL,
+            model: model,
+            isBackground: true
+        ) { text, jobRef, isBg in
+            Task {
+                await sendBackgroundNotification(title: "NotchAgent: \(jobRef?.name ?? "Unknown")", body: text)
             }
-            
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-                var errMsg = "HTTP Error \(httpResponse.statusCode)"
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let errorObj = json["error"] as? [String: Any],
-                   let msg = errorObj["message"] as? String {
-                    errMsg = msg
-                }
-                await sendBackgroundNotification(title: "NotchAgent: \(job.name)", body: errMsg)
-                return
-            }
-            
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let choices = json["choices"] as? [[String: Any]],
-               let firstChoice = choices.first,
-               let message = firstChoice["message"] as? [String: Any],
-               let content = message["content"] as? String {
-                let clean = content.trimmingCharacters(in: .whitespacesAndNewlines)
-                print("✅ [BackgroundJob] AI Response: \(clean)")
-                await sendBackgroundNotification(title: "NotchAgent: \(job.name)", body: clean.isEmpty ? "Empty response" : clean)
-            } else {
-                await sendBackgroundNotification(title: "NotchAgent: \(job.name)", body: "Unexpected API response format")
-            }
-        } catch {
-            print("❌ [BackgroundJob] Error: \(error.localizedDescription)")
-            await sendBackgroundNotification(title: "NotchAgent: \(job.name)", body: "Request Failed: \(error.localizedDescription)")
         }
     }
     
@@ -405,90 +338,161 @@ public final class AICronjobManager: ObservableObject {
     }
 
     private func fetchAIResponse(for job: AICronjob, isBackground: Bool = false) async {
-        guard (experimentalAIProvider == "openai" || experimentalAIProvider == "custom" || experimentalAIProvider == "openrouter"), !experimentalAIApiKey.isEmpty else {
-            broadcastMessage("[\(job.name)] API Key Missing", job: job, isBackground: isBackground)
+        await Self.runAgentLoop(
+            job: job,
+            provider: experimentalAIProvider,
+            apiKey: experimentalAIApiKey,
+            customURL: experimentalAICustomURL,
+            model: experimentalAIModel,
+            isBackground: isBackground
+        ) { [weak self] text, jobRef, isBg in
+            self?.broadcastMessage(text, job: jobRef, isBackground: isBg)
+        }
+    }
+    
+    // MARK: - Core Multi-Turn Agent Loop
+    
+    private static func runAgentLoop(
+        job: AICronjob,
+        provider: String,
+        apiKey: String,
+        customURL: String,
+        model: String,
+        isBackground: Bool,
+        broadcast: @escaping (String, AICronjob?, Bool) -> Void
+    ) async {
+        guard !apiKey.isEmpty else {
+            broadcast("API Key Missing", job, isBackground)
             return
         }
 
         let baseURL: String
-        switch experimentalAIProvider {
+        switch provider {
         case "openrouter": baseURL = "https://openrouter.ai/api/v1"
-        case "custom": baseURL = experimentalAICustomURL
+        case "custom": baseURL = customURL
         default: baseURL = "https://api.openai.com/v1"
         }
         
         let safeURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        
         guard let url = URL(string: "\(safeURL)/chat/completions") else { 
-            broadcastMessage("[\(job.name)] Invalid URL", job: job, isBackground: isBackground)
+            broadcast("Invalid URL", job, isBackground)
             return 
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(experimentalAIApiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        // Specific handling for OpenRouter
-        if experimentalAIProvider == "openrouter" {
-            request.setValue("https://notchterminal.app", forHTTPHeaderField: "HTTP-Referer")
-            request.setValue("NotchTerminal", forHTTPHeaderField: "X-Title")
-        }
-
-        let finalModel = experimentalAIProvider == "openrouter" ? "openrouter/free" : experimentalAIModel
-
-        var body: [String: Any] = [
-            "model": finalModel,
-            "messages": [
-                ["role": "system", "content": "You are a helpful assistant integrated into a macOS Notch widget. Keep your answers extremely short, ideally 1 sentence or a few words."],
-                ["role": "user", "content": job.prompt]
-            ],
-            "max_tokens": 250
+        var messages: [AIChatMessage] = [
+            AIChatMessage(role: "system", content: "You are a helpful assistant integrated into a macOS Notch widget. Keep your answers extremely short, ideally 1 sentence or a few words. If the user asks about the state of their system, dockers, files, or processes, ALWAYS use the 'run_local_command' tool to fetch the real data. NEVER guess or output raw bash code in your response message."),
+            AIChatMessage(role: "user", content: job.prompt)
         ]
         
-        if experimentalAIProvider == "openrouter" {
-            body["reasoning"] = ["enabled": true]
-        }
-
-        guard let httpBody = try? JSONSerialization.data(withJSONObject: body) else { return }
-        request.httpBody = httpBody
-
-        do {
-            print("🚀 [AI Cronjob] Sending request for job: '\(job.name)' to \(safeURL)/chat/completions using model: \(experimentalAIModel)")
-            let (data, response) = try await URLSession.shared.data(for: request)
+        let finalModel = provider == "openrouter" ? "openrouter/free" : model
+        let maxTurns = 5
+        var currentTurn = 0
+        
+        while currentTurn < maxTurns {
+            currentTurn += 1
             
-            if let rawString = String(data: data, encoding: .utf8) {
-                print("📦 [AI Cronjob] Raw Response from '\(job.name)':\n\(rawString)")
+            var requestObj = AIChatRequest(
+                model: finalModel,
+                messages: messages,
+                tools: [AIToolSchema.runLocalCommandTool],
+                toolChoice: "auto",
+                maxTokens: 250
+            )
+            
+            if provider == "openrouter" {
+                requestObj.reasoning = AIReasoningSchema(enabled: true)
             }
             
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let errorObj = json["error"] as? [String: Any],
-                   let errMsg = errorObj["message"] as? String {
-                    broadcastMessage("[\(job.name)] API Error: \(errMsg)", job: job, isBackground: isBackground)
-                } else {
-                    broadcastMessage("[\(job.name)] HTTP Error \(httpResponse.statusCode)", job: job, isBackground: isBackground)
-                }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            if provider == "openrouter" {
+                request.setValue("https://notchterminal.imarcodev.com", forHTTPHeaderField: "HTTP-Referer")
+                request.setValue("NotchTerminal", forHTTPHeaderField: "X-Title")
+            }
+            
+            let encoder = JSONEncoder()
+            guard let httpBody = try? encoder.encode(requestObj) else {
+                broadcast("Failed to encode request", job, isBackground)
                 return
             }
+            request.httpBody = httpBody
             
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let choices = json["choices"] as? [[String: Any]],
-               let firstChoice = choices.first,
-               let message = firstChoice["message"] as? [String: Any] {
+            do {
+                if currentTurn == 1 {
+                    print("🚀 [Agent] Sending request for job: '\(job.name)' using model: \(finalModel)")
+                }
                 
-                let content = message["content"] as? String ?? ""
-                let cleanContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
-                print("✅ [AI Cronjob] Parsed AI Message: \(cleanContent)")
-                broadcastMessage(cleanContent.isEmpty ? "Empty Response (Hit token limit while thinking?)" : cleanContent, job: job, isBackground: isBackground)
-            } else {
-                print("❌ [AI Cronjob] Error: Could not parse expected JSON format from choices.message.content")
-                broadcastMessage("Unexpected API Response format", job: job, isBackground: isBackground)
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                    var errMsg = "HTTP Error \(httpResponse.statusCode)"
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let errorObj = json["error"] as? [String: Any],
+                       let msg = errorObj["message"] as? String {
+                        errMsg = msg
+                    }
+                    broadcast("API Error: \(errMsg)", job, isBackground)
+                    return
+                }
+                
+                let decoder = JSONDecoder()
+                let aiResponse = try decoder.decode(AIChatResponse.self, from: data)
+                guard let firstChoice = aiResponse.choices.first else {
+                    broadcast("Empty choices in response", job, isBackground)
+                    return
+                }
+                
+                let message = firstChoice.message
+                
+                // If Tool Calls requested
+                if let toolCalls = message.toolCalls, !toolCalls.isEmpty {
+                    messages.append(message)
+                    
+                    for toolCall in toolCalls {
+                        print("🤖 [Agent] Tool call requested: \(toolCall.function.name)")
+                        var toolOutput = ""
+                        
+                        if toolCall.function.name == "run_local_command" {
+                            if let argsData = toolCall.function.arguments.data(using: .utf8),
+                               let argsJSON = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any],
+                               let command = argsJSON["command"] as? String {
+                                
+                                print("⚙️ [Agent] Executing local command: \(command)")
+                                do {
+                                    toolOutput = try await LocalCommandExecutor.runSilentCommand(query: command)
+                                    print("✅ [Agent] Command success. Output length: \(toolOutput.count)")
+                                } catch {
+                                    toolOutput = "Error executing command: \(error.localizedDescription)"
+                                    print("❌ [Agent] Command failed: \(error.localizedDescription)")
+                                }
+                            } else {
+                                toolOutput = "Error: Invalid JSON arguments generated by AI"
+                            }
+                        } else {
+                            toolOutput = "Error: Unknown tool \(toolCall.function.name)"
+                        }
+                        
+                        messages.append(AIChatMessage(role: "tool", content: toolOutput, toolCallId: toolCall.id))
+                    }
+                    continue
+                }
+                
+                // Final answer
+                let cleanContent = (message.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                print("✅ [Agent] Final Message: \(cleanContent)")
+                broadcast(cleanContent.isEmpty ? "Empty Response (Token limit?)" : cleanContent, job, isBackground)
+                return
+                
+            } catch {
+                broadcast("Request Failed: \(error.localizedDescription)", job, isBackground)
+                print("❌ [Agent] Error: \(error.localizedDescription)")
+                return
             }
-        } catch {
-            broadcastMessage("Request Failed: \(error.localizedDescription)", job: job, isBackground: isBackground)
-            print("AI Cronjob Error [\(job.name)]: \(error.localizedDescription)")
         }
+        
+        broadcast("Agent reached max turns without a final answer.", job, isBackground)
     }
     
     private func broadcastMessage(_ text: String, job: AICronjob? = nil, isBackground: Bool = false) {

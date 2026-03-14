@@ -7,6 +7,7 @@ struct AICronjobEditView: View {
     var onSave: () -> Void
 
     @State private var showCustomCron: Bool = false
+    @State private var promptEditorHeight: CGFloat = 140
     private let presetCrons = ["* * * * *", "*/5 * * * *", "*/15 * * * *", "*/30 * * * *", "0 * * * *", "0 */6 * * *", "0 */12 * * *", "0 0 * * *"]
 
     var body: some View {
@@ -31,32 +32,26 @@ struct AICronjobEditView: View {
                     .padding(.vertical, 8)
                     
                     if cronjob.mode == .app {
-                        Slider(
-                            value: Binding(
-                                get: { cronjob.interval },
-                                set: { cronjob.interval = $0 }
-                            ),
-                            in: 10 ... 600,
-                            step: 5
-                        ) {
-                            Text("Execution Interval")
-                        } minimumValueLabel: {
-                            Text("10s")
-                        } maximumValueLabel: {
-                            Text("600s")
+                        HStack {
+                            Text("Interval (Seconds)")
+                            Spacer()
+                            TextField("", value: $cronjob.interval, formatter: NumberFormatter())
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 80)
+                                .multilineTextAlignment(.trailing)
+                            
+                            Stepper("", value: $cronjob.interval, in: 10...3600, step: 5)
+                                .labelsHidden()
                         }
-                        Text("Current: \(Int(cronjob.interval))s")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        .padding(.vertical, 4)
                     } else {
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 12) {
                             if showCustomCron {
                                 TextField("Cron Expression", text: $cronjob.cronExpression)
                                     .textFieldStyle(.roundedBorder)
-                                Text("Format: M H D m W (e.g., '0 * * * *' for every hour).\nMachine daemon executes directly on macOS launchd/crontab even if NotchTerminal is closed.")
+                                Text("Format: M H D m W (e.g., '0 * * * *' for every hour)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
                             } else {
                                 Picker("Interval", selection: $cronjob.cronExpression) {
                                     Text("Every 1 Minute").tag("* * * * *")
@@ -74,7 +69,6 @@ struct AICronjobEditView: View {
                             Toggle("Advanced Custom Cron", isOn: $showCustomCron)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .padding(.top, 4)
                         }
                         .padding(.vertical, 4)
                         .onAppear {
@@ -86,7 +80,19 @@ struct AICronjobEditView: View {
                 }
                 
                 Section(header: Text("Prompt & Safety")) {
-                    TextField("System Prompt", text: $cronjob.prompt)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("System Prompt")
+                            .font(.subheadline)
+
+                        CronjobPromptEditor(
+                            text: $cronjob.prompt,
+                            placeholder: "Describe what this cronjob should do",
+                            dynamicHeight: $promptEditorHeight
+                        )
+                        .frame(height: promptEditorHeight)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.vertical, 4)
                     
                     Toggle(isOn: $cronjob.autoDisable) {
                         Text("Auto-Disable Limit (3 Days)")
@@ -117,6 +123,136 @@ struct AICronjobEditView: View {
             }
             .padding()
         }
-        .frame(width: 450, height: 450)
+        .frame(minWidth: 500, minHeight: 520)
+    }
+}
+
+private struct CronjobPromptEditor: NSViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+    @Binding var dynamicHeight: CGFloat
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
+
+        let textView = PromptTextView()
+        textView.delegate = context.coordinator
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.isRichText = false
+        textView.importsGraphics = false
+        textView.usesFindBar = true
+        textView.usesFontPanel = false
+        textView.usesRuler = false
+        textView.allowsUndo = true
+        textView.drawsBackground = false
+        textView.font = .monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        textView.textColor = .labelColor
+        textView.insertionPointColor = .labelColor
+        textView.isHorizontallyResizable = false
+        textView.isVerticallyResizable = true
+        textView.autoresizingMask = [.width]
+        textView.textContainerInset = NSSize(width: 12, height: 12)
+        textView.placeholder = placeholder
+        textView.string = text
+        textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.lineFragmentPadding = 0
+
+        scrollView.documentView = textView
+        context.coordinator.recalculateHeight(for: textView)
+        return scrollView
+    }
+
+    func updateNSView(_ nsView: NSScrollView, context: Context) {
+        guard let textView = nsView.documentView as? PromptTextView else { return }
+
+        context.coordinator.parent = self
+        textView.placeholder = placeholder
+
+        if textView.string != text {
+            textView.string = text
+        }
+
+        context.coordinator.recalculateHeight(for: textView)
+    }
+
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: CronjobPromptEditor
+
+        init(parent: CronjobPromptEditor) {
+            self.parent = parent
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            let newValue = textView.string
+            if parent.text != newValue {
+                parent.text = newValue
+            }
+            recalculateHeight(for: textView)
+        }
+
+        func recalculateHeight(for textView: NSTextView) {
+            guard let layoutManager = textView.layoutManager,
+                  let textContainer = textView.textContainer else { return }
+
+            layoutManager.ensureLayout(for: textContainer)
+            let usedRect = layoutManager.usedRect(for: textContainer)
+            let nextHeight = min(max(usedRect.height + (textView.textContainerInset.height * 2), 140), 260)
+
+            if abs(parent.dynamicHeight - nextHeight) > 1 {
+                DispatchQueue.main.async {
+                    self.parent.dynamicHeight = nextHeight
+                }
+            }
+        }
+    }
+}
+
+private final class PromptTextView: NSTextView {
+    var placeholder: String = "" {
+        didSet { needsDisplay = true }
+    }
+
+    override var string: String {
+        didSet { needsDisplay = true }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        guard string.isEmpty else { return }
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font ?? .monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+            .foregroundColor: NSColor.tertiaryLabelColor
+        ]
+
+        let placeholderRect = NSRect(
+            x: textContainerInset.width,
+            y: textContainerInset.height,
+            width: bounds.width - (textContainerInset.width * 2),
+            height: bounds.height - (textContainerInset.height * 2)
+        )
+
+        placeholder.draw(in: placeholderRect, withAttributes: attributes)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 48 {
+            insertText("    ", replacementRange: selectedRange())
+            return
+        }
+
+        super.keyDown(with: event)
     }
 }

@@ -187,13 +187,16 @@
 "action.disableAlwaysOnTop" = "Disable Always on Top";
 "action.reorganize" = "Reorganize Terminals";
 "action.settings" = "Settings";
+"action.showAllWindows" = "Show All Windows";
 "action.newTerminal" = "New Terminal";
+"action.hide" = "Hide";
 "action.quit" = "Quit";
 "action.resetDefaults" = "Reset Defaults";
 
 /* Misc */
 "menu.bulkActions" = "Bulk actions";
 "menu.closeAllOnThisDisplay" = "Close All on This Display";
+"menu.options" = "Options";
 
 /* Open Ports */
 "openPorts.title" = "Open Ports";

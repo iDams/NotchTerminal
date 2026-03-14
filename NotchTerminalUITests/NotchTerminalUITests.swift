@@ -54,4 +54,5 @@ final class NotchTerminalUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["Project Website"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.descendants(matching: .any)["Buy Me a Coffee"].waitForExistence(timeout: 2))
     }
+
 }

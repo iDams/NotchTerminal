@@ -32,8 +32,8 @@
 		B14A9A2E2F90000100C0DE01 /* NotchTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B14A9A3A2F90000100C0DE01 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		B14A9A3B2F90000100C0DE01 /* Signing.local.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.local.example.xcconfig; sourceTree = "<group>"; };
-		D1A200012F90000100C0DE01 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		C14B00032F90000100C0DE01 /* NotchTerminalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchTerminalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1A200012F90000100C0DE01 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */

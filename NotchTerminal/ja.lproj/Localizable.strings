@@ -185,12 +185,15 @@
 "action.disableAlwaysOnTop" = "常に最前面を無効";
 "action.reorganize" = "ターミナルを再編";
 "action.settings" = "設定";
+"action.showAllWindows" = "すべてのウィンドウを表示";
 "action.newTerminal" = "新しいターミナル";
+"action.hide" = "非表示";
 "action.quit" = "終了";
 "action.resetDefaults" = "デフォルトに戻す";
 
 /* Misc */
 "menu.bulkActions" = "一括アクション";
+"menu.options" = "オプション";
 "menu.closeAllOnThisDisplay" = "このディスプレイですべて閉じる";
 
 /* Open Ports */

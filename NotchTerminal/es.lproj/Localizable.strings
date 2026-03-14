@@ -185,12 +185,15 @@
 "action.disableAlwaysOnTop" = "Desactivar siempre-visible";
 "action.reorganize" = "Reorganizar terminales";
 "action.settings" = "Configuración";
+"action.showAllWindows" = "Mostrar todas las ventanas";
 "action.newTerminal" = "Nueva terminal";
+"action.hide" = "Ocultar";
 "action.quit" = "Salir";
 "action.resetDefaults" = "Restablecer por defecto";
 
 /* Misc */
 "menu.bulkActions" = "Acciones masivas";
+"menu.options" = "Opciones";
 "menu.closeAllOnThisDisplay" = "Cerrar todo en esta pantalla";
 
 /* Open Ports */

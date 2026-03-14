@@ -74,6 +74,7 @@ enum AppPreferences {
         static let experimentalAIProvider = "experimentalAIProvider"
         static let experimentalAICustomURL = "experimentalAICustomURL"
         static let experimentalAIApiKey = "experimentalAIApiKey"
+        static let experimentalAIAgentWhitelist = "experimentalAIAgentWhitelist"
         static let experimentalAIModel = "experimentalAIModel"
         static let experimentalAICronjobsData = "experimentalAICronjobsData"
     }
@@ -112,6 +113,7 @@ enum AppPreferences {
         static let experimentalAIProvider = "openai"
         static let experimentalAICustomURL = "https://api.openai.com/v1"
         static let experimentalAIApiKey = ""
+        static let experimentalAIAgentWhitelist = "ls, cat, pwd, whoami, date, uptime, sysctl, system_profiler, docker, pmset, df, du, git, top, ps, netstat, lsof, ifconfig, ping, curl, vm_stat, memory_pressure"
         static let experimentalAIModel = "gpt-3.5-turbo"
         static let experimentalAICronjobsData: [AICronjob] = []
     }

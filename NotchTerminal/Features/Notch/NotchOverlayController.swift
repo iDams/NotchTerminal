@@ -161,6 +161,25 @@ final class NotchOverlayController {
         blackWindowController.closeAllWindows()
     }
 
+    func openBlackWindowForCurrentInteractionScreen() {
+        let targetDisplayID = displayIDForCurrentInteractionScreen() ?? CGMainDisplayID()
+        openBlackWindow(for: targetDisplayID)
+    }
+
+    func openBlackWindow(on screen: NSScreen?) {
+        if let screen,
+           let displayID = displayID(for: screen) {
+            openBlackWindow(for: displayID)
+            return
+        }
+
+        openBlackWindowForCurrentInteractionScreen()
+    }
+
+    func restoreAllWindows() {
+        blackWindowController.restoreAllWindows()
+    }
+
     private func restoreSessions() {
         guard let modelContext else { return }
         let descriptor = FetchDescriptor<TerminalSession>()
@@ -1185,6 +1204,22 @@ final class NotchOverlayController {
             return nil
         }
         return CGDirectDisplayID(number.uint32Value)
+    }
+
+    private func displayIDForCurrentInteractionScreen() -> CGDirectDisplayID? {
+        let interactionPoint = NSEvent.mouseLocation
+
+        if let hoveredScreen = NSScreen.screens.first(where: { $0.frame.contains(interactionPoint) }),
+           let hoveredDisplayID = displayID(for: hoveredScreen) {
+            return hoveredDisplayID
+        }
+
+        if let mainScreen = NSScreen.main,
+           let mainDisplayID = displayID(for: mainScreen) {
+            return mainDisplayID
+        }
+
+        return panelsByDisplay.keys.sorted().first
     }
 
     private func detectNotch(on screen: NSScreen) -> Bool {

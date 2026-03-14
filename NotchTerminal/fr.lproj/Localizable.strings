@@ -185,12 +185,15 @@
 "action.disableAlwaysOnTop" = "Désactiver toujours au premier plan";
 "action.reorganize" = "Réorganiser les terminaux";
 "action.settings" = "Paramètres";
+"action.showAllWindows" = "Afficher toutes les fenêtres";
 "action.newTerminal" = "Nouveau terminal";
+"action.hide" = "Masquer";
 "action.quit" = "Quitter";
 "action.resetDefaults" = "Réinitialiser par défaut";
 
 /* Misc */
 "menu.bulkActions" = "Actions groupées";
+"menu.options" = "Options";
 "menu.closeAllOnThisDisplay" = "Tout fermer sur cet écran";
 
 /* Open Ports */

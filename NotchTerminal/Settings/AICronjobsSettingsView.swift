@@ -7,12 +7,12 @@ struct AICronjobsSettingsView: View {
     @AppStorage(AppPreferences.Keys.experimentalAICustomURL) var experimentalAICustomURL: String = AppPreferences.Defaults.experimentalAICustomURL
     @AppStorage(AppPreferences.Keys.experimentalAIApiKey) var experimentalAIApiKey: String = AppPreferences.Defaults.experimentalAIApiKey
     @AppStorage(AppPreferences.Keys.experimentalAIModel) var experimentalAIModel: String = AppPreferences.Defaults.experimentalAIModel
+    @AppStorage(AppPreferences.Keys.experimentalAIAgentWhitelist) var experimentalAIAgentWhitelist: String = AppPreferences.Defaults.experimentalAIAgentWhitelist
     @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) var experimentalAICronjobsData: [AICronjob] = AppPreferences.Defaults.experimentalAICronjobsData
 
     @State private var availableModels: [String] = []
     @State private var isFetchingModels = false
 
-    @State private var showingEditSheet = false
     @State private var editingCronjob: AICronjob?
     @State private var isCreatingNewCronjob = false
 
@@ -108,17 +108,28 @@ struct AICronjobsSettingsView: View {
                                     .padding(.trailing, 4)
                             }
                             
-                            Picker("", selection: $experimentalAIModel) {
-                                if availableModels.isEmpty {
-                                    Text(experimentalAIModel).tag(experimentalAIModel)
-                                } else {
-                                    ForEach(availableModels, id: \.self) { model in
-                                        Text(model).tag(model)
+                            HStack(spacing: 4) {
+                                TextField("Model ID", text: $experimentalAIModel)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 150)
+                                
+                                if !availableModels.isEmpty {
+                                    Menu {
+                                        ForEach(availableModels, id: \.self) { model in
+                                            Button(model) {
+                                                experimentalAIModel = model
+                                            }
+                                        }
+                                    } label: {
+                                        Image(systemName: "chevron.down.circle.fill")
+                                            .foregroundColor(.secondary)
                                     }
+                                    .menuStyle(.borderlessButton)
+                                    .menuIndicator(.hidden)
+                                    .fixedSize()
+                                    .help("Select from fetched models")
                                 }
                             }
-                            .pickerStyle(.menu)
-                            .frame(width: 150)
                             
                             Button(action: {
                                 Task { await fetchOpenAIModels() }
@@ -142,6 +153,21 @@ struct AICronjobsSettingsView: View {
                         await fetchOpenAIModels()
                     }
                 }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Agent Command Whitelist (Comma separated)")
+                        .font(.headline)
+                    Text("These basic bash commands are permitted by the agent for read-only system inspection.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    TextField("ls, cat, docker, git...", text: $experimentalAIAgentWhitelist)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 11, design: .monospaced))
+                        .padding(.top, 4)
+                }
+                .padding(.leading, 32)
+                .padding(.bottom, 16)
                 
                 Divider().padding(.horizontal, 32)
 
@@ -189,9 +215,11 @@ struct AICronjobsSettingsView: View {
                                 .labelsHidden()
                                 
                                 Button(action: {
-                                    editingCronjob = process
                                     isCreatingNewCronjob = false
-                                    showingEditSheet = true
+                                    // slight delay helps SwiftUI not capture old state
+                                    DispatchQueue.main.async {
+                                        editingCronjob = process
+                                    }
                                 }) {
                                     Image(systemName: "pencil")
                                 }
@@ -217,9 +245,10 @@ struct AICronjobsSettingsView: View {
                 }
 
                 Button {
-                    editingCronjob = AICronjob()
                     isCreatingNewCronjob = true
-                    showingEditSheet = true
+                    DispatchQueue.main.async {
+                        editingCronjob = AICronjob()
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "plus")
@@ -231,15 +260,15 @@ struct AICronjobsSettingsView: View {
                 .padding(.leading, 32)
             }
         }
-        .sheet(isPresented: $showingEditSheet) {
+        .sheet(item: $editingCronjob) { currentJob in
             AICronjobEditView(
                 cronjob: Binding(
-                    get: { editingCronjob ?? AICronjob() },
-                    set: { editingCronjob = $0 }
+                    get: { self.editingCronjob ?? currentJob },
+                    set: { self.editingCronjob = $0 }
                 ),
                 isNew: isCreatingNewCronjob,
                 onSave: {
-                    if let safeJob = editingCronjob {
+                    if let safeJob = self.editingCronjob {
                         if isCreatingNewCronjob {
                             experimentalAICronjobsData.append(safeJob)
                         } else if let idx = experimentalAICronjobsData.firstIndex(where: { $0.id == safeJob.id }) {

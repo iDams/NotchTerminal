@@ -14,7 +14,9 @@ struct SettingsView: View {
     private let tabChromeHeight: CGFloat = 110
 
     init() {
-        if UITestSupport.isEnabled {
+        if let requestedTab = SettingsNavigationCoordinator.pendingRequestedTab() {
+            _selectedTab = State(initialValue: requestedTab)
+        } else if UITestSupport.isEnabled {
             let rawTab = ProcessInfo.processInfo.environment["NOTCHTERMINAL_UI_TEST_TAB"] ?? "general"
             _selectedTab = State(initialValue: SettingsTab(uiTestValue: rawTab))
         } else {
@@ -114,10 +116,28 @@ struct SettingsView: View {
             resizeSettingsWindow(animated: true)
         }
         .onAppear {
+            if let requestedTab = SettingsNavigationCoordinator.consumePendingTab() {
+                if requestedTab == .experimental && !showExperimentalSettings {
+                    selectedTab = .general
+                } else {
+                    selectedTab = requestedTab
+                }
+            }
+
             if !showExperimentalSettings && selectedTab == .experimental {
                 selectedTab = .general
             }
             resizeSettingsWindow(animated: false)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .settingsTabSelectionRequested)) { notification in
+            guard let rawTab = notification.userInfo?["tab"] as? String else { return }
+
+            let requestedTab = SettingsTab(rawValue: rawTab) ?? .general
+            if requestedTab == .experimental && !showExperimentalSettings {
+                selectedTab = .general
+            } else {
+                selectedTab = requestedTab
+            }
         }
         .onChange(of: showExperimentalSettings) { _, isVisible in
             if !isVisible && selectedTab == .experimental {

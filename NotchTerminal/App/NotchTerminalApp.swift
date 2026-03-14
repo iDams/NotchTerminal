@@ -28,6 +28,60 @@ struct NotchTerminalApp: App {
         Settings {
             SettingsView()
         }
+        .commands {
+            NotchTerminalAppCommands(appDelegate: appDelegate)
+        }
+    }
+}
+
+private struct NotchTerminalAppCommands: Commands {
+    let appDelegate: AppDelegate
+
+    var body: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button("About \(AppMetadata.displayName)") {
+                appDelegate.openAboutInSettings()
+            }
+        }
+
+        CommandGroup(after: .appInfo) {
+            Button("action.newTerminal".localized) {
+                appDelegate.createTerminalFromAppMenu(nil)
+            }
+            .keyboardShortcut("n", modifiers: .command)
+        }
+
+        CommandGroup(replacing: .appSettings) {
+            Button("action.settings".localized + "...") {
+                appDelegate.openSettingsWindow()
+            }
+            .keyboardShortcut(",", modifiers: .command)
+        }
+    }
+}
+
+private struct StatusMenuSettingsLinkView: View {
+    var body: some View {
+        SettingsLink {
+            HStack {
+                Text("action.settings".localized)
+                Spacer()
+                Text("\u{2318},")
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .frame(width: 180, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private extension View {
+    func hostingView() -> NSView {
+        let host = NSHostingView(rootView: self)
+        host.frame.size = host.fittingSize
+        return host
     }
 }
 
@@ -37,10 +91,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var userDefaultsObserver: NSObjectProtocol?
     private var modelContainer: ModelContainer?
     private var uiTestWindow: NSWindow?
+    private var statusItem: NSStatusItem?
     private let persistenceHealth = PersistenceHealth.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        setupEditMenu()
+        DispatchQueue.main.async { [weak self] in
+            self?.setupEditMenu()
+        }
         requestNotificationPermissions()
         if UITestSupport.isEnabled {
             _ = NSApp.setActivationPolicy(.regular)
@@ -54,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.applyDockIconPreference()
+                self?.rebuildStatusItemMenu()
             }
         }
         
@@ -75,6 +133,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !UITestSupport.isEnabled {
             notchController = NotchOverlayController(modelContext: modelContainer?.mainContext)
             notchController?.start()
+            setupStatusItem()
         }
 
         if UITestSupport.isEnabled {
@@ -86,10 +145,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupEditMenu() {
-        let mainMenu = NSMenu()
-        let editMenuItem = NSMenuItem()
-        mainMenu.addItem(editMenuItem)
-        
+        let mainMenu = NSApp.mainMenu ?? NSMenu()
+        let editMenuItem: NSMenuItem
+
+        if let existingEditMenuItem = mainMenu.items.first(where: { $0.submenu?.title == "Edit" }) {
+            editMenuItem = existingEditMenuItem
+        } else {
+            let item = NSMenuItem()
+            mainMenu.addItem(item)
+            editMenuItem = item
+        }
+
         let editMenu = NSMenu(title: "Edit")
         editMenuItem.submenu = editMenu
         
@@ -102,8 +168,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
-        
-        NSApp.mainMenu = mainMenu
+
+        if NSApp.mainMenu !== mainMenu {
+            NSApp.mainMenu = mainMenu
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -111,6 +179,91 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let userDefaultsObserver {
             NotificationCenter.default.removeObserver(userDefaultsObserver)
         }
+        if let statusItem {
+            NSStatusBar.system.removeStatusItem(statusItem)
+            self.statusItem = nil
+        }
+    }
+
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+        let newTerminalItem = NSMenuItem(
+            title: "action.newTerminal".localized,
+            action: #selector(createTerminalFromDockMenu(_:)),
+            keyEquivalent: ""
+        )
+        newTerminalItem.target = self
+        menu.addItem(newTerminalItem)
+        return menu
+    }
+
+    private func setupStatusItem() {
+        if let statusItem {
+            NSStatusBar.system.removeStatusItem(statusItem)
+        }
+
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = item.button {
+            let image = NSImage(named: "AppLogo")
+            image?.size = NSSize(width: 18, height: 18)
+            image?.isTemplate = false
+            button.image = image
+            button.imagePosition = .imageOnly
+            button.toolTip = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "NotchTerminal"
+        }
+
+        statusItem = item
+        rebuildStatusItemMenu()
+    }
+
+    private func rebuildStatusItemMenu() {
+        guard let statusItem else { return }
+
+        let menu = NSMenu()
+
+        let newTerminalItem = NSMenuItem(
+            title: "action.newTerminal".localized,
+            action: #selector(createTerminalFromStatusItem(_:)),
+            keyEquivalent: ""
+        )
+        newTerminalItem.target = self
+        menu.addItem(newTerminalItem)
+        menu.addItem(.separator())
+
+        let optionsItem = NSMenuItem(title: "menu.options".localized, action: nil, keyEquivalent: "")
+        let optionsMenu = NSMenu(title: "menu.options".localized)
+        let settingsItem = NSMenuItem()
+        settingsItem.view = StatusMenuSettingsLinkView().hostingView()
+        optionsMenu.addItem(settingsItem)
+        menu.setSubmenu(optionsMenu, for: optionsItem)
+        menu.addItem(optionsItem)
+        menu.addItem(.separator())
+
+        let showAllWindowsItem = NSMenuItem(
+            title: "action.showAllWindows".localized,
+            action: #selector(showAllWindowsFromStatusItem(_:)),
+            keyEquivalent: ""
+        )
+        showAllWindowsItem.target = self
+        menu.addItem(showAllWindowsItem)
+
+        let hideItem = NSMenuItem(
+            title: "action.hide".localized,
+            action: #selector(hideFromStatusItem(_:)),
+            keyEquivalent: "h"
+        )
+        hideItem.target = self
+        menu.addItem(hideItem)
+
+        let quitItem = NSMenuItem(
+            title: "action.quit".localized,
+            action: #selector(quitFromStatusItem(_:)),
+            keyEquivalent: "q"
+        )
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        statusItem.menu = menu
     }
 
     private func applyDockIconPreference() {
@@ -122,6 +275,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
+    }
+
+    @objc
+    func createTerminalFromDockMenu(_ sender: Any?) {
+        notchController?.openBlackWindowForCurrentInteractionScreen()
+    }
+
+    @objc
+    func createTerminalFromAppMenu(_ sender: Any?) {
+        notchController?.openBlackWindowForCurrentInteractionScreen()
+    }
+
+    func openAboutInSettings() {
+        openSettings(selectedTab: .about)
+    }
+
+    func openSettingsWindow() {
+        openSettings(selectedTab: nil)
+    }
+
+    private func openSettings(selectedTab: SettingsTab?) {
+        if let selectedTab {
+            SettingsNavigationCoordinator.request(tab: selectedTab)
+        }
+
+        if #available(macOS 13.0, *) {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc
+    private func createTerminalFromStatusItem(_ sender: Any?) {
+        notchController?.openBlackWindow(on: statusItem?.button?.window?.screen)
+    }
+
+    @objc
+    private func showAllWindowsFromStatusItem(_ sender: Any?) {
+        notchController?.restoreAllWindows()
+    }
+
+    @objc
+    private func hideFromStatusItem(_ sender: Any?) {
+        NSApp.hide(nil)
+    }
+
+    @objc
+    private func quitFromStatusItem(_ sender: Any?) {
+        NSApp.terminate(nil)
     }
     
     private func requestNotificationPermissions() {

@@ -55,6 +55,42 @@ extension View {
     }
 }
 
+extension Notification.Name {
+    static let settingsTabSelectionRequested = Notification.Name("NotchTerminal.settingsTabSelectionRequested")
+}
+
+@MainActor
+enum SettingsNavigationCoordinator {
+    private static let requestedTabKey = "NotchTerminal.settingsRequestedTab"
+
+    static func request(tab: SettingsTab) {
+        UserDefaults.standard.set(tab.rawValue, forKey: requestedTabKey)
+        NotificationCenter.default.post(
+            name: .settingsTabSelectionRequested,
+            object: nil,
+            userInfo: ["tab": tab.rawValue]
+        )
+    }
+
+    static func consumePendingTab() -> SettingsTab? {
+        guard let rawValue = UserDefaults.standard.string(forKey: requestedTabKey),
+              let tab = SettingsTab(rawValue: rawValue) else {
+            return nil
+        }
+
+        UserDefaults.standard.removeObject(forKey: requestedTabKey)
+        return tab
+    }
+
+    static func pendingRequestedTab() -> SettingsTab? {
+        guard let rawValue = UserDefaults.standard.string(forKey: requestedTabKey) else {
+            return nil
+        }
+
+        return SettingsTab(rawValue: rawValue)
+    }
+}
+
 struct NotchTerminalPreferenceToggleRow: View {
     let title: String
     let subtitle: String?
