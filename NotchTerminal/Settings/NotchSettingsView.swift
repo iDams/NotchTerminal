@@ -16,7 +16,8 @@ struct NotchSettingsView: View {
                     NotchTerminalSectionHeading(
                         title: "settings.notch.displays".localized,
                         subtitle: "settings.notch.displays.subtitle".localized,
-                        icon: "capsule.portrait"
+                        icon: "slider.horizontal.below.rectangle",
+                        helpTooltip: "settings.notch.displays.help".localized
                     )
                 }
 

@@ -168,6 +168,8 @@ struct NotchTerminalSectionHeading: View {
     let title: String
     let subtitle: String
     let icon: String
+    var helpTooltip: String? = nil
+    @State private var isShowingHelp = false
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -185,6 +187,61 @@ struct NotchTerminalSectionHeading: View {
                 Text(subtitle)
                     .font(.footnote)
                     .foregroundStyle(.tertiary)
+            }
+
+            Spacer(minLength: 8)
+
+            if let helpTooltip, !helpTooltip.isEmpty {
+                Button {
+                    isShowingHelp.toggle()
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $isShowingHelp, arrowEdge: .top) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Section Help")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                                    .textCase(.uppercase)
+
+                                Label(title, systemImage: icon)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                            }
+
+                            Spacer(minLength: 8)
+
+                            Button {
+                                isShowingHelp = false
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .buttonStyle(.plain)
+                            .keyboardShortcut(.cancelAction)
+                            .accessibilityLabel("Close help")
+                        }
+
+                        Divider()
+
+                        Text(helpTooltip)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(16)
+                    .frame(width: 360, alignment: .leading)
+                    .background(.regularMaterial)
+                }
+                .help("More info")
+                .accessibilityLabel("\(title). More info")
             }
         }
     }

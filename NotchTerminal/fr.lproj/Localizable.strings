@@ -12,6 +12,7 @@
 /* Settings - Notch */
 "settings.notch.displays" = "Notches actifs";
 "settings.notch.displays.subtitle" = "Activez ou désactivez le notch indépendamment sur chaque écran connecté.";
+"settings.notch.displays.help" = "Configure le comportement du notch pour chaque ecran. Chaque affichage peut avoir son propre etat actif, ses ajustements de position, son reglage de largeur et un fond personnalise optionnel.";
 "settings.notch.empty" = "Aucun écran actif détecté.";
 "settings.notch.enabled" = "Activer ce notch";
 "settings.notch.enabled.subtitle" = "Affiche le notch uniquement sur cet écran.";
@@ -33,6 +34,7 @@
 /* Settings - System */
 "settings.system" = "Système";
 "settings.system.subtitle" = "Comportement principal et options de visibilité de l'application.";
+"settings.system.help" = "Controle le comportement global de l'application, comme les retours haptiques, la visibilite dans le Dock et l'affichage des fonctions instables dans les reglages.";
 "settings.hapticFeedback" = "Activer le retour haptique";
 "settings.hapticFeedback.subtitle" = "Utilise le retour haptique lors des interactions dans le notch.";
 "settings.showDockIcon" = "Afficher l'icône dans le Dock";
@@ -45,6 +47,7 @@
 /* Settings - Automation */
 "settings.automation" = "Automatisation";
 "settings.automation.subtitle" = "Contrôle comment et quand le notch s'ouvre et se ferme.";
+"settings.automation.help" = "Ajuste le comportement automatique du notch, y compris le delai d'ouverture au survol et le maintien du notch ouvert pendant la saisie.";
 "settings.autoOpenOnHover" = "Ouvrir le notch au survol";
 "settings.autoOpenOnHover.subtitle" = "Développe automatiquement le notch lorsque le curseur l'atteint.";
 "settings.autoOpenOnHoverDelay" = "Délai d'ouverture au survol";
@@ -55,6 +58,7 @@
 /* Settings - Terminal Actions */
 "settings.terminalActions" = "Actions du terminal";
 "settings.terminalActions.subtitle" = "Actions groupées, vérifications de sécurité et comportement par puce.";
+"settings.terminalActions.help" = "Definit le comportement des puces terminal et des actions groupees, y compris les confirmations de securite et le choix entre fermer seulement la fenetre ou aussi terminer le processus actif.";
 "settings.showChipCloseButton" = "Afficher le bouton fermer au survol de la puce";
 "settings.showChipCloseButton.subtitle" = "Affiche un petit bouton fermer lors du survol d'une puce.";
 "settings.confirmBeforeCloseAll" = "Confirmer avant Tout fermer";
@@ -65,10 +69,12 @@
 "settings.closeActionMode.terminateProcess" = "Terminer le processus et fermer";
 "settings.dangerZone" = "Zone sensible";
 "settings.dangerZone.subtitle" = "Actions sensibles qui affectent toute l'application.";
+"settings.dangerZone.help" = "Contient des actions a impact global immediat, comme quitter l'application. Utilisez-les lorsque vous voulez arreter toute l'activite en cours dans NotchTerminal.";
 
 /* Settings - Appearance */
 "settings.appearance.geometry" = "Géométrie";
 "settings.appearance.geometry.subtitle" = "Ajustez finement la disposition et l'espacement du notch.";
+"settings.appearance.geometry.help" = "Ajuste l'espacement interne du notch afin que l'interface reste equilibree sur differentes tailles d'ecran et densites de contenu.";
 "settings.contentPadding" = "Remplissage du contenu";
 "settings.contentPadding.subtitle" = "Espacement entre le contenu du terminal et les bords du notch.";
 "settings.notchWidthOffset" = "Ajustement fin de la largeur du notch";
@@ -78,6 +84,7 @@
 
 "settings.appearance.terminalDefaults" = "Valeurs par défaut de la fenêtre terminal";
 "settings.appearance.terminalDefaults.subtitle" = "Paramètres de taille pour les nouvelles sessions de terminal.";
+"settings.appearance.terminalDefaults.help" = "Definit la largeur et la hauteur par defaut utilisees lors de la creation de nouvelles fenetres terminal flottantes.";
 "settings.terminalDefaultWidth" = "Largeur par défaut";
 "settings.terminalDefaultWidth.subtitle" = "Taille horizontale en points.";
 "settings.terminalDefaultHeight" = "Hauteur par défaut";
@@ -92,6 +99,7 @@
 "settings.appearance.compactTicker.subtitle" = "État du fournisseur en mode notch fermé.";
 "settings.appearance.effects" = "Effets";
 "settings.appearance.effects.subtitle" = "Effets visuels pour la surface du notch.";
+"settings.appearance.effects.help" = "Controle les styles visuels optionnels, comme le fond Aurora utilise derriere le contenu du notch sur les ecrans compatibles.";
 "settings.appearance.reset" = "Réinitialiser les réglages d'apparence";
 "settings.appearance.reset.subtitle" = "Rétablit les valeurs par défaut de cet onglet.";
 "settings.compactTickerEnabled" = "Afficher le ticker de fournisseur compact";
@@ -104,10 +112,13 @@
 /* Settings - Experimental */
 "settings.experimental.effects" = "Effets expérimentaux";
 "settings.experimental.effects.subtitle" = "Visuels optionnels qui peuvent varier selon l'écran/GPU.";
+"settings.experimental.effects.help" = "Effets visuels qui modifient l'apparence du notch ou de la zone du terminal. Certaines options peuvent utiliser davantage de GPU et de batterie, et le rendu peut varier selon l'ecran.";
 "settings.experimental.debug" = "Debug";
 "settings.experimental.debug.subtitle" = "Outils et repères visuels réservés au développement.";
+"settings.experimental.debug.help" = "Diagnostics temporaires pour verifier les zones de hit-testing et d'ancrage. La plupart des utilisateurs peuvent laisser ces options desactivees sauf en cas de reglage ou de depannage du notch.";
 "settings.experimental.startupOrb.section" = "Orbe de notification";
 "settings.experimental.startupOrb.section.subtitle" = "Apparence et position expérimentales de l’orbe de notification.";
+"settings.experimental.startupOrb.section.help" = "Controle le petit orbe affiche pres du notch pour les etats de demarrage ou de notification. Utilisez les offsets pour affiner sa position sur les ecrans a faux notch ou a notch physique.";
 "settings.experimental.startupOrb" = "Afficher l’orbe de notification";
 "settings.experimental.startupOrb.subtitle" = "Affiche l’orbe de notification à côté du notch.";
 "settings.experimental.startupOrb.pillOffsetX" = "Décalage X de l’orbe de notification pill";
@@ -120,10 +131,13 @@
 "settings.experimental.startupOrb.notchOffsetY.subtitle" = "Ajuste le décalage vertical de l’orbe sur les écrans avec notch physique.";
 "settings.experimental.warning" = "Ces effets visuels sont hautement expérimentaux et consomment de la batterie.";
 "settings.experimental.notchOffsets.note" = "N'affecte que le notch fermé sur les écrans avec un notch physique.";
+"settings.experimental.geometry.help" = "Ajustements avances de geometrie pour les ecrans avec notch physique. A utiliser seulement si le masque du notch ne s'aligne pas correctement avec votre materiel.";
+"settings.experimental.docking.help" = "Controle la facon dont les fenetres terminal s'ancrent dans la zone du notch lorsqu'elles sont glissees a proximite. Une sensibilite plus elevee declenche l'ancrage plus facilement.";
 "settings.experimental.dragToNotch" = "Activer l’ancrage au notch par glisser-déposer";
 "settings.experimental.dragToNotch.subtitle" = "Permet aux fenêtres terminal de s’ancrer au notch lorsqu’elles sont glissées à proximité. Expérimental et encore instable.";
 "settings.experimental.hitTestDebugOverlay" = "Afficher les contours de débogage de l’ancrage";
 "settings.experimental.hitTestDebugOverlay.subtitle" = "Affiche les guides colorés en pointillés pour les zones d’ancrage et de détection.";
+"settings.experimental.projectStatus.help" = "Affiche un contexte leger du projet dans le notch developpe, comme le nom du dossier courant et l'etat git de la session terminal active.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Effet de lueur néon violet pour les notches simulés.";
 "settings.fakeNotchGlowTheme" = "Thème de lueur";
@@ -135,6 +149,7 @@
 /* Settings - Language */
 "settings.language" = "Langue";
 "settings.language.subtitle" = "Choisissez votre langue préférée.";
+"settings.language.help" = "Choisissez si NotchTerminal suit la langue du systeme ou utilise une selection manuelle pour l'interface.";
 "settings.language.system" = "Par défaut du système";
 "settings.language.system.subtitle" = "Utilise la langue configurée sur votre système.";
 

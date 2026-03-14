@@ -128,7 +128,8 @@ struct ExperimentalSettingsView: View {
                     NotchTerminalSectionHeading(
                         title: "settings.experimental.effects".localized,
                         subtitle: "settings.experimental.effects.subtitle".localized,
-                        icon: "sparkles"
+                        icon: "sparkles",
+                        helpTooltip: "settings.experimental.effects.help".localized
                     )
 
                     Text("settings.experimental.warning".localized)
@@ -221,7 +222,8 @@ struct ExperimentalSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.experimental.startupOrb.section".localized,
                 subtitle: "settings.experimental.startupOrb.section.subtitle".localized,
-                icon: "circle.grid.2x1.right.filled"
+                icon: "circle.grid.2x1.right.filled",
+                helpTooltip: "settings.experimental.startupOrb.section.help".localized
             )
 
             NotchTerminalPreferenceToggleRow(
@@ -246,7 +248,8 @@ struct ExperimentalSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.appearance.docking".localized,
                 subtitle: "settings.appearance.docking.subtitle".localized,
-                icon: "link"
+                icon: "link",
+                helpTooltip: "settings.experimental.docking.help".localized
             )
 
             NotchTerminalPreferenceToggleRow(
@@ -275,7 +278,8 @@ struct ExperimentalSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.experimental.debug".localized,
                 subtitle: "settings.experimental.debug.subtitle".localized,
-                icon: "ladybug"
+                icon: "ladybug",
+                helpTooltip: "settings.experimental.debug.help".localized
             )
 
             NotchTerminalPreferenceToggleRow(
@@ -294,7 +298,8 @@ struct ExperimentalSettingsView: View {
                     NotchTerminalSectionHeading(
                         title: "settings.appearance.geometry".localized,
                         subtitle: "settings.appearance.geometry.subtitle".localized,
-                        icon: "aspectratio"
+                        icon: "aspectratio",
+                        helpTooltip: "settings.experimental.geometry.help".localized
                     )
 
                     Text("settings.experimental.notchOffsets.note".localized)
@@ -330,7 +335,8 @@ struct ExperimentalSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "Project Status Card",
                 subtitle: "Display contextual project information in the Notch overlay",
-                icon: "lanyardcard.fill"
+                icon: "lanyardcard.fill",
+                helpTooltip: "settings.experimental.projectStatus.help".localized
             )
 
             NotchTerminalPreferenceToggleRow(

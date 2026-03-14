@@ -319,7 +319,8 @@ struct GeneralSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.language".localized,
                 subtitle: "settings.language.subtitle".localized,
-                icon: "globe"
+                icon: "globe",
+                helpTooltip: "settings.language.help".localized
             )
 
             Toggle(isOn: $useSystemLanguage) {
@@ -359,7 +360,8 @@ struct GeneralSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.system".localized,
                 subtitle: "settings.system.subtitle".localized,
-                icon: "macwindow"
+                icon: "macwindow",
+                helpTooltip: "settings.system.help".localized
             )
 
             NotchTerminalPreferenceToggleRow(
@@ -391,7 +393,8 @@ struct GeneralSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.automation".localized,
                 subtitle: "settings.automation.subtitle".localized,
-                icon: "cursorarrow.motionlines"
+                icon: "cursorarrow.motionlines",
+                helpTooltip: "settings.automation.help".localized
             )
 
             NotchTerminalPreferenceToggleRow(
@@ -429,7 +432,8 @@ struct GeneralSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.terminalActions".localized,
                 subtitle: "settings.terminalActions.subtitle".localized,
-                icon: "slider.horizontal.3"
+                icon: "slider.horizontal.3",
+                helpTooltip: "settings.terminalActions.help".localized
             )
 
             NotchTerminalPreferenceToggleRow(
@@ -479,7 +483,8 @@ struct GeneralSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.dangerZone".localized,
                 subtitle: "settings.dangerZone.subtitle".localized,
-                icon: "exclamationmark.octagon"
+                icon: "exclamationmark.octagon",
+                helpTooltip: "settings.dangerZone.help".localized
             )
 
             HStack(alignment: .center, spacing: 10) {
@@ -547,7 +552,8 @@ struct AppearanceSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.appearance.geometry".localized,
                 subtitle: "settings.appearance.geometry.subtitle".localized,
-                icon: "aspectratio"
+                icon: "aspectratio",
+                helpTooltip: "settings.appearance.geometry.help".localized
             )
 
             NotchTerminalSliderPreferenceRow(
@@ -567,7 +573,8 @@ struct AppearanceSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.appearance.terminalDefaults".localized,
                 subtitle: "settings.appearance.terminalDefaults.subtitle".localized,
-                icon: "macwindow.on.rectangle"
+                icon: "macwindow.on.rectangle",
+                helpTooltip: "settings.appearance.terminalDefaults.help".localized
             )
 
             NotchTerminalSliderPreferenceRow(
@@ -598,7 +605,8 @@ struct AppearanceSettingsView: View {
             NotchTerminalSectionHeading(
                 title: "settings.appearance.effects".localized,
                 subtitle: "settings.appearance.effects.subtitle".localized,
-                icon: "sparkles"
+                icon: "sparkles",
+                helpTooltip: "settings.appearance.effects.help".localized
             )
 
             if hasAnyNotch {

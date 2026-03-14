@@ -12,6 +12,7 @@
 /* Settings - Notch */
 "settings.notch.displays" = "Active Notches";
 "settings.notch.displays.subtitle" = "Enable or disable the notch independently on each connected display.";
+"settings.notch.displays.help" = "Configure notch behavior per display. Each screen can have its own enabled state, position adjustments, width tuning, and optional background override.";
 "settings.notch.empty" = "No active displays detected.";
 "settings.notch.enabled" = "Enable this notch";
 "settings.notch.enabled.subtitle" = "Shows the notch only on this display.";
@@ -33,6 +34,7 @@
 /* Settings - System */
 "settings.system" = "System";
 "settings.system.subtitle" = "Core behavior and app visibility options.";
+"settings.system.help" = "Controls app-wide behavior such as haptics, Dock visibility, and whether unstable features are exposed in Settings.";
 "settings.hapticFeedback" = "Enable haptic feedback";
 "settings.hapticFeedback.subtitle" = "Use haptics when interactions occur in the notch.";
 "settings.showDockIcon" = "Show Dock icon";
@@ -45,6 +47,7 @@
 /* Settings - Automation */
 "settings.automation" = "Automation";
 "settings.automation.subtitle" = "Controls how and when the notch opens and closes.";
+"settings.automation.help" = "Adjust automatic notch behavior, including hover-to-open timing and whether the notch stays open while you are actively typing.";
 "settings.autoOpenOnHover" = "Open notch on hover";
 "settings.autoOpenOnHover.subtitle" = "Automatically expands the notch when the cursor reaches it.";
 "settings.autoOpenOnHoverDelay" = "Hover open delay";
@@ -55,6 +58,7 @@
 /* Settings - Terminal Actions */
 "settings.terminalActions" = "Terminal Actions";
 "settings.terminalActions.subtitle" = "Bulk actions, safety checks, and per-chip behavior.";
+"settings.terminalActions.help" = "Defines how terminal chips and bulk actions behave, including safety confirmations and whether closing a session only closes the window or also terminates the running process.";
 "settings.showChipCloseButton" = "Show close button on chip hover";
 "settings.showChipCloseButton.subtitle" = "Display a small close button when hovering a terminal chip.";
 "settings.confirmBeforeCloseAll" = "Confirm before Close All";
@@ -65,10 +69,12 @@
 "settings.closeActionMode.terminateProcess" = "Terminate process and close";
 "settings.dangerZone" = "Danger Zone";
 "settings.dangerZone.subtitle" = "Sensitive actions that affect the whole app.";
+"settings.dangerZone.help" = "Contains actions with immediate global impact, such as quitting the app. Use these when you want to stop all current NotchTerminal activity.";
 
 /* Settings - Appearance */
 "settings.appearance.geometry" = "Geometry";
 "settings.appearance.geometry.subtitle" = "Fine-tune notch layout and spacing.";
+"settings.appearance.geometry.help" = "Adjust spacing inside the notch so the UI feels balanced across different screen sizes and content densities.";
 "settings.contentPadding" = "Content padding";
 "settings.contentPadding.subtitle" = "Spacing between terminal content and notch edges.";
 "settings.notchWidthOffset" = "Notch width fine-tune";
@@ -78,6 +84,7 @@
 
 "settings.appearance.terminalDefaults" = "Terminal Window Defaults";
 "settings.appearance.terminalDefaults.subtitle" = "Size parameters for new terminal sessions.";
+"settings.appearance.terminalDefaults.help" = "Sets the default width and height used when creating new floating terminal windows.";
 "settings.terminalDefaultWidth" = "Default width";
 "settings.terminalDefaultWidth.subtitle" = "Horizontal size in points.";
 "settings.terminalDefaultHeight" = "Default height";
@@ -92,6 +99,7 @@
 "settings.appearance.compactTicker.subtitle" = "Provider status in closed-notch mode.";
 "settings.appearance.effects" = "Effects";
 "settings.appearance.effects.subtitle" = "Visual effects for the notch surface.";
+"settings.appearance.effects.help" = "Controls optional visual styling such as the Aurora background theme used behind notch content on supported displays.";
 "settings.appearance.reset" = "Reset appearance settings";
 "settings.appearance.reset.subtitle" = "Restore the default values for this tab.";
 "settings.compactTickerEnabled" = "Show compact provider ticker";
@@ -104,10 +112,13 @@
 /* Settings - Experimental */
 "settings.experimental.effects" = "Experimental Effects";
 "settings.experimental.effects.subtitle" = "Optional visuals that may vary by screen/GPU.";
+"settings.experimental.effects.help" = "Visual effects that change how the notch or terminal area looks. Some options may use more GPU and battery, and behavior can vary by display type.";
 "settings.experimental.debug" = "Debug";
 "settings.experimental.debug.subtitle" = "Development-only tools and visual guides.";
+"settings.experimental.debug.help" = "Temporary diagnostics for validating hit-testing and docking areas. Most people can leave these off unless they are tuning or troubleshooting notch interactions.";
 "settings.experimental.startupOrb.section" = "Notification Orb";
 "settings.experimental.startupOrb.section.subtitle" = "Experimental notification orb appearance and positioning.";
+"settings.experimental.startupOrb.section.help" = "Controls the small orb shown near the notch for startup or notification states. Use the offsets to fine-tune its position on fake-notch and physical-notch displays.";
 "settings.experimental.startupOrb" = "Show notification orb";
 "settings.experimental.startupOrb.subtitle" = "Displays the notification orb next to the notch.";
 "settings.experimental.startupOrb.pillOffsetX" = "Notification orb pill X offset";
@@ -120,10 +131,13 @@
 "settings.experimental.startupOrb.notchOffsetY.subtitle" = "Adjust the orb vertical offset for physical notch displays.";
 "settings.experimental.warning" = "These visual effects are highly experimental and cost battery life.";
 "settings.experimental.notchOffsets.note" = "Only affects the closed notch on displays with a physical notch.";
+"settings.experimental.geometry.help" = "Advanced geometry adjustments for physical-notch displays. Use these only when the notch mask does not line up correctly with your hardware.";
+"settings.experimental.docking.help" = "Controls how terminal windows snap into the notch area when dragged nearby. Higher sensitivity makes docking trigger more easily.";
 "settings.experimental.dragToNotch" = "Enable drag-to-notch docking";
 "settings.experimental.dragToNotch.subtitle" = "Lets terminal windows snap into the notch when dragged nearby. Experimental and currently unstable.";
 "settings.experimental.hitTestDebugOverlay" = "Show docking debug outlines";
 "settings.experimental.hitTestDebugOverlay.subtitle" = "Displays the colored dashed guides for the docking and hit-test areas.";
+"settings.experimental.projectStatus.help" = "Shows lightweight project context in the expanded notch, such as the current folder name and git state for the active terminal session.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Neon purple glow effect for simulated notches.";
 "settings.fakeNotchGlowTheme" = "Glow Theme";
@@ -135,6 +149,7 @@
 /* Settings - Language */
 "settings.language" = "Language";
 "settings.language.subtitle" = "Choose your preferred language.";
+"settings.language.help" = "Pick whether NotchTerminal follows the system language or uses a manual override for the interface.";
 "settings.language.system" = "System Default";
 "settings.language.system.subtitle" = "Uses your system's language setting.";
 

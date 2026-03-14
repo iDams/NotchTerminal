@@ -12,6 +12,7 @@
 /* Settings - Notch */
 "settings.notch.displays" = "アクティブなノッチ";
 "settings.notch.displays.subtitle" = "接続中の各ディスプレイごとにノッチを個別に有効または無効にします。";
+"settings.notch.displays.help" = "ディスプレイごとにノッチの挙動を設定します。各画面で有効状態、位置補正、幅調整、任意の背景上書きを個別に持てます。";
 "settings.notch.empty" = "アクティブなディスプレイが見つかりません。";
 "settings.notch.enabled" = "このノッチを有効化";
 "settings.notch.enabled.subtitle" = "このディスプレイでのみノッチを表示します。";
@@ -33,6 +34,7 @@
 /* Settings - System */
 "settings.system" = "システム";
 "settings.system.subtitle" = "コア動作とアプリの表示オプション。";
+"settings.system.help" = "触覚フィードバック、Dockでの表示、設定内で不安定な機能を表示するかどうかなど、アプリ全体の挙動を制御します。";
 "settings.hapticFeedback" = "触覚フィードバックを有効にする";
 "settings.hapticFeedback.subtitle" = "ノッチでのインタラクション時に触覚を使用します。";
 "settings.showDockIcon" = "Dockアイコンを表示";
@@ -45,6 +47,7 @@
 /* Settings - Automation */
 "settings.automation" = "自動化";
 "settings.automation.subtitle" = "ノッチが開閉するタイミングと方法を制御します。";
+"settings.automation.help" = "ホバーで開くまでの時間や、入力中にノッチを開いたままにするかどうかなど、自動挙動を調整します。";
 "settings.autoOpenOnHover" = "ホバー時にノッチを開く";
 "settings.autoOpenOnHover.subtitle" = "カーソルが到達すると自動的にノッチを展開します。";
 "settings.autoOpenOnHoverDelay" = "ホバー開閉ディレイ";
@@ -55,6 +58,7 @@
 /* Settings - Terminal Actions */
 "settings.terminalActions" = "ターミナルアクション";
 "settings.terminalActions.subtitle" = "一括アクション、安全チェック、チップごとの動作。";
+"settings.terminalActions.help" = "ターミナルチップや一括アクションの動作を定義します。安全確認の有無や、セッションを閉じるときにウィンドウだけ閉じるか、実行中のプロセスも終了するかを設定できます。";
 "settings.showChipCloseButton" = "チップホバー時に閉じるボタンを表示";
 "settings.showChipCloseButton.subtitle" = "ターミナルチップをホバーときに小さい閉じるボタンを表示します。";
 "settings.confirmBeforeCloseAll" = "すべて閉じる前に確認";
@@ -65,10 +69,12 @@
 "settings.closeActionMode.terminateProcess" = "プロセスを終了して閉じる";
 "settings.dangerZone" = "危険ゾーン";
 "settings.dangerZone.subtitle" = "アプリ全体に影響する慎重な操作です。";
+"settings.dangerZone.help" = "アプリ終了のように、即座に全体へ影響する操作をまとめています。現在のNotchTerminalの動作を止めたいときに使用します。";
 
 /* Settings - Appearance */
 "settings.appearance.geometry" = "ジオメトリ";
 "settings.appearance.geometry.subtitle" = "ノッチのレイアウトとスペーシングを微調整します。";
+"settings.appearance.geometry.help" = "ノッチ内部の余白を調整し、画面サイズやコンテンツ密度が異なってもバランスよく見えるようにします。";
 "settings.contentPadding" = "コンテンツパディング";
 "settings.contentPadding.subtitle" = "ターミナルコンテンツとノッチ端の間の間隔。";
 "settings.notchWidthOffset" = "ノッチ幅の微調整";
@@ -78,6 +84,7 @@
 
 "settings.appearance.terminalDefaults" = "ターミナルウィンドウのデフォルト";
 "settings.appearance.terminalDefaults.subtitle" = "新しいターミナルセッションのサイズパラメータ。";
+"settings.appearance.terminalDefaults.help" = "新しいフローティングターミナルウィンドウを作成するときに使うデフォルトの幅と高さを設定します。";
 "settings.terminalDefaultWidth" = "デフォルト幅";
 "settings.terminalDefaultWidth.subtitle" = "水平サイズ（ポイント）。";
 "settings.terminalDefaultHeight" = "デフォルト高さ";
@@ -92,6 +99,7 @@
 "settings.appearance.compactTicker.subtitle" = "ノッチ閉じた状態でのプロバイダー状態。";
 "settings.appearance.effects" = "エフェクト";
 "settings.appearance.effects.subtitle" = "ノッチ表面のビジュアルエフェクト。";
+"settings.appearance.effects.help" = "対応ディスプレイでノッチ内容の背後に使われるAurora背景など、任意の視覚スタイルを制御します。";
 "settings.appearance.reset" = "外観設定をリセット";
 "settings.appearance.reset.subtitle" = "このタブのデフォルト値に戻します。";
 "settings.compactTickerEnabled" = "コンパクトプロバイダーティッカーを表示";
@@ -104,10 +112,13 @@
 /* Settings - Experimental */
 "settings.experimental.effects" = "実験的エフェクト";
 "settings.experimental.effects.subtitle" = "画面/GPUによって異なる場合があります。";
+"settings.experimental.effects.help" = "ノッチやターミナル領域の見た目を変える視覚効果です。設定によってはGPUやバッテリー消費が増え、表示はディスプレイごとに異なる場合があります。";
 "settings.experimental.debug" = "デバッグ";
 "settings.experimental.debug.subtitle" = "開発用のツールと視覚ガイドです。";
+"settings.experimental.debug.help" = "ヒットテスト領域やドッキング領域を確認するための一時的な診断機能です。ノッチ挙動の調整や調査をしない限り、通常はオフのままで問題ありません。";
 "settings.experimental.startupOrb.section" = "通知オーブ";
 "settings.experimental.startupOrb.section.subtitle" = "通知オーブの外観と位置に関する実験的設定です。";
+"settings.experimental.startupOrb.section.help" = "起動時や通知時にノッチ付近へ表示される小さなオーブを制御します。擬似ノッチ画面と物理ノッチ画面の両方で、オフセットを使って位置を微調整できます。";
 "settings.experimental.startupOrb" = "通知オーブを表示";
 "settings.experimental.startupOrb.subtitle" = "ノッチ横に通知オーブを表示します。";
 "settings.experimental.startupOrb.pillOffsetX" = "通知オーブ pill の X オフセット";
@@ -120,10 +131,13 @@
 "settings.experimental.startupOrb.notchOffsetY.subtitle" = "物理ノッチ画面でのオーブの縦位置を調整します。";
 "settings.experimental.warning" = "これらの視覚エフェクトはバッテリーを消費します。";
 "settings.experimental.notchOffsets.note" = "物理ノッチ付きディスプレイで、閉じたノッチにのみ影響します。";
+"settings.experimental.geometry.help" = "物理ノッチ付きディスプレイ向けの高度なジオメトリ補正です。ノッチマスクが実機と正しく揃わない場合にのみ使用してください。";
+"settings.experimental.docking.help" = "ターミナルウィンドウを近くまでドラッグしたときに、ノッチ領域へどのように吸着するかを制御します。感度を高くすると、より簡単にドッキングします。";
 "settings.experimental.dragToNotch" = "ドラッグでノッチにドッキングを有効化";
 "settings.experimental.dragToNotch.subtitle" = "近くまでドラッグしたターミナルウィンドウをノッチへスナップさせます。実験的で、まだ不安定です。";
 "settings.experimental.hitTestDebugOverlay" = "ドッキングのデバッグ輪郭を表示";
 "settings.experimental.hitTestDebugOverlay.subtitle" = "ドッキング領域とヒットテスト領域の色付き破線ガイドを表示します。";
+"settings.experimental.projectStatus.help" = "展開したノッチ内に、現在のフォルダ名やアクティブなターミナルセッションのgit状態など、軽量なプロジェクト情報を表示します。";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "シミュレートされたノッチのネオン紫グローエフェクト。";
 "settings.fakeNotchGlowTheme" = "グローテーマ";
@@ -135,6 +149,7 @@
 /* Settings - Language */
 "settings.language" = "言語";
 "settings.language.subtitle" = "お好みの言語を選択してください。";
+"settings.language.help" = "NotchTerminalがシステム言語に従うか、手動で選んだ言語を使うかを設定します。";
 "settings.language.system" = "システムデフォルト";
 "settings.language.system.subtitle" = "システムの言語設定を使用します。";
 
