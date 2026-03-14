@@ -432,7 +432,7 @@ struct NotchCapsuleView: View {
                     )
                     .id(item.id)
                     .padding(.top, model.hasPhysicalNotch ? 40 : (topControlsPaddingTop + 4))
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
                 }
             }
         }

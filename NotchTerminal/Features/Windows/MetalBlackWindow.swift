@@ -1170,6 +1170,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
 
         windows[id] = instance
+        publishTerminalItems()
     }
 
     private func preferredCloseActionMode() -> CloseActionMode {
