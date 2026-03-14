@@ -503,7 +503,11 @@ public final class AICronjobManager: ObservableObject {
             content.sound = .default
             
             let request = UNNotificationRequest(identifier: "notchagent-\(job.id.uuidString)", content: content, trigger: nil)
-            try? UNUserNotificationCenter.current().add(request)
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error {
+                    print("❌ [Agent] Notification Error: \(error.localizedDescription)")
+                }
+            }
         } else {
             let prefix = job != nil ? "[\(job!.name)] " : ""
             NotificationCenter.default.post(name: AICronjobManager.newMessageNotification, object: nil, userInfo: ["text": prefix + text])
