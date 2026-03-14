@@ -207,7 +207,7 @@ struct NotchCapsuleView: View {
                     }
                     .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
                     .padding(.top, shadowPadding + (model.hasPhysicalNotch ? 38 : 28) + 12)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)).combined(with: .move(edge: .top)))
+                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
                     .zIndex(100)
             }
         }
