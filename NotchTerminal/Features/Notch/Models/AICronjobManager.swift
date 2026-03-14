@@ -8,11 +8,14 @@ public final class AICronjobManager: ObservableObject {
     public static let shared = AICronjobManager()
     
     @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
-    @AppStorage(AppPreferences.Keys.experimentalAIProvider) private var experimentalAIProvider = AppPreferences.Defaults.experimentalAIProvider
-    @AppStorage(AppPreferences.Keys.experimentalAICustomURL) private var experimentalAICustomURL = AppPreferences.Defaults.experimentalAICustomURL
-    @AppStorage(AppPreferences.Keys.experimentalAIApiKey) private var experimentalAIApiKey = AppPreferences.Defaults.experimentalAIApiKey
-    @AppStorage(AppPreferences.Keys.experimentalAIModel) private var experimentalAIModel = AppPreferences.Defaults.experimentalAIModel
     @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) private var experimentalAICronjobsData = AppPreferences.Defaults.experimentalAICronjobsData
+    @AppStorage(AppPreferences.Keys.aiProvidersData) private var aiProvidersList = AppPreferences.Defaults.aiProvidersData
+    @AppStorage(AppPreferences.Keys.activeAIProviderID) private var activeAIProviderIDString: String = ""
+    
+    private var activeAIProviderID: UUID? {
+        get { UUID(uuidString: activeAIProviderIDString) }
+        set { activeAIProviderIDString = newValue?.uuidString ?? "" }
+    }
     
     private var cronjobTasks: [UUID: Task<Void, Never>] = [:]
     private var runningCronjobs: [UUID: AICronjob] = [:]
@@ -284,7 +287,6 @@ public final class AICronjobManager: ObservableObject {
         
         let defaults = UserDefaults.standard
         
-        // Read cronjobs from UserDefaults directly
         guard let rawData = defaults.string(forKey: AppPreferences.Keys.experimentalAICronjobsData),
               let jsonData = rawData.data(using: .utf8),
               let jobs = try? JSONDecoder().decode([AICronjob].self, from: jsonData),
@@ -293,10 +295,7 @@ public final class AICronjobManager: ObservableObject {
             return
         }
         
-        let provider = defaults.string(forKey: AppPreferences.Keys.experimentalAIProvider) ?? "openai"
-        let apiKey = defaults.string(forKey: AppPreferences.Keys.experimentalAIApiKey) ?? ""
-        let customURL = defaults.string(forKey: AppPreferences.Keys.experimentalAICustomURL) ?? "https://api.openai.com/v1"
-        let model = defaults.string(forKey: AppPreferences.Keys.experimentalAIModel) ?? "gpt-3.5-turbo"
+        let (provider, apiKey, customURL, model) = getActiveProviderConfig(from: defaults)
         
         await runAgentLoop(
             job: job,
@@ -310,6 +309,26 @@ public final class AICronjobManager: ObservableObject {
                 await sendBackgroundNotification(title: "NotchAgent: \(jobRef?.name ?? "Unknown")", body: text)
             }
         }
+    }
+    
+    private static func getActiveProviderConfig(from defaults: UserDefaults) -> (provider: String, apiKey: String, customURL: String, model: String) {
+        if let providersRaw = defaults.string(forKey: AppPreferences.Keys.aiProvidersData),
+           let providersData = providersRaw.data(using: .utf8),
+           let providersList = try? JSONDecoder().decode(AIProviderList.self, from: providersData),
+           let activeIDString = defaults.string(forKey: AppPreferences.Keys.activeAIProviderID),
+           let activeID = UUID(uuidString: activeIDString),
+           let activeProvider = providersList.providers.first(where: { $0.id == activeID && $0.isEnabled }) {
+            
+            let apiKey = KeychainService.getAPIKey(for: activeProvider.id) ?? ""
+            return (
+                activeProvider.type.rawValue,
+                apiKey,
+                activeProvider.effectiveBaseURL,
+                activeProvider.effectiveModel
+            )
+        }
+        
+        return ("openai", "", "https://api.openai.com/v1", "gpt-4o-mini")
     }
     
     private static func sendBackgroundNotification(title: String, body: String) async {
@@ -338,16 +357,33 @@ public final class AICronjobManager: ObservableObject {
     }
 
     private func fetchAIResponse(for job: AICronjob, isBackground: Bool = false) async {
+        let (provider, apiKey, customURL, model) = activeProviderConfig
+        
         await Self.runAgentLoop(
             job: job,
-            provider: experimentalAIProvider,
-            apiKey: experimentalAIApiKey,
-            customURL: experimentalAICustomURL,
-            model: experimentalAIModel,
+            provider: provider,
+            apiKey: apiKey,
+            customURL: customURL,
+            model: model,
             isBackground: isBackground
         ) { [weak self] text, jobRef, isBg in
             self?.broadcastMessage(text, job: jobRef, isBackground: isBg)
         }
+    }
+    
+    private var activeProviderConfig: (provider: String, apiKey: String, customURL: String, model: String) {
+        guard let activeID = activeAIProviderID,
+              let provider = aiProvidersList.providers.first(where: { $0.id == activeID && $0.isEnabled }) else {
+            return ("openai", "", "https://api.openai.com/v1", "gpt-4o-mini")
+        }
+        
+        let apiKey = KeychainService.getAPIKey(for: provider.id) ?? ""
+        return (
+            provider.type.rawValue,
+            apiKey,
+            provider.effectiveBaseURL,
+            provider.effectiveModel
+        )
     }
     
     // MARK: - Core Multi-Turn Agent Loop
@@ -366,12 +402,7 @@ public final class AICronjobManager: ObservableObject {
             return
         }
 
-        let baseURL: String
-        switch provider {
-        case "openrouter": baseURL = "https://openrouter.ai/api/v1"
-        case "custom": baseURL = customURL
-        default: baseURL = "https://api.openai.com/v1"
-        }
+        let baseURL = customURL
         
         let safeURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard let url = URL(string: "\(safeURL)/chat/completions") else { 
@@ -384,7 +415,10 @@ public final class AICronjobManager: ObservableObject {
             AIChatMessage(role: "user", content: job.prompt)
         ]
         
+        let providerType = AIProviderType(rawValue: provider) ?? .custom
         let finalModel = provider == "openrouter" ? "openrouter/free" : model
+        let responseTokenLimit = providerType.defaultResponseTokenLimit
+        let usesOpenAICompletionsTokenField = provider == AIProviderType.openai.rawValue && finalModel.lowercased().hasPrefix("gpt-5")
         let maxTurns = 5
         var currentTurn = 0
         
@@ -396,7 +430,8 @@ public final class AICronjobManager: ObservableObject {
                 messages: messages,
                 tools: [AIToolSchema.runLocalCommandTool],
                 toolChoice: "auto",
-                maxTokens: 250
+                maxTokens: usesOpenAICompletionsTokenField ? nil : responseTokenLimit,
+                maxCompletionTokens: usesOpenAICompletionsTokenField ? responseTokenLimit : nil
             )
             
             if provider == "openrouter" {
@@ -445,6 +480,7 @@ public final class AICronjobManager: ObservableObject {
                 }
                 
                 let message = firstChoice.message
+                let finishReason = firstChoice.finishReason?.lowercased()
                 
                 // If Tool Calls requested
                 if let toolCalls = message.toolCalls, !toolCalls.isEmpty {
@@ -482,7 +518,30 @@ public final class AICronjobManager: ObservableObject {
                 // Final answer
                 let cleanContent = (message.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 print("✅ [Agent] Final Message: \(cleanContent)")
-                broadcast(cleanContent.isEmpty ? "Empty Response (Token limit?)" : cleanContent, job, isBackground)
+
+                if !cleanContent.isEmpty {
+                    broadcast(cleanContent, job, isBackground)
+                    return
+                }
+
+                if finishReason == "length" {
+                    broadcast("Response hit token limit (\(responseTokenLimit)). Try a shorter prompt or command output.", job, isBackground)
+                    return
+                }
+
+                if currentTurn < maxTurns {
+                    messages.append(message)
+                    messages.append(
+                        AIChatMessage(
+                            role: "user",
+                            content: "Reply now with a short final answer only. Do not call tools unless strictly necessary."
+                        )
+                    )
+                    continue
+                }
+
+                let reasoningFallback = (message.reasoningContent ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                broadcast(reasoningFallback.isEmpty ? "Provider returned no final text." : reasoningFallback, job, isBackground)
                 return
                 
             } catch {

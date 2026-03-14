@@ -8,21 +8,31 @@ public struct AIChatRequest: Codable {
     public let tools: [AIToolSchema]?
     public let toolChoice: String? // "auto", "none" or specific tool
     public let maxTokens: Int?
+    public let maxCompletionTokens: Int?
     
     // For OpenRouter reasoning feature
     public var reasoning: AIReasoningSchema?
     
-    public init(model: String, messages: [AIChatMessage], tools: [AIToolSchema]? = nil, toolChoice: String? = nil, maxTokens: Int? = 250, reasoning: AIReasoningSchema? = nil) {
+    public init(
+        model: String,
+        messages: [AIChatMessage],
+        tools: [AIToolSchema]? = nil,
+        toolChoice: String? = nil,
+        maxTokens: Int? = nil,
+        maxCompletionTokens: Int? = nil,
+        reasoning: AIReasoningSchema? = nil
+    ) {
         self.model = model
         self.messages = messages
         self.tools = tools
         self.toolChoice = toolChoice
         self.maxTokens = maxTokens
+        self.maxCompletionTokens = maxCompletionTokens
         self.reasoning = reasoning
     }
     
     enum CodingKeys: String, CodingKey {
-        case model, messages, tools, toolChoice = "tool_choice", maxTokens = "max_tokens", reasoning
+        case model, messages, tools, toolChoice = "tool_choice", maxTokens = "max_tokens", maxCompletionTokens = "max_completion_tokens", reasoning
     }
 }
 
@@ -35,16 +45,18 @@ public struct AIChatMessage: Codable {
     public let content: String? // Optional because tool_calls might not have content
     public let toolCalls: [AIToolCall]?
     public let toolCallId: String? // Used when replying as "tool"
+    public let reasoningContent: String?
     
-    public init(role: String, content: String? = nil, toolCalls: [AIToolCall]? = nil, toolCallId: String? = nil) {
+    public init(role: String, content: String? = nil, toolCalls: [AIToolCall]? = nil, toolCallId: String? = nil, reasoningContent: String? = nil) {
         self.role = role
         self.content = content
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
+        self.reasoningContent = reasoningContent
     }
     
     enum CodingKeys: String, CodingKey {
-        case role, content, toolCalls = "tool_calls", toolCallId = "tool_call_id"
+        case role, content, toolCalls = "tool_calls", toolCallId = "tool_call_id", reasoningContent = "reasoning_content"
     }
 }
 

@@ -34,6 +34,8 @@ struct SettingsView: View {
             return 560
         case .about:
             return 640
+        case .aiProviders:
+            return 520
         case .aiCronjobs:
             return 560
         case .experimental:
@@ -72,10 +74,16 @@ struct SettingsView: View {
                     Label("settings.about".localized, systemImage: "info.circle")
                 }
 
+            AIProvidersSettingsView()
+                .tag(SettingsTab.aiProviders)
+                .tabItem {
+                    Label("AI Providers", systemImage: "server.rack")
+                }
+
             AICronjobsSettingsView()
                 .tag(SettingsTab.aiCronjobs)
                 .tabItem {
-                    Label("NotchAgent", systemImage: "cpu")
+                    Label("Agent Jobs", systemImage: "cpu")
                 }
 
             if showExperimentalSettings {

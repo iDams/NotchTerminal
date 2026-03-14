@@ -1,36 +1,49 @@
 import SwiftUI
 
 struct AICronjobEditView: View {
-    @Environment(\.dismiss) private var dismiss
     @Binding var cronjob: AICronjob
     var isNew: Bool
     var onSave: () -> Void
+    var onCancel: (() -> Void)? = nil
 
-    @State private var showCustomCron: Bool = false
+    @State private var showCustomCron = false
     @State private var promptEditorHeight: CGFloat = 140
     private let presetCrons = ["* * * * *", "*/5 * * * *", "*/15 * * * *", "*/30 * * * *", "0 * * * *", "0 */6 * * *", "0 */12 * * *", "0 0 * * *"]
 
     var body: some View {
         VStack(spacing: 0) {
-            Text(isNew ? "New AI Cronjob" : "Edit AI Cronjob")
-                .font(.headline)
-                .padding()
-            
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(isNew ? "New Agent Job" : "Edit Agent Job")
+                        .font(.headline)
+
+                    Text("Configure the task, schedule, and prompt for this job.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding()
+
             Form {
                 Section {
-                    TextField("Cronjob Name", text: $cronjob.name)
-                    
+                    TextField("Agent Job Name", text: $cronjob.name)
+
+                    TextField("Short description", text: $cronjob.detail, axis: .vertical)
+                        .lineLimit(2...3)
+
                     Toggle(isOn: $cronjob.isEnabled) {
                         Text("Enabled")
                     }
-                    
+
                     Picker("Execution Mode", selection: $cronjob.mode) {
                         Text("App Timer (Seconds)").tag(AICronjobExecutionMode.app)
                         Text("Machine Daemon").tag(AICronjobExecutionMode.machine)
                     }
                     .pickerStyle(.segmented)
                     .padding(.vertical, 8)
-                    
+
                     if cronjob.mode == .app {
                         HStack {
                             Text("Interval (Seconds)")
@@ -39,7 +52,7 @@ struct AICronjobEditView: View {
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 80)
                                 .multilineTextAlignment(.trailing)
-                            
+
                             Stepper("", value: $cronjob.interval, in: 10...3600, step: 5)
                                 .labelsHidden()
                         }
@@ -49,9 +62,9 @@ struct AICronjobEditView: View {
                             if showCustomCron {
                                 TextField("Cron Expression", text: $cronjob.cronExpression)
                                     .textFieldStyle(.roundedBorder)
-                                Text("Format: M H D m W (e.g., '0 * * * *' for every hour)")
+                                Text("Format: M H D m W (e.g. '0 * * * *' for every hour)")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             } else {
                                 Picker("Interval", selection: $cronjob.cronExpression) {
                                     Text("Every 1 Minute").tag("* * * * *")
@@ -65,10 +78,10 @@ struct AICronjobEditView: View {
                                 }
                                 .pickerStyle(.menu)
                             }
-                            
+
                             Toggle("Advanced Custom Cron", isOn: $showCustomCron)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 4)
                         .onAppear {
@@ -78,7 +91,7 @@ struct AICronjobEditView: View {
                         }
                     }
                 }
-                
+
                 Section(header: Text("Prompt & Safety")) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("System Prompt")
@@ -86,44 +99,43 @@ struct AICronjobEditView: View {
 
                         CronjobPromptEditor(
                             text: $cronjob.prompt,
-                            placeholder: "Describe what this cronjob should do",
+                            placeholder: "Describe what this job should do",
                             dynamicHeight: $promptEditorHeight
                         )
                         .frame(height: promptEditorHeight)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.vertical, 4)
-                    
+
                     Toggle(isOn: $cronjob.autoDisable) {
                         Text("Auto-Disable Limit (3 Days)")
                     }
-                    
+
                     if !cronjob.autoDisable {
-                        Text("Warning: Disabling the 3-day limit is not recommended. Continuous background AI requests consume system resources, API quotas, and battery life over long periods.")
+                        Text("Warning: disabling the 3-day limit is not recommended. Continuous background AI requests consume system resources, API quotas, and battery life over long periods.")
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
                 }
             }
             .formStyle(.grouped)
-            
+
             HStack {
                 Button("Cancel") {
-                    dismiss()
+                    onCancel?()
                 }
-                
+
                 Spacer()
-                
+
                 Button("Save") {
                     onSave()
-                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(cronjob.name.isEmpty || cronjob.prompt.isEmpty)
+                .disabled(cronjob.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || cronjob.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding()
         }
-        .frame(minWidth: 500, minHeight: 520)
+        .frame(minWidth: 500, minHeight: 560)
     }
 }
 
