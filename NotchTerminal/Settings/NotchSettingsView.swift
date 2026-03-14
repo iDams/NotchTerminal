@@ -34,6 +34,7 @@ struct NotchSettingsView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+            .reportSettingsContentHeight(for: .notch)
         }
         .onAppear {
             refreshScreens()

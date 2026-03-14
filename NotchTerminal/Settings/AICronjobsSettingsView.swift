@@ -23,6 +23,7 @@ struct AICronjobsSettingsView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+            .reportSettingsContentHeight(for: .aiCronjobs)
         }
     }
 

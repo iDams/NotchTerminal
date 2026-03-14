@@ -21,6 +21,7 @@ struct AboutSettingsView: View {
             }
             .padding()
             .frame(maxWidth: .infinity)
+            .reportSettingsContentHeight(for: .about)
         }
         .accessibilityIdentifier("about-root")
         .frame(maxWidth: .infinity, maxHeight: .infinity)

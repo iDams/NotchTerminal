@@ -1,35 +1,17 @@
 import SwiftUI
 import AppKit
 
-private enum SettingsTab: Hashable {
-    case general
-    case notch
-    case appearance
-    case about
-    case aiCronjobs
-    case experimental
-
-    init(uiTestValue: String) {
-        switch uiTestValue {
-        case "notch":
-            self = .notch
-        case "appearance":
-            self = .appearance
-        case "about":
-            self = .about
-        case "aicronjobs":
-            self = .aiCronjobs
-        case "experimental":
-            self = .experimental
-        default:
-            self = .general
-        }
-    }
-}
-
 struct SettingsView: View {
     @State private var selectedTab: SettingsTab
+    @State private var measuredTabHeights: [SettingsTab: CGFloat] = [:]
+    @State private var settingsWindow: NSWindow?
     @AppStorage(AppPreferences.Keys.showExperimentalSettings) private var showExperimentalSettings = AppPreferences.Defaults.showExperimentalSettings
+
+    private let minimumWindowWidth: CGFloat = 560
+    private let maximumWindowWidth: CGFloat = 760
+    private let minimumWindowHeight: CGFloat = 320
+    private let maximumWindowHeight: CGFloat = 700
+    private let tabChromeHeight: CGFloat = 110
 
     init() {
         if UITestSupport.isEnabled {
@@ -40,7 +22,7 @@ struct SettingsView: View {
         }
     }
 
-    private var idealHeight: CGFloat {
+    private var fallbackContentHeight: CGFloat {
         switch selectedTab {
         case .general:
             return 430
@@ -55,6 +37,11 @@ struct SettingsView: View {
         case .experimental:
             return 320
         }
+    }
+
+    private var targetWindowHeight: CGFloat {
+        let contentHeight = measuredTabHeights[selectedTab] ?? fallbackContentHeight
+        return min(max(contentHeight + tabChromeHeight, minimumWindowHeight), maximumWindowHeight)
     }
 
     var body: some View {
@@ -98,30 +85,126 @@ struct SettingsView: View {
             }
         }
         .frame(
-            minWidth: 560,
-            idealWidth: 560,
-            maxWidth: 760,
-            minHeight: 320,
-            idealHeight: min(idealHeight, 700),
-            maxHeight: 700
+            minWidth: minimumWindowWidth,
+            idealWidth: minimumWindowWidth,
+            maxWidth: maximumWindowWidth,
+            minHeight: minimumWindowHeight,
+            idealHeight: targetWindowHeight,
+            maxHeight: maximumWindowHeight
+        )
+        .background(
+            SettingsWindowObserver { window in
+                attach(to: window)
+            }
         )
         .accessibilityIdentifier("settings-root")
+        .onPreferenceChange(SettingsMeasuredHeightsPreferenceKey.self) { heights in
+            var nextHeights = measuredTabHeights
+            var didChange = false
+
+            for (tab, height) in heights {
+                if abs((nextHeights[tab] ?? 0) - height) > 1 {
+                    nextHeights[tab] = height
+                    didChange = true
+                }
+            }
+
+            guard didChange else { return }
+            measuredTabHeights = nextHeights
+            resizeSettingsWindow(animated: true)
+        }
         .onAppear {
             if !showExperimentalSettings && selectedTab == .experimental {
                 selectedTab = .general
             }
-            // Center the settings window
-            for window in NSApplication.shared.windows {
-                if window.title == "Settings" || window.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" {
-                    window.center()
-                    break
-                }
-            }
+            resizeSettingsWindow(animated: false)
         }
         .onChange(of: showExperimentalSettings) { _, isVisible in
             if !isVisible && selectedTab == .experimental {
                 selectedTab = .general
             }
+            resizeSettingsWindow(animated: true)
+        }
+        .onChange(of: selectedTab) { _, _ in
+            resizeSettingsWindow(animated: true)
+        }
+    }
+
+    private func attach(to window: NSWindow) {
+        if let settingsWindow, settingsWindow === window {
+            return
+        }
+        settingsWindow = window
+        window.contentMinSize = NSSize(width: minimumWindowWidth, height: minimumWindowHeight)
+        window.contentMaxSize = NSSize(width: maximumWindowWidth, height: maximumWindowHeight)
+        window.center()
+        resizeSettingsWindow(animated: false)
+    }
+
+    private func resizeSettingsWindow(animated: Bool) {
+        guard let window = settingsWindow else { return }
+
+        DispatchQueue.main.async {
+            guard let settingsWindow = self.settingsWindow, settingsWindow === window else { return }
+
+            let currentFrame = window.frame
+            let currentContentRect = window.contentRect(forFrameRect: currentFrame)
+            let targetContentSize = NSSize(
+                width: min(max(currentContentRect.width, self.minimumWindowWidth), self.maximumWindowWidth),
+                height: self.targetWindowHeight
+            )
+            let targetFrameSize = window.frameRect(forContentRect: NSRect(origin: .zero, size: targetContentSize)).size
+
+            guard abs(currentFrame.height - targetFrameSize.height) > 1 else { return }
+
+            let targetFrame = NSRect(
+                x: currentFrame.minX,
+                y: currentFrame.maxY - targetFrameSize.height,
+                width: targetFrameSize.width,
+                height: targetFrameSize.height
+            )
+
+            window.setFrame(targetFrame, display: true, animate: animated)
+        }
+    }
+}
+
+private struct SettingsWindowObserver: NSViewRepresentable {
+    let onResolve: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        ObserverView(onResolve: onResolve)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard let observerView = nsView as? ObserverView else { return }
+        observerView.onResolve = onResolve
+        DispatchQueue.main.async {
+            observerView.resolveWindowIfNeeded()
+        }
+    }
+
+    private final class ObserverView: NSView {
+        var onResolve: (NSWindow) -> Void
+
+        init(onResolve: @escaping (NSWindow) -> Void) {
+            self.onResolve = onResolve
+            super.init(frame: .zero)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            resolveWindowIfNeeded()
+        }
+
+        func resolveWindowIfNeeded() {
+            guard let window else { return }
+            onResolve(window)
         }
     }
 }
@@ -198,6 +281,7 @@ struct GeneralSettingsView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+            .reportSettingsContentHeight(for: .general)
         }
         .id(languageKey)
     }
@@ -454,6 +538,7 @@ struct AppearanceSettingsView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+            .reportSettingsContentHeight(for: .appearance)
         }
     }
 

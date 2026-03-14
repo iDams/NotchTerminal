@@ -1,5 +1,60 @@
 import SwiftUI
 
+enum SettingsTab: String, Hashable {
+    case general
+    case notch
+    case appearance
+    case about
+    case aiCronjobs
+    case experimental
+
+    init(uiTestValue: String) {
+        switch uiTestValue {
+        case "notch":
+            self = .notch
+        case "appearance":
+            self = .appearance
+        case "about":
+            self = .about
+        case "aicronjobs":
+            self = .aiCronjobs
+        case "experimental":
+            self = .experimental
+        default:
+            self = .general
+        }
+    }
+}
+
+struct SettingsMeasuredHeightsPreferenceKey: PreferenceKey {
+    static let defaultValue: [SettingsTab: CGFloat] = [:]
+
+    static func reduce(value: inout [SettingsTab: CGFloat], nextValue: () -> [SettingsTab: CGFloat]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+private struct SettingsContentHeightReporter: ViewModifier {
+    let tab: SettingsTab
+
+    func body(content: Content) -> some View {
+        content.background(
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: SettingsMeasuredHeightsPreferenceKey.self,
+                    value: [tab: ceil(proxy.size.height)]
+                )
+            }
+        )
+    }
+}
+
+extension View {
+    func reportSettingsContentHeight(for tab: SettingsTab) -> some View {
+        modifier(SettingsContentHeightReporter(tab: tab))
+    }
+}
+
 struct NotchTerminalPreferenceToggleRow: View {
     let title: String
     let subtitle: String?
