@@ -2,4 +2,5 @@
 // Keep personal Apple team IDs out of version control.
 // Each developer can override locally via Signing.local.xcconfig.
 
+#include "Version.xcconfig"
 #include? "Signing.local.xcconfig"

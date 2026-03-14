@@ -6,7 +6,7 @@ struct AboutSettingsView: View {
     @State private var showOpenURLError = false
     @State private var openURLErrorMessage = ""
 
-    private let websiteURL = URL(string: "https://github.com/iDams/NotchTerminal")
+    private let websiteURL = URL(string: "https://notchterminal.imarcodev.com")
     private let changelogURL = URL(string: "https://github.com/iDams/NotchTerminal/releases")
     private let donationURL = URL(string: "https://buymeacoffee.com/marcoastorj")
 
