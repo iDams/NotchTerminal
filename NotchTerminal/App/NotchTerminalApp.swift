@@ -5,6 +5,7 @@ import MetalKit
 import Combine
 import SwiftData
 import UserNotifications
+import Observation
 
 @main
 struct NotchTerminalApp: App {
@@ -93,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var uiTestWindow: NSWindow?
     private var statusItem: NSStatusItem?
     private let persistenceHealth = PersistenceHealth.shared
+    private let storageCleanupService = StorageCleanupService.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         DispatchQueue.main.async { [weak self] in
@@ -226,11 +228,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             action: #selector(createTerminalFromStatusItem(_:)),
             keyEquivalent: ""
         )
+        newTerminalItem.image = NSImage(systemSymbolName: "plus.terminal", accessibilityDescription: nil)
         newTerminalItem.target = self
         menu.addItem(newTerminalItem)
         menu.addItem(.separator())
 
         let optionsItem = NSMenuItem(title: "menu.options".localized, action: nil, keyEquivalent: "")
+        optionsItem.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
         let optionsMenu = NSMenu(title: "menu.options".localized)
         let settingsItem = NSMenuItem()
         settingsItem.view = StatusMenuSettingsLinkView().hostingView()
@@ -239,11 +243,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(optionsItem)
         menu.addItem(.separator())
 
+        let storageItem = NSMenuItem(
+            title: "storage.menu.title".localized,
+            action: #selector(openStorageOverviewFromStatusItem(_:)),
+            keyEquivalent: ""
+        )
+        storageItem.image = NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil)
+        storageItem.target = self
+        menu.addItem(storageItem)
+        menu.addItem(.separator())
+
         let showAllWindowsItem = NSMenuItem(
             title: "action.showAllWindows".localized,
             action: #selector(showAllWindowsFromStatusItem(_:)),
             keyEquivalent: ""
         )
+        showAllWindowsItem.image = NSImage(systemSymbolName: "macwindow.on.rectangle", accessibilityDescription: nil)
         showAllWindowsItem.target = self
         menu.addItem(showAllWindowsItem)
 
@@ -252,6 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             action: #selector(hideFromStatusItem(_:)),
             keyEquivalent: "h"
         )
+        hideItem.image = NSImage(systemSymbolName: "eye.slash", accessibilityDescription: nil)
         hideItem.target = self
         menu.addItem(hideItem)
 
@@ -260,6 +276,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             action: #selector(quitFromStatusItem(_:)),
             keyEquivalent: "q"
         )
+        quitItem.image = NSImage(systemSymbolName: "power", accessibilityDescription: nil)
         quitItem.target = self
         menu.addItem(quitItem)
 
@@ -316,6 +333,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc
     private func showAllWindowsFromStatusItem(_ sender: Any?) {
         notchController?.restoreAllWindows()
+    }
+
+    @objc
+    private func openStorageOverviewFromStatusItem(_ sender: Any?) {
+        storageCleanupService.showOverview()
     }
 
     @objc

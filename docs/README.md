@@ -11,6 +11,9 @@
 - `localization/`
   Localization system documentation and language notes.
 
+- `README.md`
+  High-level product overview including the storage analysis panel and major user-facing features.
+
 ## Files
 
 ### Done

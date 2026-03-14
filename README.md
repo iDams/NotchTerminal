@@ -59,6 +59,12 @@ It combines:
 - Search/filter by dev/all
 - Kill process by PID from the UI
 
+### Storage Analysis
+- Opens from the menu bar status item
+- Scans common space-heavy folders such as `node_modules`, `DerivedData`, `Pods`, `Carthage`, caches, logs, Trash, and old Downloads
+- Uses a single native macOS window with category sidebar, filters, search, and bulk cleanup actions
+- Warns when folders appear to still be in use before moving them to Trash
+
 ### Session + Persistence
 - Stores terminal sessions via SwiftData
 - Restores sessions on launch (work in progress)
@@ -140,6 +146,7 @@ The shared `Config/Signing.xcconfig` includes that file optionally, so collabora
 
 - `NotchTerminal/App` app lifecycle
 - `NotchTerminal/Features/Notch` overlay + notch UI
+- `NotchTerminal/Features/Storage` storage scanning, cleanup actions, and overview UI
 - `NotchTerminal/Features/Windows` floating window manager + terminal integration
 - `NotchTerminal/Features/Persistence` SwiftData models
 - `NotchTerminal/Rendering/Metal` Metal shaders/renderers
