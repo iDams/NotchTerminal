@@ -83,6 +83,18 @@ It combines:
 - Job logs with recent execution history, rerun actions, and prompt improvement tools
 - Results displayed in the Notch overlay (if app is open) and/or macOS Notification Center
 - Provider connection testing and model selection from the workspace UI
+- **Connected Apps**: attach internal Notch Terminal or installed macOS apps to jobs
+  - Drag & drop app tokens into prompts (`@notch-terminal`, `@app:com.apple.Safari`)
+  - Visual prompt helpers for common actions like "Capture the app window"
+  - Automated macOS app control (open, activate, type text, press keys)
+  - Automatic screenshot capture for AI visual verification of app UI
+  - Final screenshot verification guard prevents AI from guessing results
+  - Character-by-character typing for reliable input in apps like Calculator
+- **AI Vision**: jobs can capture and inspect app windows with screenshots
+  - `capture_app_window` tool for visual verification of connected apps
+  - Auto-capture after UI actions when prompt requires visual verification
+  - Base64 PNG screenshots embedded in AI message context
+  - Fails job with clear error if required screenshot cannot be captured
 
 ## Requirements
 

@@ -40,6 +40,10 @@ public enum AICronjobConnectedApp: String, Codable, Equatable, CaseIterable, Ide
             return "Open or control a terminal window inside NotchTerminal."
         }
     }
+    
+    public var captureInstruction: String {
+        "Capture the app window for \(promptToken)"
+    }
 }
 
 public struct AICronjobInstalledApp: Codable, Equatable, Identifiable, Hashable {
@@ -51,6 +55,10 @@ public struct AICronjobInstalledApp: Codable, Equatable, Identifiable, Hashable 
 
     public var promptToken: String {
         "@app:\(bundleIdentifier)"
+    }
+
+    public var captureInstruction: String {
+        "Capture the app window for \(promptToken)"
     }
 }
 

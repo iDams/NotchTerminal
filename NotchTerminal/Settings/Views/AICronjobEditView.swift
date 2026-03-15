@@ -266,6 +266,9 @@ struct AICronjobEditView: View {
 
             if !cronjob.installedApps.isEmpty {
                 installedAppsList
+                installedAppsToolHints
+            } else if !cronjob.connectedApps.isEmpty {
+                connectedAppsToolHints
             }
         }
         .padding(.vertical, 4)
@@ -346,6 +349,40 @@ struct AICronjobEditView: View {
         }
     }
 
+    private var installedAppsToolHints: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Prompt Helpers")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text("Use these phrases in the prompt so the job knows when to inspect an app window.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            ForEach(cronjob.installedApps, id: \.bundleIdentifier) { app in
+                installedAppHintRow(app)
+            }
+        }
+        .padding(.top, 2)
+    }
+    
+    private var connectedAppsToolHints: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Prompt Helpers")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text("Use these phrases in the prompt so the job knows when to inspect Notch Terminal.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            ForEach(cronjob.connectedApps) { app in
+                connectedAppHintRow(app)
+            }
+        }
+        .padding(.top, 2)
+    }
+
     private func installedAppChip(_ app: AICronjobInstalledApp) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "app.badge")
@@ -392,6 +429,60 @@ struct AICronjobEditView: View {
             itemProvider.registerObject(app.promptToken as NSString, visibility: .all)
             return itemProvider
         }
+    }
+
+    private func installedAppHintRow(_ app: AICronjobInstalledApp) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.displayName)
+                    .font(.caption.weight(.semibold))
+                Text(app.captureInstruction)
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Button("Insert Capture") {
+                insertPromptLine(app.captureInstruction)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+    }
+    
+    private func connectedAppHintRow(_ app: AICronjobConnectedApp) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.displayName)
+                    .font(.caption.weight(.semibold))
+                Text(app.captureInstruction)
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Button("Insert Capture") {
+                insertPromptLine(app.captureInstruction)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private var installedAppsPickerSheet: some View {
@@ -457,15 +548,19 @@ struct AICronjobEditView: View {
     private func insertInstalledAppToken(_ app: AICronjobInstalledApp) {
         attachInstalledApp(app)
 
+        insertPromptLine(app.promptToken)
+    }
+
+    private func insertPromptLine(_ line: String) {
         let trimmedPrompt = cronjob.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPrompt.contains(app.promptToken) else { return }
+        guard !trimmedPrompt.contains(line) else { return }
 
         if trimmedPrompt.isEmpty {
-            cronjob.prompt = app.promptToken
+            cronjob.prompt = line
         } else if cronjob.prompt.hasSuffix("\n") {
-            cronjob.prompt += "\(app.promptToken) "
+            cronjob.prompt += "\(line)"
         } else {
-            cronjob.prompt += "\n\(app.promptToken) "
+            cronjob.prompt += "\n\(line)"
         }
     }
 
