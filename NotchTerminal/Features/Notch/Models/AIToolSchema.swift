@@ -142,4 +142,23 @@ public extension AIToolSchema {
             )
         )
     }
+
+    static var notchTerminalTool: AIToolSchema {
+        AIToolSchema(
+            type: "function",
+            function: AIFunctionSchema(
+                name: "notch_terminal",
+                description: "Controls the internal NotchTerminal app terminal windows. Use this when the prompt mentions @notch-terminal.",
+                parameters: AIFunctionParametersSchema(
+                    type: "object",
+                    properties: [
+                        "action": AIPropertySchema(type: "string", description: "Supported actions: open_terminal, restore_all_windows, write_text"),
+                        "text": AIPropertySchema(type: "string", description: "Text to write into the terminal when action is write_text."),
+                        "submit": AIPropertySchema(type: "boolean", description: "If true, presses Enter after writing text.")
+                    ],
+                    required: ["action"]
+                )
+            )
+        )
+    }
 }

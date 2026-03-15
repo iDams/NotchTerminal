@@ -41,4 +41,21 @@ final class AICronjobTests: XCTestCase {
     func testArrayRawRepresentableRejectsInvalidJSON() {
         XCTAssertNil([AICronjob](rawValue: "not-json"))
     }
+
+    func testConnectedAppsRoundTripAndNormalizeDuplicates() {
+        var job = AICronjob()
+        job.connectedApps = [.notchTerminal, .notchTerminal]
+
+        XCTAssertEqual(job.normalizedConnectedApps, [.notchTerminal])
+
+        let jobs = [job]
+        let encoded = jobs.rawValue
+        let decoded = [AICronjob](rawValue: encoded)
+
+        XCTAssertEqual(decoded?.first?.connectedApps, [.notchTerminal])
+    }
+
+    func testConnectedAppPromptTokenIsStable() {
+        XCTAssertEqual(AICronjobConnectedApp.notchTerminal.promptToken, "@notch-terminal")
+    }
 }

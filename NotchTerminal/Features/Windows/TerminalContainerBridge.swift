@@ -44,6 +44,14 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     private var selectionAutoScrollDelta = 0
     private var lastSelectionDragEvent: NSEvent?
 
+    func injectText(_ text: String, submit: Bool) {
+        var bytes = Array(text.utf8)
+        if submit {
+            bytes.append(0x0A)
+        }
+        sendTerminalInput(bytes)
+    }
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
 

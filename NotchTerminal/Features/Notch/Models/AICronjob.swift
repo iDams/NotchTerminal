@@ -5,12 +5,47 @@ public enum AICronjobExecutionMode: String, Codable, Equatable {
     case machine
 }
 
+public enum AICronjobConnectedApp: String, Codable, Equatable, CaseIterable, Identifiable {
+    case notchTerminal
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .notchTerminal:
+            return "Notch Terminal"
+        }
+    }
+
+    public var systemImage: String {
+        switch self {
+        case .notchTerminal:
+            return "terminal"
+        }
+    }
+
+    public var promptToken: String {
+        switch self {
+        case .notchTerminal:
+            return "@notch-terminal"
+        }
+    }
+
+    public var shortDescription: String {
+        switch self {
+        case .notchTerminal:
+            return "Open or control a terminal window inside NotchTerminal."
+        }
+    }
+}
+
 public struct AICronjob: Codable, Identifiable, Equatable {
     public var id: UUID = UUID()
     public var name: String = "My AI Cronjob"
     public var detail: String = ""
     public var prompt: String = "Hello World"
     public var providerID: UUID? = nil
+    public var connectedApps: [AICronjobConnectedApp] = []
     public var usesDefaultAllowedCommands: Bool = true
     public var allowedCommands: [String] = []
 
@@ -29,6 +64,13 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         return daysSinceActivation > 3.0
     }
 
+    public var normalizedConnectedApps: [AICronjobConnectedApp] {
+        var seen = Set<String>()
+        return connectedApps.filter { app in
+            seen.insert(app.rawValue).inserted
+        }
+    }
+
     public init() {}
 
     enum CodingKeys: String, CodingKey {
@@ -37,6 +79,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         case detail
         case prompt
         case providerID
+        case connectedApps
         case usesDefaultAllowedCommands
         case allowedCommands
         case mode
@@ -55,6 +98,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         detail = try container.decodeIfPresent(String.self, forKey: .detail) ?? ""
         prompt = try container.decodeIfPresent(String.self, forKey: .prompt) ?? "Hello World"
         providerID = try container.decodeIfPresent(UUID.self, forKey: .providerID)
+        connectedApps = try container.decodeIfPresent([AICronjobConnectedApp].self, forKey: .connectedApps) ?? []
         usesDefaultAllowedCommands = try container.decodeIfPresent(Bool.self, forKey: .usesDefaultAllowedCommands) ?? true
         allowedCommands = try container.decodeIfPresent([String].self, forKey: .allowedCommands) ?? []
         mode = try container.decodeIfPresent(AICronjobExecutionMode.self, forKey: .mode) ?? .app
@@ -73,6 +117,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         try container.encode(detail, forKey: .detail)
         try container.encode(prompt, forKey: .prompt)
         try container.encodeIfPresent(providerID, forKey: .providerID)
+        try container.encode(normalizedConnectedApps, forKey: .connectedApps)
         try container.encode(usesDefaultAllowedCommands, forKey: .usesDefaultAllowedCommands)
         try container.encode(allowedCommands, forKey: .allowedCommands)
         try container.encode(mode, forKey: .mode)
@@ -90,6 +135,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         lhs.detail == rhs.detail &&
         lhs.prompt == rhs.prompt &&
         lhs.providerID == rhs.providerID &&
+        lhs.connectedApps == rhs.connectedApps &&
         lhs.usesDefaultAllowedCommands == rhs.usesDefaultAllowedCommands &&
         lhs.allowedCommands == rhs.allowedCommands &&
         lhs.mode == rhs.mode &&

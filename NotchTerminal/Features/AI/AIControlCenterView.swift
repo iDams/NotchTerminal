@@ -671,6 +671,7 @@ struct AIControlCenterView: View {
     private func saveEditingJob() {
         guard var safeJob = editingCronjob else { return }
         safeJob.allowedCommands = sanitizeCommands(safeJob.allowedCommands)
+        safeJob.connectedApps = safeJob.normalizedConnectedApps
         if safeJob.usesDefaultAllowedCommands {
             safeJob.allowedCommands = []
         }

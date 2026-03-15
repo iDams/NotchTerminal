@@ -1,4 +1,8 @@
+import Foundation
+import AppKit
 import SwiftUI
+
+private let notchTerminalConnectedAppTokenUTType = NSPasteboard.PasteboardType("com.notchterminal.connected-app-token")
 
 struct AICronjobEditView: View {
     @Binding var cronjob: AICronjob
@@ -14,6 +18,7 @@ struct AICronjobEditView: View {
 
     @State private var showCustomCron = false
     @State private var promptEditorHeight: CGFloat = 140
+    @State private var renderedPrompt = NSAttributedString(string: "")
     private let presetCrons = ["* * * * *", "*/5 * * * *", "*/15 * * * *", "*/30 * * * *", "0 * * * *", "0 */6 * * *", "0 */12 * * *", "0 0 * * *"]
 
     var body: some View {
@@ -93,6 +98,8 @@ struct AICronjobEditView: View {
                         .pickerStyle(.menu)
                     }
 
+                    connectedAppsSection
+
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .center, spacing: 10) {
                             Text("System Prompt")
@@ -116,8 +123,10 @@ struct AICronjobEditView: View {
 
                         CronjobPromptEditor(
                             text: $cronjob.prompt,
+                            attributedText: $renderedPrompt,
                             placeholder: "Describe what this job should do",
-                            dynamicHeight: $promptEditorHeight
+                            dynamicHeight: $promptEditorHeight,
+                            onInsertToken: insertConnectedAppToken
                         )
                         .frame(height: promptEditorHeight)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -175,6 +184,12 @@ struct AICronjobEditView: View {
             .padding()
         }
         .frame(minWidth: 500, minHeight: minimumHeight)
+        .onAppear {
+            renderedPrompt = PromptTokenRenderer.render(prompt: cronjob.prompt)
+        }
+        .onChange(of: cronjob.prompt) { _, newValue in
+            renderedPrompt = PromptTokenRenderer.render(prompt: newValue)
+        }
     }
 
     private var header: some View {
@@ -221,6 +236,89 @@ struct AICronjobEditView: View {
             : "Turn on debug logging only while setting up a job or investigating failures."
     }
 
+    private var connectedAppsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Connected Apps")
+                .font(.subheadline)
+
+            Text("Attach internal app tools to this job and drag their token into the prompt.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(alignment: .center, spacing: 10) {
+                ForEach(AICronjobConnectedApp.allCases) { app in
+                    connectedAppChip(app)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func connectedAppChip(_ app: AICronjobConnectedApp) -> some View {
+        let isAttached = cronjob.connectedApps.contains(app)
+
+        return HStack(spacing: 8) {
+            Image(systemName: app.systemImage)
+                .font(.system(size: 12, weight: .semibold))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(app.displayName)
+                    .font(.caption.weight(.semibold))
+                Text(app.promptToken)
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Button(isAttached ? "Insert" : "Attach") {
+                attachConnectedApp(app)
+                insertConnectedAppToken(app)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: 280, alignment: .leading)
+        .background(isAttached ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(isAttached ? Color.accentColor.opacity(0.35) : Color.primary.opacity(0.08), lineWidth: 1)
+        )
+        .help(app.shortDescription)
+        .onDrag {
+            let itemProvider = NSItemProvider()
+            itemProvider.registerDataRepresentation(forTypeIdentifier: notchTerminalConnectedAppTokenUTType.rawValue, visibility: .all) { completion in
+                completion(app.promptToken.data(using: .utf8), nil)
+                return nil
+            }
+            itemProvider.registerObject(app.promptToken as NSString, visibility: .all)
+            return itemProvider
+        }
+    }
+
+    private func attachConnectedApp(_ app: AICronjobConnectedApp) {
+        guard !cronjob.connectedApps.contains(app) else { return }
+        cronjob.connectedApps.append(app)
+    }
+
+    private func insertConnectedAppToken(_ app: AICronjobConnectedApp) {
+        attachConnectedApp(app)
+
+        let trimmedPrompt = cronjob.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPrompt.contains(app.promptToken) else { return }
+
+        if trimmedPrompt.isEmpty {
+            cronjob.prompt = app.promptToken
+        } else if cronjob.prompt.hasSuffix("\n") {
+            cronjob.prompt += "\(app.promptToken) "
+        } else {
+            cronjob.prompt += "\n\(app.promptToken) "
+        }
+    }
+
     private var providerSelectionBinding: Binding<String> {
         Binding(
             get: { cronjob.providerID?.uuidString ?? "" },
@@ -231,8 +329,10 @@ struct AICronjobEditView: View {
 
 private struct CronjobPromptEditor: NSViewRepresentable {
     @Binding var text: String
+    @Binding var attributedText: NSAttributedString
     let placeholder: String
     @Binding var dynamicHeight: CGFloat
+    let onInsertToken: (AICronjobConnectedApp) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -264,10 +364,14 @@ private struct CronjobPromptEditor: NSViewRepresentable {
         textView.autoresizingMask = [.width]
         textView.textContainerInset = NSSize(width: 12, height: 12)
         textView.placeholder = placeholder
-        textView.string = text
+        textView.baseTypingAttributes = PromptTokenRenderer.baseTypingAttributes()
+        textView.setRenderedPrompt(attributedText)
         textView.textContainer?.widthTracksTextView = true
         textView.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.lineFragmentPadding = 0
+        textView.connectedAppDropHandler = { app in
+            context.coordinator.parent.onInsertToken(app)
+        }
 
         scrollView.documentView = textView
         context.coordinator.recalculateHeight(for: textView)
@@ -279,9 +383,15 @@ private struct CronjobPromptEditor: NSViewRepresentable {
 
         context.coordinator.parent = self
         textView.placeholder = placeholder
+        textView.baseTypingAttributes = PromptTokenRenderer.baseTypingAttributes()
+        textView.connectedAppDropHandler = { app in
+            context.coordinator.parent.onInsertToken(app)
+        }
 
-        if textView.string != text {
-            textView.string = text
+        if textView.string != text || textView.textStorage?.isEqual(to: attributedText) == false {
+            let selectedRange = textView.selectedRange()
+            textView.setRenderedPrompt(attributedText)
+            textView.setSelectedRange(NSRange(location: min(selectedRange.location, textView.string.count), length: 0))
         }
 
         context.coordinator.recalculateHeight(for: textView)
@@ -295,10 +405,14 @@ private struct CronjobPromptEditor: NSViewRepresentable {
         }
 
         func textDidChange(_ notification: Notification) {
-            guard let textView = notification.object as? NSTextView else { return }
+            guard let textView = notification.object as? PromptTextView else { return }
             let newValue = textView.string
             if parent.text != newValue {
                 parent.text = newValue
+            }
+            let rendered = PromptTokenRenderer.render(prompt: newValue)
+            if parent.attributedText != rendered {
+                parent.attributedText = rendered
             }
             recalculateHeight(for: textView)
         }
@@ -321,12 +435,23 @@ private struct CronjobPromptEditor: NSViewRepresentable {
 }
 
 private final class PromptTextView: NSTextView {
+    var connectedAppDropHandler: ((AICronjobConnectedApp) -> Void)?
+    var baseTypingAttributes: [NSAttributedString.Key: Any] = PromptTokenRenderer.baseTypingAttributes() {
+        didSet {
+            typingAttributes = baseTypingAttributes
+        }
+    }
     var placeholder: String = "" {
         didSet { needsDisplay = true }
     }
 
     override var string: String {
         didSet { needsDisplay = true }
+    }
+
+    override func didChangeText() {
+        super.didChangeText()
+        typingAttributes = baseTypingAttributes
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -356,5 +481,79 @@ private final class PromptTextView: NSTextView {
         }
 
         super.keyDown(with: event)
+    }
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        readableConnectedApp(from: sender) == nil ? [] : .copy
+    }
+
+    override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        readableConnectedApp(from: sender) != nil
+    }
+
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        guard let app = readableConnectedApp(from: sender) else { return false }
+        connectedAppDropHandler?(app)
+        return true
+    }
+
+    private func readableConnectedApp(from draggingInfo: any NSDraggingInfo) -> AICronjobConnectedApp? {
+        let pasteboard = draggingInfo.draggingPasteboard
+
+        if let data = pasteboard.data(forType: notchTerminalConnectedAppTokenUTType),
+           let token = String(data: data, encoding: .utf8) {
+            return AICronjobConnectedApp.allCases.first(where: { $0.promptToken == token })
+        }
+
+        guard let items = pasteboard.readObjects(forClasses: [NSString.self]),
+              let token = items.first as? String else {
+            return nil
+        }
+
+        return AICronjobConnectedApp.allCases.first(where: { $0.promptToken == token })
+    }
+
+    func setRenderedPrompt(_ attributedText: NSAttributedString) {
+        textStorage?.setAttributedString(attributedText)
+        typingAttributes = baseTypingAttributes
+        needsDisplay = true
+    }
+}
+
+private enum PromptTokenRenderer {
+    static func render(prompt: String) -> NSAttributedString {
+        let result = NSMutableAttributedString(string: prompt, attributes: baseTypingAttributes())
+        let nsString = prompt as NSString
+
+        for app in AICronjobConnectedApp.allCases {
+            var searchRange = NSRange(location: 0, length: nsString.length)
+            while true {
+                let foundRange = nsString.range(of: app.promptToken, options: [], range: searchRange)
+                if foundRange.location == NSNotFound { break }
+
+                result.addAttributes(chipAttributes(), range: foundRange)
+
+                let nextLocation = foundRange.location + foundRange.length
+                guard nextLocation < nsString.length else { break }
+                searchRange = NSRange(location: nextLocation, length: nsString.length - nextLocation)
+            }
+        }
+
+        return result
+    }
+
+    static func baseTypingAttributes() -> [NSAttributedString.Key: Any] {
+        [
+            .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+            .foregroundColor: NSColor.labelColor
+        ]
+    }
+
+    private static func chipAttributes() -> [NSAttributedString.Key: Any] {
+        [
+            .font: NSFont.monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold),
+            .foregroundColor: NSColor.controlAccentColor,
+            .backgroundColor: NSColor.controlAccentColor.withAlphaComponent(0.14)
+        ]
     }
 }
