@@ -1,6 +1,6 @@
 # NotchTerminal
 
-NotchTerminal is a macOS app that puts a terminal workflow in the notch area.
+NotchTerminal is a macOS app that brings terminal workflows into the notch area.
 
 <p align="center">
   <img src="docs/logo.png" alt="NotchTerminal Logo" width="160" />
@@ -35,9 +35,9 @@ It combines:
 ### Terminal Windows
 - Open/close/minimize/maximize
 - Compact mode
-- Always-on-top toggle
+- Always on Top toggle
 - Dock-to-notch behavior when dragged near the notch
-- Drag and drop folders/files into terminal (inserts escaped path)
+- Drag and drop folders/files into the terminal (inserts escaped paths)
 
 ### Terminal Actions
 - Context menu includes:
@@ -56,8 +56,17 @@ It combines:
 
 ### Open Ports Panel
 - Lists listening TCP ports
-- Search/filter by dev/all
+- Search and filter by dev/all
 - Kill process by PID from the UI
+
+### Menu Bar Access
+- Menu bar status item with quick access to:
+  - `New Terminal`
+  - `Storage Analysis`
+  - `Show All Windows`
+  - `Settings`
+  - `Hide`
+  - `Quit`
 
 ### Storage Analysis
 - Opens from the menu bar status item
@@ -65,25 +74,26 @@ It combines:
 - Uses a single native macOS window with category sidebar, filters, search, and bulk cleanup actions
 - Warns when folders appear to still be in use before moving them to Trash
 
-### Session + Persistence
+### Session Persistence
 - Stores terminal sessions via SwiftData
-- Restores sessions on launch (work in progress)
+- Restores terminal sessions on launch, including display placement, docked state, sizing, compact mode, always-on-top state, maximize state, and recent project context
 
 ### NotchAgent (Experimental)
-- Dedicated `AI Control Center` window for managing providers and agent jobs
-- Scheduled AI cronjobs that run prompts on a timer or via macOS `launchd`
+- Dedicated `AI Control Center` window for managing providers, jobs, logs, permissions, and prompt workflows
+- Scheduled AI jobs that run prompts on a timer or through macOS `launchd`
 - Two execution modes:
   - **App Timer**: runs while NotchTerminal is open
-  - **Machine Daemon**: runs via native macOS `launchd`, even when the app is closed
+  - **Machine Daemon**: installs a macOS `LaunchAgent` and runs via `launchd` even when the app is closed
 - Global active provider plus optional provider override per job
 - Provider API keys stored in macOS Keychain
 - Built-in provider presets for OpenAI, Z.ai, OpenRouter, Gemini, Anthropic, MiniMax, Groq, DeepSeek, Qwen, Cerebras, LM Studio, Ollama, and custom OpenAI-compatible endpoints
-- User-friendly interval picker (1min-daily) or advanced custom cron expression
+- Z.ai supports both **Standard** and **Coding Plan** modes with different default endpoints/models
+- User-friendly interval picker (`1min` to `daily`) or advanced custom cron expression
 - Per-job command permissions / whitelist for local command tools
 - Job logs with recent execution history, rerun actions, and prompt improvement tools
 - Results displayed in the Notch overlay (if app is open) and/or macOS Notification Center
-- Provider connection testing and model selection from the workspace UI
-- **Connected Apps**: attach internal Notch Terminal or installed macOS apps to jobs
+- Provider connection testing, model fetching, and model selection from the AI workspace
+- **Connected Apps**: attach the built-in terminal or installed macOS apps to jobs
   - Drag & drop app tokens into prompts (`@notch-terminal`, `@app:com.apple.Safari`)
   - Visual prompt helpers for common actions like "Capture the app window"
   - Automated macOS app control (open, activate, type text, press keys)
@@ -143,6 +153,19 @@ Why this exists:
 - A stable app path makes permission prompts and stored approvals much more predictable
 - This keeps the development loop inside Xcode while avoiding manual copy steps
 
+## Permissions
+
+NotchTerminal can request these macOS permissions depending on enabled features:
+
+- `Notifications`
+  - Used for AI job results and alerts
+- `Accessibility`
+  - Required for automating installed macOS apps and typing/keypress actions
+- `Screen Recording`
+  - Required for app window capture and AI visual verification
+
+The app includes an initial permission onboarding flow and a permissions section in Settings to review or request access later.
+
 ## Settings Overview
 
 - `General`
@@ -152,6 +175,7 @@ Why this exists:
   - Show Experimental tab
   - Hover/open behavior and delay
   - Keep open while typing
+  - Permissions status and request actions for Notifications, Accessibility, and Screen Recording
   - Chip close button on hover
   - Close confirmation behavior
   - Close action mode (`Close window only` / `Terminate process and close`)
@@ -174,23 +198,25 @@ Why this exists:
   - CRT Filter
   - Hit-test debug overlay
   - Extra notch geometry offsets for physical-notch displays
-- `NotchAgent`
-  - Experimental AI workspace for provider management and scheduled agent jobs
-  - Dedicated `AI Control Center` window opened from the notch overlay
-  - Global provider selection with optional per-job provider override
-  - Provider API keys stored in Keychain
-  - Cronjob list with enable/disable, test, edit, delete, logs, and prompt improvement
-  - Per-job execution mode (App Timer or Machine Daemon)
-  - Interval picker or advanced cron expression
-  - Job-level command permissions / whitelist for local command execution
+
+## AI Control Center
+
+- Experimental AI workspace opened from the notch overlay
+- Provider management with Keychain-backed API keys
+- Global default provider plus optional per-job override
+- Job editor with scheduling, permissions, connected apps, installed apps, and prompt helpers
+- App Timer and Machine Daemon execution modes
+- Job logs, rerun actions, and prompt improvement
+- Connection testing and model discovery for compatible providers
 
 ## Project Structure
 
 - `NotchTerminal/App` app lifecycle
-- `NotchTerminal/Features/Notch` overlay + notch UI
+- `NotchTerminal/Features/Notch` overlay UI, interactions, notch actions, and AI entry points
+- `NotchTerminal/Features/AI` AI Control Center, app automation, permissions, and connected-app workflows
 - `NotchTerminal/Features/Storage` storage scanning, cleanup actions, and overview UI
-- `NotchTerminal/Features/Windows` floating window manager + terminal integration
-- `NotchTerminal/Features/Persistence` SwiftData models
+- `NotchTerminal/Features/Windows` floating window manager, terminal integration, ports UI, and session/window logic
+- `NotchTerminal/Features/Persistence` SwiftData models and session restore helpers
 - `NotchTerminal/Rendering/Metal` Metal shaders/renderers
 - `NotchTerminal/Settings` settings screens
 - `NotchTerminal/Services` helpers/services
