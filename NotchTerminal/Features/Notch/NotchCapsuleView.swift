@@ -15,6 +15,7 @@ struct NotchCapsuleView: View {
     let closeAllWindows: () -> Void
     let closeAllWindowsOnDisplay: () -> Void
     let requestCloseAllConfirmation: (CGDirectDisplayID) -> Void
+    let openAIControlCenter: () -> Void
     let openSettings: () -> Void
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
@@ -93,6 +94,7 @@ struct NotchCapsuleView: View {
         closeAllWindows: @escaping () -> Void = {},
         closeAllWindowsOnDisplay: @escaping () -> Void = {},
         requestCloseAllConfirmation: @escaping (CGDirectDisplayID) -> Void = { _ in },
+        openAIControlCenter: @escaping () -> Void = {},
         openSettings: @escaping () -> Void = {}
     ) {
         self.openBlackWindow = openBlackWindow
@@ -107,6 +109,7 @@ struct NotchCapsuleView: View {
         self.closeAllWindows = closeAllWindows
         self.closeAllWindowsOnDisplay = closeAllWindowsOnDisplay
         self.requestCloseAllConfirmation = requestCloseAllConfirmation
+        self.openAIControlCenter = openAIControlCenter
         self.openSettings = openSettings
     }
 
@@ -643,14 +646,29 @@ struct NotchCapsuleView: View {
     @ViewBuilder
     private var topTrailingControls: some View {
         if model.isExpanded && showExpandedControls {
-            Button(action: openSettingsWindow) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.8))
-                    .padding(8)
-                    .contentShape(Circle())
+            HStack(spacing: 6) {
+                if experimentalFloatingMsgEnabled {
+                    Button(action: openAIControlCenter) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .padding(8)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Open AI Control Center")
+                }
+
+                Button(action: openSettingsWindow) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .padding(8)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Open Settings")
             }
-            .buttonStyle(.plain)
             .padding(.trailing, 16)
             .padding(.top, topControlsPaddingTop + 4)
             .transition(.opacity)

@@ -11,6 +11,7 @@ public final class AICronjobManager: ObservableObject {
     @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) private var experimentalAICronjobsData = AppPreferences.Defaults.experimentalAICronjobsData
     @AppStorage(AppPreferences.Keys.aiProvidersData) private var aiProvidersList = AppPreferences.Defaults.aiProvidersData
     @AppStorage(AppPreferences.Keys.activeAIProviderID) private var activeAIProviderIDString: String = ""
+    @AppStorage(AppPreferences.Keys.aiCronjobLogsData) private var aiCronjobLogsData = AppPreferences.Defaults.aiCronjobLogsData
     
     private var activeAIProviderID: UUID? {
         get { UUID(uuidString: activeAIProviderIDString) }
@@ -42,6 +43,7 @@ public final class AICronjobManager: ObservableObject {
         )
             
         // Initial setup
+        aiCronjobLogsData.pruneAll()
         syncCronjobs()
     }
     
@@ -158,7 +160,7 @@ public final class AICronjobManager: ObservableObject {
             return
         }
         
-        let executablePath = Bundle.main.executablePath ?? "/Applications/NotchTerminal.app/Contents/MacOS/NotchTerminal"
+        let executablePath = resolvedBackgroundExecutablePath()
         let plistURL = launchAgentURL(for: job.id)
         let label = "com.notchterminal.cronjob.\(job.id.uuidString)"
         let uid = getuid()
@@ -202,6 +204,17 @@ public final class AICronjobManager: ObservableObject {
         } catch {
             print("❌ Failed to create or load LaunchAgent: \(error)")
         }
+    }
+
+    private func resolvedBackgroundExecutablePath() -> String {
+        let bundledPath = Bundle.main.executablePath ?? ""
+        let installedPath = "/Applications/NotchTerminal.app/Contents/MacOS/NotchTerminal"
+
+        if FileManager.default.isExecutableFile(atPath: installedPath) {
+            return installedPath
+        }
+
+        return bundledPath.isEmpty ? installedPath : bundledPath
     }
     
     private func removeLaunchAgent(for id: UUID) {
@@ -267,13 +280,134 @@ public final class AICronjobManager: ObservableObject {
     }
     
     private func broadcastMessage(_ text: String) {
-        broadcastMessage(text, job: nil, isBackground: false)
+        NotificationCenter.default.post(name: AICronjobManager.newMessageNotification, object: nil, userInfo: ["text": text])
     }
     
     public func triggerTest(for job: AICronjob) {
         Task {
             await fetchAIResponse(for: job)
         }
+    }
+
+    public func improvePrompt(_ prompt: String, jobName: String? = nil) async throws -> String {
+        let (provider, apiKey, customURL, model) = activeProviderConfig
+        guard !apiKey.isEmpty else {
+            throw CommandExecutionError.executionFailed("Active provider is missing an API key.")
+        }
+
+        let systemPrompt = "You improve prompts for a macOS automation agent. Rewrite the prompt to be clearer, more precise, and more actionable while preserving the original goal. Return only the improved prompt text."
+        let trimmedName = jobName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let userPrompt = trimmedName.isEmpty ? prompt : "Job name: \(trimmedName)\n\nOriginal prompt:\n\(prompt)"
+
+        return try await Self.requestTextCompletion(
+            systemPrompt: systemPrompt,
+            userPrompt: userPrompt,
+            provider: provider,
+            apiKey: apiKey,
+            customURL: customURL,
+            model: model
+        )
+    }
+
+    public func analyzeLogs(
+        for job: AICronjob,
+        entries: [AICronjobLogEntry],
+        question: String? = nil,
+        conversationHistory: [String] = []
+    ) async throws -> String {
+        let (provider, apiKey, customURL, model) = activeProviderConfig
+        guard !apiKey.isEmpty else {
+            throw CommandExecutionError.executionFailed("Active provider is missing an API key.")
+        }
+
+        let recentEntries = entries
+            .sorted { $0.timestamp > $1.timestamp }
+            .prefix(80)
+            .map { entry in
+                let level = entry.level.rawValue.uppercased()
+                let timestamp = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: entry.timestamp))
+                return "[\(level)] \(timestamp)\n\(entry.message)"
+            }
+            .joined(separator: "\n\n")
+
+        let permissions = job.usesDefaultAllowedCommands
+            ? "Uses default permissions"
+            : job.allowedCommands.joined(separator: ", ")
+
+        let systemPrompt = "You are an expert macOS automation diagnostics assistant for the NotchTerminal app. Review one job run log, identify the most likely problem, explain the root cause briefly, and suggest concrete fixes. Keep the answer concise, structured, and practical. Prefer a short diagnosis followed by a short list of possible solutions. Mention security whitelist issues, provider/API failures, bad prompts, or scheduling mistakes when relevant."
+
+        let requestedQuestion = question?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let historyText = conversationHistory.joined(separator: "\n\n")
+
+        let userPrompt = """
+        App: NotchTerminal
+        Job name: \(job.name)
+        Job detail: \(job.detail.isEmpty ? "None" : job.detail)
+        Mode: \(job.mode.rawValue)
+        Prompt:
+        \(job.prompt)
+
+        Permissions:
+        \(permissions)
+
+        User question:
+        \(requestedQuestion?.isEmpty == false ? requestedQuestion! : "What is the problem in these logs and what are the best fixes?")
+
+        Conversation history:
+        \(historyText.isEmpty ? "None" : historyText)
+
+        Recent logs:
+        \(recentEntries.isEmpty ? "No logs available." : recentEntries)
+        """
+
+        return try await Self.requestTextCompletion(
+            systemPrompt: systemPrompt,
+            userPrompt: userPrompt,
+            provider: provider,
+            apiKey: apiKey,
+            customURL: customURL,
+            model: model
+        )
+    }
+
+    public static func testProviderConnection(
+        providerType: AIProviderType,
+        apiKey: String,
+        baseURL: String,
+        model: String
+    ) async throws -> String {
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if providerType.requiresAPIKey && trimmedKey.isEmpty {
+            throw CommandExecutionError.executionFailed("This provider requires an API key.")
+        }
+
+        if trimmedURL.isEmpty {
+            throw CommandExecutionError.executionFailed("Base URL is empty.")
+        }
+
+        if trimmedModel.isEmpty {
+            throw CommandExecutionError.executionFailed("Model is empty.")
+        }
+
+        _ = try await requestTextCompletion(
+            systemPrompt: "You are a connectivity probe for NotchTerminal. Reply with exactly: Connection OK",
+            userPrompt: "Test the configured provider and return Connection OK if the request works.",
+            provider: providerType.rawValue,
+            apiKey: trimmedKey,
+            customURL: trimmedURL,
+            model: trimmedModel
+        )
+
+        return "Connection OK"
+    }
+
+    public func clearLogs(for jobID: UUID) {
+        var store = aiCronjobLogsData
+        store.clear(jobID: jobID)
+        aiCronjobLogsData = store
     }
 
     // MARK: - Standalone Background Execution (called by launchd, no singleton init)
@@ -295,7 +429,8 @@ public final class AICronjobManager: ObservableObject {
             return
         }
         
-        let (provider, apiKey, customURL, model) = getActiveProviderConfig(from: defaults)
+        let (provider, apiKey, customURL, model, providerInstructions) = resolvedProviderConfig(for: job, from: defaults)
+        let allowedCommands = allowedCommands(for: job, defaults: defaults)
         
         await runAgentLoop(
             job: job,
@@ -303,7 +438,12 @@ public final class AICronjobManager: ObservableObject {
             apiKey: apiKey,
             customURL: customURL,
             model: model,
-            isBackground: true
+            providerInstructions: providerInstructions,
+            allowedCommands: allowedCommands,
+            isBackground: true,
+            log: { level, message, debugOnly in
+                appendLog(level: level, message: message, for: job, defaults: defaults, debugOnly: debugOnly)
+            }
         ) { text, jobRef, isBg in
             Task {
                 await sendBackgroundNotification(title: "NotchAgent: \(jobRef?.name ?? "Unknown")", body: text)
@@ -313,8 +453,7 @@ public final class AICronjobManager: ObservableObject {
     
     private static func getActiveProviderConfig(from defaults: UserDefaults) -> (provider: String, apiKey: String, customURL: String, model: String) {
         if let providersRaw = defaults.string(forKey: AppPreferences.Keys.aiProvidersData),
-           let providersData = providersRaw.data(using: .utf8),
-           let providersList = try? JSONDecoder().decode(AIProviderList.self, from: providersData),
+           let providersList = AIProviderList(rawValue: providersRaw),
            let activeIDString = defaults.string(forKey: AppPreferences.Keys.activeAIProviderID),
            let activeID = UUID(uuidString: activeIDString),
            let activeProvider = providersList.providers.first(where: { $0.id == activeID && $0.isEnabled }) {
@@ -329,6 +468,45 @@ public final class AICronjobManager: ObservableObject {
         }
         
         return ("openai", "", "https://api.openai.com/v1", "gpt-4o-mini")
+    }
+
+    private static func resolvedProviderConfig(
+        for job: AICronjob,
+        from defaults: UserDefaults
+    ) -> (provider: String, apiKey: String, customURL: String, model: String, providerInstructions: String) {
+        guard let providersRaw = defaults.string(forKey: AppPreferences.Keys.aiProvidersData),
+              let providersList = AIProviderList(rawValue: providersRaw) else {
+            let fallback = getActiveProviderConfig(from: defaults)
+            return (fallback.provider, fallback.apiKey, fallback.customURL, fallback.model, "")
+        }
+
+        if let providerID = job.providerID,
+           let provider = providersList.providers.first(where: { $0.id == providerID && $0.isEnabled }) {
+            let apiKey = KeychainService.getAPIKey(for: provider.id) ?? ""
+            return (
+                provider.type.rawValue,
+                apiKey,
+                provider.effectiveBaseURL,
+                provider.effectiveModel,
+                provider.instructions
+            )
+        }
+
+        if let activeIDString = defaults.string(forKey: AppPreferences.Keys.activeAIProviderID),
+           let activeID = UUID(uuidString: activeIDString),
+           let activeProvider = providersList.providers.first(where: { $0.id == activeID && $0.isEnabled }) {
+            let apiKey = KeychainService.getAPIKey(for: activeProvider.id) ?? ""
+            return (
+                activeProvider.type.rawValue,
+                apiKey,
+                activeProvider.effectiveBaseURL,
+                activeProvider.effectiveModel,
+                activeProvider.instructions
+            )
+        }
+
+        let fallback = getActiveProviderConfig(from: defaults)
+        return (fallback.provider, fallback.apiKey, fallback.customURL, fallback.model, "")
     }
     
     private static func sendBackgroundNotification(title: String, body: String) async {
@@ -357,15 +535,21 @@ public final class AICronjobManager: ObservableObject {
     }
 
     private func fetchAIResponse(for job: AICronjob, isBackground: Bool = false) async {
-        let (provider, apiKey, customURL, model) = activeProviderConfig
+        let resolvedProvider = resolvedProviderConfig(for: job)
+        let allowedCommands = effectiveAllowedCommands(for: job)
         
         await Self.runAgentLoop(
             job: job,
-            provider: provider,
-            apiKey: apiKey,
-            customURL: customURL,
-            model: model,
-            isBackground: isBackground
+            provider: resolvedProvider.provider,
+            apiKey: resolvedProvider.apiKey,
+            customURL: resolvedProvider.customURL,
+            model: resolvedProvider.model,
+            providerInstructions: resolvedProvider.providerInstructions,
+            allowedCommands: allowedCommands,
+            isBackground: isBackground,
+            log: { [weak self] level, message, debugOnly in
+                self?.recordLog(level: level, message: message, for: job, debugOnly: debugOnly)
+            }
         ) { [weak self] text, jobRef, isBg in
             self?.broadcastMessage(text, job: jobRef, isBackground: isBg)
         }
@@ -385,6 +569,44 @@ public final class AICronjobManager: ObservableObject {
             provider.effectiveModel
         )
     }
+
+    private var activeProviderInstructions: String {
+        guard let activeID = activeAIProviderID,
+              let provider = aiProvidersList.providers.first(where: { $0.id == activeID && $0.isEnabled }) else {
+            return ""
+        }
+
+        return provider.instructions
+    }
+
+    private static func activeProviderInstructions(from defaults: UserDefaults) -> String {
+        guard let providersRaw = defaults.string(forKey: AppPreferences.Keys.aiProvidersData),
+              let providersList = AIProviderList(rawValue: providersRaw),
+              let activeIDString = defaults.string(forKey: AppPreferences.Keys.activeAIProviderID),
+              let activeID = UUID(uuidString: activeIDString),
+              let activeProvider = providersList.providers.first(where: { $0.id == activeID && $0.isEnabled }) else {
+            return ""
+        }
+
+        return activeProvider.instructions
+    }
+
+    private func resolvedProviderConfig(for job: AICronjob) -> (provider: String, apiKey: String, customURL: String, model: String, providerInstructions: String) {
+        if let providerID = job.providerID,
+           let provider = aiProvidersList.providers.first(where: { $0.id == providerID && $0.isEnabled }) {
+            let apiKey = KeychainService.getAPIKey(for: provider.id) ?? ""
+            return (
+                provider.type.rawValue,
+                apiKey,
+                provider.effectiveBaseURL,
+                provider.effectiveModel,
+                provider.instructions
+            )
+        }
+
+        let active = activeProviderConfig
+        return (active.provider, active.apiKey, active.customURL, active.model, activeProviderInstructions)
+    }
     
     // MARK: - Core Multi-Turn Agent Loop
     
@@ -394,10 +616,14 @@ public final class AICronjobManager: ObservableObject {
         apiKey: String,
         customURL: String,
         model: String,
+        providerInstructions: String,
+        allowedCommands: Set<String>,
         isBackground: Bool,
+        log: @escaping (AICronjobLogLevel, String, Bool) -> Void,
         broadcast: @escaping (String, AICronjob?, Bool) -> Void
     ) async {
         guard !apiKey.isEmpty else {
+            log(.error, "API key missing for active provider.", false)
             broadcast("API Key Missing", job, isBackground)
             return
         }
@@ -406,21 +632,27 @@ public final class AICronjobManager: ObservableObject {
         
         let safeURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard let url = URL(string: "\(safeURL)/chat/completions") else { 
+            log(.error, "Invalid provider URL: \(safeURL)", false)
             broadcast("Invalid URL", job, isBackground)
             return 
         }
-        
-        var messages: [AIChatMessage] = [
-            AIChatMessage(role: "system", content: "You are a helpful assistant integrated into a macOS Notch widget. Keep your answers extremely short, ideally 1 sentence or a few words. If the user asks about the state of their system, dockers, files, or processes, ALWAYS use the 'run_local_command' tool to fetch the real data. NEVER guess or output raw bash code in your response message."),
-            AIChatMessage(role: "user", content: job.prompt)
-        ]
         
         let providerType = AIProviderType(rawValue: provider) ?? .custom
         let finalModel = provider == "openrouter" ? "openrouter/free" : model
         let responseTokenLimit = providerType.defaultResponseTokenLimit
         let usesOpenAICompletionsTokenField = provider == AIProviderType.openai.rawValue && finalModel.lowercased().hasPrefix("gpt-5")
-        let maxTurns = 5
+        let requestTimeout: TimeInterval = providerType == .minimax ? 90 : 45
+        let systemPrompt = mergedSystemPrompt(for: providerType, providerInstructions: providerInstructions)
+
+        var messages: [AIChatMessage] = [
+            AIChatMessage(role: "system", content: systemPrompt),
+            AIChatMessage(role: "user", content: job.prompt)
+        ]
+        let maxTurns = 4
         var currentTurn = 0
+        var sawToolFailure = false
+        var attemptedCommands = Set<String>()
+        log(.info, "Starting run with model \(finalModel).", false)
         
         while currentTurn < maxTurns {
             currentTurn += 1
@@ -440,6 +672,7 @@ public final class AICronjobManager: ObservableObject {
             
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
+            request.timeoutInterval = requestTimeout
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             if provider == "openrouter" {
@@ -449,6 +682,7 @@ public final class AICronjobManager: ObservableObject {
             
             let encoder = JSONEncoder()
             guard let httpBody = try? encoder.encode(requestObj) else {
+                log(.error, "Failed to encode request body.", false)
                 broadcast("Failed to encode request", job, isBackground)
                 return
             }
@@ -458,6 +692,7 @@ public final class AICronjobManager: ObservableObject {
                 if currentTurn == 1 {
                     print("🚀 [Agent] Sending request for job: '\(job.name)' using model: \(finalModel)")
                 }
+                log(.debug, "Sending request turn \(currentTurn).", true)
                 
                 let (data, response) = try await URLSession.shared.data(for: request)
                 
@@ -468,6 +703,7 @@ public final class AICronjobManager: ObservableObject {
                        let msg = errorObj["message"] as? String {
                         errMsg = msg
                     }
+                    log(.error, "API error: \(errMsg)", false)
                     broadcast("API Error: \(errMsg)", job, isBackground)
                     return
                 }
@@ -475,6 +711,7 @@ public final class AICronjobManager: ObservableObject {
                 let decoder = JSONDecoder()
                 let aiResponse = try decoder.decode(AIChatResponse.self, from: data)
                 guard let firstChoice = aiResponse.choices.first else {
+                    log(.error, "Provider returned no choices.", false)
                     broadcast("Empty choices in response", job, isBackground)
                     return
                 }
@@ -485,6 +722,7 @@ public final class AICronjobManager: ObservableObject {
                 // If Tool Calls requested
                 if let toolCalls = message.toolCalls, !toolCalls.isEmpty {
                     messages.append(message)
+                    log(.debug, "Provider requested \(toolCalls.count) tool call(s).", true)
                     
                     for toolCall in toolCalls {
                         print("🤖 [Agent] Tool call requested: \(toolCall.function.name)")
@@ -495,36 +733,79 @@ public final class AICronjobManager: ObservableObject {
                                let argsJSON = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any],
                                let command = argsJSON["command"] as? String {
                                 
-                                print("⚙️ [Agent] Executing local command: \(command)")
-                                do {
-                                    toolOutput = try await LocalCommandExecutor.runSilentCommand(query: command)
-                                    print("✅ [Agent] Command success. Output length: \(toolOutput.count)")
-                                } catch {
-                                    toolOutput = "Error executing command: \(error.localizedDescription)"
-                                    print("❌ [Agent] Command failed: \(error.localizedDescription)")
+                                if attemptedCommands.contains(command) {
+                                    toolOutput = "Error executing command: Duplicate command attempt blocked to avoid loops. Previous attempt already used '\(command)'. Provide a final answer based on the available evidence."
+                                    sawToolFailure = true
+                                    log(.warning, "Blocked repeated command attempt: \(command)", false)
+                                } else {
+                                    attemptedCommands.insert(command)
+                                    print("⚙️ [Agent] Executing local command: \(command)")
+                                    log(.debug, "Running command: \(command)", true)
+                                    do {
+                                        toolOutput = try await LocalCommandExecutor.runSilentCommand(query: command, allowedCommands: allowedCommands)
+                                        print("✅ [Agent] Command success. Output length: \(toolOutput.count)")
+                                        log(.debug, "Command completed successfully.", true)
+                                    } catch {
+                                        sawToolFailure = true
+                                        toolOutput = "Error executing command: \(error.localizedDescription). Stop using more tools unless a clearly different command is necessary. Give the user a short final answer that explains the failure and the best fix."
+                                        print("❌ [Agent] Command failed: \(error.localizedDescription)")
+                                        log(.error, "Command failed: \(error.localizedDescription)", false)
+                                    }
                                 }
                             } else {
                                 toolOutput = "Error: Invalid JSON arguments generated by AI"
+                                sawToolFailure = true
+                                log(.error, "Provider returned invalid tool arguments.", false)
                             }
                         } else {
                             toolOutput = "Error: Unknown tool \(toolCall.function.name)"
+                            sawToolFailure = true
+                            log(.error, "Unknown tool requested: \(toolCall.function.name)", false)
                         }
                         
                         messages.append(AIChatMessage(role: "tool", content: toolOutput, toolCallId: toolCall.id))
                     }
+
+                    if currentTurn >= maxTurns {
+                        do {
+                            let forcedAnswer = try await requestForcedFinalAnswer(
+                                url: url,
+                                provider: provider,
+                                apiKey: apiKey,
+                                finalModel: finalModel,
+                                responseTokenLimit: responseTokenLimit,
+                                requestTimeout: requestTimeout,
+                                messages: messages,
+                                sawToolFailure: sawToolFailure
+                            )
+                            if !forcedAnswer.isEmpty {
+                                log(.success, "Run finished with a forced final answer.", false)
+                                broadcast(forcedAnswer, job, isBackground)
+                                return
+                            }
+                        } catch {
+                            log(.warning, "Forced final answer failed: \(error.localizedDescription)", false)
+                        }
+                    }
+
                     continue
                 }
                 
                 // Final answer
-                let cleanContent = (message.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanContent = sanitizedFinalResponse(
+                    content: message.content ?? "",
+                    reasoningContent: message.reasoningContent
+                )
                 print("✅ [Agent] Final Message: \(cleanContent)")
 
                 if !cleanContent.isEmpty {
+                    log(.success, "Run finished with a final answer.", false)
                     broadcast(cleanContent, job, isBackground)
                     return
                 }
 
                 if finishReason == "length" {
+                    log(.warning, "Response hit token limit \(responseTokenLimit).", false)
                     broadcast("Response hit token limit (\(responseTokenLimit)). Try a shorter prompt or command output.", job, isBackground)
                     return
                 }
@@ -534,31 +815,200 @@ public final class AICronjobManager: ObservableObject {
                     messages.append(
                         AIChatMessage(
                             role: "user",
-                            content: "Reply now with a short final answer only. Do not call tools unless strictly necessary."
+                            content: sawToolFailure
+                                ? "Reply now with a short final answer only. Do not call more tools unless a completely different command is essential. Explain the failure and the best next step."
+                                : "Reply now with a short final answer only. Do not call tools unless strictly necessary."
                         )
                     )
                     continue
                 }
 
-                let reasoningFallback = (message.reasoningContent ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let reasoningFallback = sanitizedFinalResponse(content: "", reasoningContent: message.reasoningContent)
+                log(.warning, reasoningFallback.isEmpty ? "Provider returned no final text." : "Using reasoning fallback as final answer.", false)
                 broadcast(reasoningFallback.isEmpty ? "Provider returned no final text." : reasoningFallback, job, isBackground)
                 return
                 
             } catch {
+                log(.error, "Request failed: \(error.localizedDescription)", false)
                 broadcast("Request Failed: \(error.localizedDescription)", job, isBackground)
                 print("❌ [Agent] Error: \(error.localizedDescription)")
                 return
             }
         }
         
+        log(.warning, "Agent reached max turns without a final answer.", false)
         broadcast("Agent reached max turns without a final answer.", job, isBackground)
+    }
+
+    private static func requestForcedFinalAnswer(
+        url: URL,
+        provider: String,
+        apiKey: String,
+        finalModel: String,
+        responseTokenLimit: Int,
+        requestTimeout: TimeInterval,
+        messages: [AIChatMessage],
+        sawToolFailure: Bool
+    ) async throws -> String {
+        let providerType = AIProviderType(rawValue: provider) ?? .custom
+        let usesOpenAICompletionsTokenField = provider == AIProviderType.openai.rawValue && finalModel.lowercased().hasPrefix("gpt-5")
+
+        var forcedMessages = messages
+        forcedMessages.append(
+            AIChatMessage(
+                role: "user",
+                content: sawToolFailure
+                    ? "Stop calling tools. Write the final answer now using the command results and failures already collected. Mention blocked commands or offline services clearly."
+                    : "Stop calling tools. Write the final answer now using the command results already collected."
+            )
+        )
+
+        var requestObject = AIChatRequest(
+            model: finalModel,
+            messages: forcedMessages,
+            tools: nil,
+            toolChoice: "none",
+            maxTokens: usesOpenAICompletionsTokenField ? nil : responseTokenLimit,
+            maxCompletionTokens: usesOpenAICompletionsTokenField ? responseTokenLimit : nil
+        )
+
+        if provider == AIProviderType.openrouter.rawValue {
+            requestObject.reasoning = AIReasoningSchema(enabled: true)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = requestTimeout
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if provider == AIProviderType.openrouter.rawValue {
+            request.setValue("https://notchterminal.imarcodev.com", forHTTPHeaderField: "HTTP-Referer")
+            request.setValue("NotchTerminal", forHTTPHeaderField: "X-Title")
+        }
+        request.httpBody = try JSONEncoder().encode(requestObject)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+            throw CommandExecutionError.executionFailed("HTTP Error \(httpResponse.statusCode)")
+        }
+
+        let aiResponse = try JSONDecoder().decode(AIChatResponse.self, from: data)
+        let message = aiResponse.choices.first?.message
+        return sanitizedFinalResponse(content: message?.content ?? "", reasoningContent: message?.reasoningContent)
+    }
+
+    private func effectiveAllowedCommands(for job: AICronjob) -> Set<String> {
+        Self.allowedCommands(for: job, defaults: .standard)
+    }
+
+    private static func allowedCommands(for job: AICronjob, defaults: UserDefaults) -> Set<String> {
+        if job.usesDefaultAllowedCommands {
+            return defaultAllowedCommands(from: defaults)
+        }
+
+        let commands = job.allowedCommands
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return Set(commands)
+    }
+
+    private static func defaultAllowedCommands(from defaults: UserDefaults) -> Set<String> {
+        let rawList = defaults.string(forKey: AppPreferences.Keys.experimentalAIAgentWhitelist) ?? AppPreferences.Defaults.experimentalAIAgentWhitelist
+        let commands = rawList.components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return Set(commands)
+    }
+
+    private func recordLog(level: AICronjobLogLevel, message: String, for job: AICronjob, debugOnly: Bool) {
+        guard !debugOnly || job.debugLoggingEnabled else { return }
+
+        var store = aiCronjobLogsData
+        store.append(AICronjobLogEntry(level: level, message: message), for: job.id)
+        aiCronjobLogsData = store
+    }
+
+    private static func appendLog(level: AICronjobLogLevel, message: String, for job: AICronjob, defaults: UserDefaults, debugOnly: Bool) {
+        guard !debugOnly || job.debugLoggingEnabled else { return }
+
+        let key = AppPreferences.Keys.aiCronjobLogsData
+        var store = defaults.string(forKey: key).flatMap(AICronjobLogStore.init(rawValue:)) ?? AICronjobLogStore()
+        store.append(AICronjobLogEntry(level: level, message: message), for: job.id)
+        defaults.set(store.rawValue, forKey: key)
+    }
+
+    private static func requestTextCompletion(
+        systemPrompt: String,
+        userPrompt: String,
+        provider: String,
+        apiKey: String,
+        customURL: String,
+        model: String
+    ) async throws -> String {
+        let safeURL = customURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let url = URL(string: "\(safeURL)/chat/completions") else {
+            throw CommandExecutionError.executionFailed("Invalid provider URL.")
+        }
+
+        let providerType = AIProviderType(rawValue: provider) ?? .custom
+        let finalModel = provider == AIProviderType.openrouter.rawValue ? "openrouter/free" : model
+        let usesOpenAICompletionsTokenField = provider == AIProviderType.openai.rawValue && finalModel.lowercased().hasPrefix("gpt-5")
+        let requestTimeout: TimeInterval = providerType == .minimax ? 90 : 45
+
+        var requestObject = AIChatRequest(
+            model: finalModel,
+            messages: [
+                AIChatMessage(role: "system", content: systemPrompt),
+                AIChatMessage(role: "user", content: userPrompt)
+            ],
+            toolChoice: "none",
+            maxTokens: usesOpenAICompletionsTokenField ? nil : providerType.defaultResponseTokenLimit,
+            maxCompletionTokens: usesOpenAICompletionsTokenField ? providerType.defaultResponseTokenLimit : nil
+        )
+
+        if provider == AIProviderType.openrouter.rawValue {
+            requestObject.reasoning = AIReasoningSchema(enabled: true)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = requestTimeout
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if provider == AIProviderType.openrouter.rawValue {
+            request.setValue("https://notchterminal.imarcodev.com", forHTTPHeaderField: "HTTP-Referer")
+            request.setValue("NotchTerminal", forHTTPHeaderField: "X-Title")
+        }
+        request.httpBody = try JSONEncoder().encode(requestObject)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+            var errorMessage = "HTTP Error \(httpResponse.statusCode)"
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorObject = json["error"] as? [String: Any],
+               let message = errorObject["message"] as? String {
+                errorMessage = message
+            }
+            throw CommandExecutionError.executionFailed(errorMessage)
+        }
+
+        let completion = try JSONDecoder().decode(AIChatResponse.self, from: data)
+        let text = completion.choices.first?.message.content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !text.isEmpty else {
+            throw CommandExecutionError.executionFailed("Provider returned an empty prompt suggestion.")
+        }
+
+        return text
     }
     
     private func broadcastMessage(_ text: String, job: AICronjob? = nil, isBackground: Bool = false) {
+        let safeText = Self.stripThinkingArtifacts(from: text)
+        let finalText = safeText.isEmpty ? text : safeText
+
         if isBackground, let job = job {
             let content = UNMutableNotificationContent()
             content.title = "NotchAgent: \(job.name)"
-            content.body = text
+            content.body = finalText
             content.sound = .default
             
             let request = UNNotificationRequest(identifier: "notchagent-\(job.id.uuidString)", content: content, trigger: nil)
@@ -568,8 +1018,81 @@ public final class AICronjobManager: ObservableObject {
                 }
             }
         } else {
+            if let job {
+                let content = UNMutableNotificationContent()
+                content.title = "NotchAgent: \(job.name)"
+                content.body = finalText
+                content.sound = .default
+
+                let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+                UNUserNotificationCenter.current().add(request) { error in
+                    if let error {
+                        print("❌ [Agent] Foreground Notification Error: \(error.localizedDescription)")
+                    }
+                }
+            }
+
             let prefix = job != nil ? "[\(job!.name)] " : ""
-            NotificationCenter.default.post(name: AICronjobManager.newMessageNotification, object: nil, userInfo: ["text": prefix + text])
+            NotificationCenter.default.post(name: AICronjobManager.newMessageNotification, object: nil, userInfo: ["text": prefix + finalText])
         }
+    }
+
+    private static func mergedSystemPrompt(for providerType: AIProviderType, providerInstructions: String) -> String {
+        var parts: [String] = [
+            "You are a helpful assistant integrated into NotchTerminal on macOS. Keep answers short and practical. If tools fail, stop retrying the same failing strategy and instead explain the issue clearly. After any tool result, provide a final answer without requesting more tool calls unless a different command is truly required. If a command is blocked by the whitelist or a service is offline, say so directly and suggest the next useful fix. Never expose hidden chain-of-thought or reasoning tags such as <think>. Do not include internal reasoning in the final answer."
+        ]
+
+        let providerHint = providerCompatibilityHint(for: providerType)
+        if !providerHint.isEmpty {
+            parts.append(providerHint)
+        }
+
+        let trimmedInstructions = providerInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedInstructions.isEmpty {
+            parts.append("Provider-specific instructions: \(trimmedInstructions)")
+        }
+
+        return parts.joined(separator: "\n\n")
+    }
+
+    private static func providerCompatibilityHint(for providerType: AIProviderType) -> String {
+        switch providerType {
+        case .minimax:
+            return "MiniMax compatibility: use the OpenAI-compatible endpoint with concise outputs. Avoid exposing reasoning text. Prefer one direct command at a time, avoid shell pipes, and if a tool fails, stop quickly and provide a final diagnosis."
+        case .custom:
+            return "Custom provider compatibility: assume OpenAI-compatible chat completions unless told otherwise. Keep outputs concise and never expose hidden reasoning."
+        default:
+            return ""
+        }
+    }
+
+    private static func sanitizedFinalResponse(content: String, reasoningContent: String?) -> String {
+        let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedContent = stripThinkingArtifacts(from: trimmedContent)
+        if !cleanedContent.isEmpty {
+            return cleanedContent
+        }
+
+        let fallback = (reasoningContent ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return stripThinkingArtifacts(from: fallback)
+    }
+
+    private static func stripThinkingArtifacts(from text: String) -> String {
+        guard !text.isEmpty else { return "" }
+
+        var cleaned = text.replacingOccurrences(
+            of: "(?is)<think>.*?</think>",
+            with: "",
+            options: .regularExpression
+        )
+
+        let lowercased = cleaned.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lowercased.hasPrefix("<think>") {
+            return ""
+        }
+
+        cleaned = cleaned.replacingOccurrences(of: "<think>", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "</think>", with: "")
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

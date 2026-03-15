@@ -2,7 +2,13 @@ import SwiftUI
 
 struct AICronjobEditView: View {
     @Binding var cronjob: AICronjob
+    var providers: [AIProvider] = []
     var isNew: Bool
+    var minimumHeight: CGFloat = 560
+    var isImprovingPrompt: Bool = false
+    var onImprovePrompt: (() -> Void)? = nil
+    var onConfigurePermissions: (() -> Void)? = nil
+    var onViewLogs: (() -> Void)? = nil
     var onSave: () -> Void
     var onCancel: (() -> Void)? = nil
 
@@ -11,20 +17,8 @@ struct AICronjobEditView: View {
     private let presetCrons = ["* * * * *", "*/5 * * * *", "*/15 * * * *", "*/30 * * * *", "0 * * * *", "0 */6 * * *", "0 */12 * * *", "0 0 * * *"]
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(isNew ? "New Agent Job" : "Edit Agent Job")
-                        .font(.headline)
-
-                    Text("Configure the task, schedule, and prompt for this job.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-            }
-            .padding()
+        VStack(alignment: .leading, spacing: 0) {
+            header
 
             Form {
                 Section {
@@ -32,10 +26,6 @@ struct AICronjobEditView: View {
 
                     TextField("Short description", text: $cronjob.detail, axis: .vertical)
                         .lineLimit(2...3)
-
-                    Toggle(isOn: $cronjob.isEnabled) {
-                        Text("Enabled")
-                    }
 
                     Picker("Execution Mode", selection: $cronjob.mode) {
                         Text("App Timer (Seconds)").tag(AICronjobExecutionMode.app)
@@ -93,9 +83,36 @@ struct AICronjobEditView: View {
                 }
 
                 Section(header: Text("Prompt & Safety")) {
+                    if !providers.isEmpty {
+                        Picker("Provider", selection: providerSelectionBinding) {
+                            Text("Use active provider").tag("")
+                            ForEach(providers) { provider in
+                                Text(provider.name).tag(provider.id.uuidString)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("System Prompt")
-                            .font(.subheadline)
+                        HStack(alignment: .center, spacing: 10) {
+                            Text("System Prompt")
+                                .font(.subheadline)
+
+                            Spacer(minLength: 0)
+
+                            if let onImprovePrompt {
+                                Button(action: onImprovePrompt) {
+                                    if isImprovingPrompt {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Label("Improve Prompt", systemImage: "wand.and.stars")
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(isImprovingPrompt || cronjob.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }
+                        }
 
                         CronjobPromptEditor(
                             text: $cronjob.prompt,
@@ -106,6 +123,28 @@ struct AICronjobEditView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.vertical, 4)
+
+                    HStack(spacing: 10) {
+                        if let onConfigurePermissions {
+                            Button(action: onConfigurePermissions) {
+                                Label(permissionSummaryText, systemImage: "checklist")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+
+                        if let onViewLogs {
+                            Button(action: onViewLogs) {
+                                Label("View Logs", systemImage: "doc.text.magnifyingglass")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+
+                    Toggle("Enable debug logging", isOn: $cronjob.debugLoggingEnabled)
+
+                    Text(debugLoggingFootnote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
                     Toggle(isOn: $cronjob.autoDisable) {
                         Text("Auto-Disable Limit (3 Days)")
@@ -135,7 +174,58 @@ struct AICronjobEditView: View {
             }
             .padding()
         }
-        .frame(minWidth: 500, minHeight: 560)
+        .frame(minWidth: 500, minHeight: minimumHeight)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(isNew ? "New Agent Job" : "Edit Agent Job")
+                        .font(.headline)
+
+                    Text("Configure the task, schedule, and prompt for this job.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            if !cronjob.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(cronjob.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Toggle("Enable Job", isOn: $cronjob.isEnabled)
+                .toggleStyle(.switch)
+        }
+        .padding(.horizontal)
+        .padding(.top)
+        .padding(.bottom, 6)
+    }
+
+    private var permissionSummaryText: String {
+        if cronjob.usesDefaultAllowedCommands {
+            return "Using default permissions"
+        }
+
+        let count = cronjob.allowedCommands.count
+        return count == 0 ? "Custom permissions" : "\(count) custom command\(count == 1 ? "" : "s")"
+    }
+
+    private var debugLoggingFootnote: String {
+        cronjob.debugLoggingEnabled
+            ? "Debug logging keeps recent provider and command events for this job so you can inspect failures."
+            : "Turn on debug logging only while setting up a job or investigating failures."
+    }
+
+    private var providerSelectionBinding: Binding<String> {
+        Binding(
+            get: { cronjob.providerID?.uuidString ?? "" },
+            set: { cronjob.providerID = UUID(uuidString: $0) }
+        )
     }
 }
 

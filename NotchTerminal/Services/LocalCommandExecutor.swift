@@ -37,7 +37,7 @@ public struct LocalCommandExecutor {
         "|", ">", "<", "&", ";", "`", "$", "\\"
     ]
     
-    public static func validate(command: String) throws {
+    public static func validate(command: String, allowedCommands: Set<String> = Self.allowedCommands) throws {
         // 1. Check for injection characters
         for char in forbiddenCharacters {
             if command.contains(char) {
@@ -90,8 +90,8 @@ public struct LocalCommandExecutor {
     
     /// Executes a shell command synchronously and captures its standard output and errors.
     /// Traverses the user's defined paths to find the executable.
-    public static func runSilentCommand(query: String) async throws -> String {
-        try validate(command: query)
+    public static func runSilentCommand(query: String, allowedCommands: Set<String> = Self.allowedCommands) async throws -> String {
+        try validate(command: query, allowedCommands: allowedCommands)
         
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async { // run off main thread

@@ -10,6 +10,9 @@ public struct AICronjob: Codable, Identifiable, Equatable {
     public var name: String = "My AI Cronjob"
     public var detail: String = ""
     public var prompt: String = "Hello World"
+    public var providerID: UUID? = nil
+    public var usesDefaultAllowedCommands: Bool = true
+    public var allowedCommands: [String] = []
 
     public var mode: AICronjobExecutionMode = .app
     public var interval: Double = 60.0
@@ -17,6 +20,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
 
     public var isEnabled: Bool = false
     public var autoDisable: Bool = true
+    public var debugLoggingEnabled: Bool = false
     public var activationDate: Double = Date().timeIntervalSince1970
 
     public var hasExpired: Bool {
@@ -32,11 +36,15 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         case name
         case detail
         case prompt
+        case providerID
+        case usesDefaultAllowedCommands
+        case allowedCommands
         case mode
         case interval
         case cronExpression
         case isEnabled
         case autoDisable
+        case debugLoggingEnabled
         case activationDate
     }
 
@@ -46,11 +54,15 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? "My AI Cronjob"
         detail = try container.decodeIfPresent(String.self, forKey: .detail) ?? ""
         prompt = try container.decodeIfPresent(String.self, forKey: .prompt) ?? "Hello World"
+        providerID = try container.decodeIfPresent(UUID.self, forKey: .providerID)
+        usesDefaultAllowedCommands = try container.decodeIfPresent(Bool.self, forKey: .usesDefaultAllowedCommands) ?? true
+        allowedCommands = try container.decodeIfPresent([String].self, forKey: .allowedCommands) ?? []
         mode = try container.decodeIfPresent(AICronjobExecutionMode.self, forKey: .mode) ?? .app
         interval = try container.decodeIfPresent(Double.self, forKey: .interval) ?? 60.0
         cronExpression = try container.decodeIfPresent(String.self, forKey: .cronExpression) ?? "0 * * * *"
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? false
         autoDisable = try container.decodeIfPresent(Bool.self, forKey: .autoDisable) ?? true
+        debugLoggingEnabled = try container.decodeIfPresent(Bool.self, forKey: .debugLoggingEnabled) ?? false
         activationDate = try container.decodeIfPresent(Double.self, forKey: .activationDate) ?? Date().timeIntervalSince1970
     }
 
@@ -60,11 +72,15 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         try container.encode(name, forKey: .name)
         try container.encode(detail, forKey: .detail)
         try container.encode(prompt, forKey: .prompt)
+        try container.encodeIfPresent(providerID, forKey: .providerID)
+        try container.encode(usesDefaultAllowedCommands, forKey: .usesDefaultAllowedCommands)
+        try container.encode(allowedCommands, forKey: .allowedCommands)
         try container.encode(mode, forKey: .mode)
         try container.encode(interval, forKey: .interval)
         try container.encode(cronExpression, forKey: .cronExpression)
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encode(autoDisable, forKey: .autoDisable)
+        try container.encode(debugLoggingEnabled, forKey: .debugLoggingEnabled)
         try container.encode(activationDate, forKey: .activationDate)
     }
 
@@ -73,11 +89,15 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         lhs.name == rhs.name &&
         lhs.detail == rhs.detail &&
         lhs.prompt == rhs.prompt &&
+        lhs.providerID == rhs.providerID &&
+        lhs.usesDefaultAllowedCommands == rhs.usesDefaultAllowedCommands &&
+        lhs.allowedCommands == rhs.allowedCommands &&
         lhs.mode == rhs.mode &&
         lhs.interval == rhs.interval &&
         lhs.cronExpression == rhs.cronExpression &&
         lhs.isEnabled == rhs.isEnabled &&
-        lhs.autoDisable == rhs.autoDisable
+        lhs.autoDisable == rhs.autoDisable &&
+        lhs.debugLoggingEnabled == rhs.debugLoggingEnabled
     }
 }
 

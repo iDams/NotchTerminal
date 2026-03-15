@@ -1,10 +1,48 @@
 import Foundation
 
+public enum ZAIMode: String, Codable, Equatable, CaseIterable {
+    case standard
+    case coding
+
+    public var displayName: String {
+        switch self {
+        case .standard:
+            return "Standard"
+        case .coding:
+            return "Coding Plan"
+        }
+    }
+
+    public var defaultBaseURL: String {
+        switch self {
+        case .standard:
+            return "https://api.z.ai/api/paas/v4"
+        case .coding:
+            return "https://api.z.ai/api/coding/paas/v4"
+        }
+    }
+
+    public var suggestedModels: [String] {
+        switch self {
+        case .standard:
+            return ["pony-alpha-2", "glm-4.5-air", "glm-4.5"]
+        case .coding:
+            return ["GLM-4.7", "GLM-4.5-air"]
+        }
+    }
+
+    public var defaultModel: String {
+        suggestedModels.first ?? ""
+    }
+}
+
 public enum AIProviderType: String, Codable, Equatable, CaseIterable {
     case openai
+    case zai
     case openrouter
     case gemini
     case anthropic
+    case minimax
     case groq
     case deepseek
     case qwen
@@ -16,9 +54,11 @@ public enum AIProviderType: String, Codable, Equatable, CaseIterable {
     public var displayName: String {
         switch self {
         case .openai: return "OpenAI"
+        case .zai: return "Z.ai"
         case .openrouter: return "OpenRouter"
         case .gemini: return "Gemini"
         case .anthropic: return "Anthropic"
+        case .minimax: return "MiniMax"
         case .groq: return "Groq"
         case .deepseek: return "DeepSeek"
         case .qwen: return "Qwen"
@@ -32,9 +72,11 @@ public enum AIProviderType: String, Codable, Equatable, CaseIterable {
     public var defaultBaseURL: String {
         switch self {
         case .openai: return "https://api.openai.com/v1"
+        case .zai: return ZAIMode.standard.defaultBaseURL
         case .openrouter: return "https://openrouter.ai/api/v1"
         case .gemini: return "https://generativelanguage.googleapis.com/v1beta/openai"
         case .anthropic: return "https://api.anthropic.com/v1"
+        case .minimax: return "https://api.minimax.io/v1"
         case .groq: return "https://api.groq.com/openai/v1"
         case .deepseek: return "https://api.deepseek.com"
         case .qwen: return "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
@@ -48,9 +90,11 @@ public enum AIProviderType: String, Codable, Equatable, CaseIterable {
     public var defaultModel: String {
         switch self {
         case .openai: return "gpt-4o-mini"
+        case .zai: return ZAIMode.standard.defaultModel
         case .openrouter: return "openrouter/free"
         case .gemini: return "gemini-2.0-flash-lite"
         case .anthropic: return "claude-3-opus-20240229"
+        case .minimax: return "MiniMax-M2.5"
         case .groq: return "llama-3.3-70b-versatile"
         case .deepseek: return "deepseek-chat"
         case .qwen: return "qwen-flash"
@@ -70,7 +114,7 @@ public enum AIProviderType: String, Codable, Equatable, CaseIterable {
 
     public var defaultResponseTokenLimit: Int {
         switch self {
-        case .deepseek, .gemini, .anthropic, .qwen:
+        case .deepseek, .gemini, .anthropic, .minimax, .qwen, .zai:
             return 1200
         case .openai, .openrouter, .groq, .cerebras, .lmstudio, .ollama, .custom:
             return 800
@@ -80,15 +124,17 @@ public enum AIProviderType: String, Codable, Equatable, CaseIterable {
     public var iconAssetName: String {
         switch self {
         case .openai: return "CLIChatGPT"
+        case .zai: return "CLICustom"
+        case .openrouter: return "CLIOpenRouter"
         case .gemini: return "CLIGemini"
         case .anthropic: return "CLIClaude"
+        case .minimax: return "CLICustom"
         case .qwen: return "CLIQwen"
         case .groq: return "CLIGroq"
         case .deepseek: return "CLIDeepSeek"
         case .cerebras: return "CLICerebras"
         case .lmstudio: return "CLILMStudio"
         case .ollama: return "CLIOllama"
-        case .openrouter: return "CLIOpenRouter"
         case .custom: return "CLICustom"
         }
     }
@@ -100,6 +146,8 @@ public struct AIProvider: Codable, Identifiable, Equatable {
     public var type: AIProviderType = .openai
     public var baseURL: String = ""
     public var model: String = ""
+    public var zAIModelMode: ZAIMode = .standard
+    public var instructions: String = ""
     public var isEnabled: Bool = true
     public var createdAt: Double = Date().timeIntervalSince1970
     public var updatedAt: Double = Date().timeIntervalSince1970
@@ -109,11 +157,17 @@ public struct AIProvider: Codable, Identifiable, Equatable {
         if !trimmed.isEmpty {
             return trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         }
+        if type == .zai {
+            return zAIModelMode.defaultBaseURL
+        }
         return type.defaultBaseURL
     }
 
     public var effectiveModel: String {
         let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty, type == .zai {
+            return zAIModelMode.defaultModel
+        }
         return trimmed.isEmpty ? type.defaultModel : trimmed
     }
 
@@ -136,6 +190,8 @@ public struct AIProvider: Codable, Identifiable, Equatable {
         case type
         case baseURL
         case model
+        case zAIModelMode
+        case instructions
         case isEnabled
         case createdAt
         case updatedAt
@@ -148,6 +204,8 @@ public struct AIProvider: Codable, Identifiable, Equatable {
         type = try container.decodeIfPresent(AIProviderType.self, forKey: .type) ?? .openai
         baseURL = try container.decodeIfPresent(String.self, forKey: .baseURL) ?? ""
         model = try container.decodeIfPresent(String.self, forKey: .model) ?? ""
+        zAIModelMode = try container.decodeIfPresent(ZAIMode.self, forKey: .zAIModelMode) ?? .standard
+        instructions = try container.decodeIfPresent(String.self, forKey: .instructions) ?? ""
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         createdAt = try container.decodeIfPresent(Double.self, forKey: .createdAt) ?? Date().timeIntervalSince1970
         updatedAt = try container.decodeIfPresent(Double.self, forKey: .updatedAt) ?? Date().timeIntervalSince1970
@@ -160,6 +218,8 @@ public struct AIProvider: Codable, Identifiable, Equatable {
         try container.encode(type, forKey: .type)
         try container.encode(baseURL, forKey: .baseURL)
         try container.encode(model, forKey: .model)
+        try container.encode(zAIModelMode, forKey: .zAIModelMode)
+        try container.encode(instructions, forKey: .instructions)
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
@@ -171,6 +231,8 @@ public struct AIProvider: Codable, Identifiable, Equatable {
         lhs.type == rhs.type &&
         lhs.baseURL == rhs.baseURL &&
         lhs.model == rhs.model &&
+        lhs.zAIModelMode == rhs.zAIModelMode &&
+        lhs.instructions == rhs.instructions &&
         lhs.isEnabled == rhs.isEnabled
     }
 }

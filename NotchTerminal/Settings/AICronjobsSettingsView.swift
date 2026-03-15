@@ -189,7 +189,9 @@ struct AICronjobsSettingsView: View {
                         get: { editingCronjob },
                         set: { self.editingCronjob = $0 }
                     ),
+                    providers: aiProvidersData,
                     isNew: isCreatingNewCronjob,
+                    onConfigurePermissions: {},
                     onSave: saveEditingJob,
                     onCancel: {
                         self.editingCronjob = nil
@@ -244,19 +246,6 @@ struct AICronjobsSettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Run Job Now")
-
-                Toggle("", isOn: Binding(
-                    get: { job.isEnabled },
-                    set: { newValue in
-                        updateJob(job) { item in
-                            item.isEnabled = newValue
-                            if newValue {
-                                item.activationDate = Date().timeIntervalSince1970
-                            }
-                        }
-                    }
-                ))
-                .labelsHidden()
 
                 Button {
                     isCreatingNewCronjob = false

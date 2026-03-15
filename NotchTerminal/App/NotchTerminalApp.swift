@@ -35,6 +35,15 @@ struct NotchTerminalApp: App {
     }
 }
 
+private func providerIDsForKeychainMigration(defaults: UserDefaults = .standard) -> [UUID] {
+    if let rawProviders = defaults.string(forKey: AppPreferences.Keys.aiProvidersData),
+       let providers = AIProviderList(rawValue: rawProviders)?.providers {
+        return providers.map(\.id)
+    }
+
+    return AppPreferences.Defaults.aiProvidersData.providers.map(\.id)
+}
+
 private struct NotchTerminalAppCommands: Commands {
     let appDelegate: AppDelegate
 
@@ -97,6 +106,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let storageCleanupService = StorageCleanupService.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let providerIDs = providerIDsForKeychainMigration()
+        KeychainService.migrateAPIKeysForBackgroundAccess(providerIDs: providerIDs)
+
         DispatchQueue.main.async { [weak self] in
             self?.setupEditMenu()
         }

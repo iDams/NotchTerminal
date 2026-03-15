@@ -48,6 +48,7 @@ final class NotchOverlayController {
     private var panelsByDisplay: [CGDirectDisplayID: NSPanel] = [:]
     private var hostsByDisplay: [CGDirectDisplayID: PassthroughHostingView<AnyView>] = [:]
     private var modelsByDisplay: [CGDirectDisplayID: NotchViewModel] = [:]
+    private let aiControlCenterWindowController = AIControlCenterWindowController()
     private let blackWindowController = MetalBlackWindowsManager()
     private var timer: Timer?
     private var trackingFPS: Int = 60
@@ -477,6 +478,9 @@ final class NotchOverlayController {
                 requestCloseAllConfirmation: { [weak self] sourceDisplayID in
                     self?.presentSystemCloseAllAlert(for: sourceDisplayID)
                 },
+                openAIControlCenter: { [weak self] in
+                    self?.openAIControlCenter(for: displayID)
+                },
                 openSettings: { [weak self] in
                     self?.openSettings(for: displayID)
                 }
@@ -811,6 +815,10 @@ final class NotchOverlayController {
             NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
         }
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func openAIControlCenter(for displayID: CGDirectDisplayID) {
+        aiControlCenterWindowController.show(on: screen(forDisplayID: displayID))
     }
 
     private func applyTerminalItems(_ items: [TerminalWindowItem]) {

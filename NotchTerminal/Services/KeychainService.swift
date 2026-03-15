@@ -26,6 +26,7 @@ public enum KeychainError: LocalizedError {
 
 public enum KeychainService {
     private static let service = "com.notchterminal.aiprovider"
+    private static let backgroundAccessibleClass = kSecAttrAccessibleAfterFirstUnlock
 
     public static func saveAPIKey(for providerID: UUID, apiKey: String) throws {
         guard let data = apiKey.data(using: .utf8) else {
@@ -39,8 +40,8 @@ public enum KeychainService {
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-        ]
+            kSecAttrAccessible as String: backgroundAccessibleClass
+        ].merging(optionalAccessAttributes(for: key)) { current, _ in current }
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
@@ -52,8 +53,9 @@ public enum KeychainService {
             ]
 
             let updateAttributes: [String: Any] = [
-                kSecValueData as String: data
-            ]
+                kSecValueData as String: data,
+                kSecAttrAccessible as String: backgroundAccessibleClass
+            ].merging(optionalAccessAttributes(for: key)) { current, _ in current }
 
             let updateStatus = SecItemUpdate(updateQuery as CFDictionary, updateAttributes as CFDictionary)
             if updateStatus != errSecSuccess {
@@ -126,7 +128,60 @@ public enum KeychainService {
         try? deleteAPIKey(for: providerID)
     }
 
+    public static func migrateAPIKeysForBackgroundAccess(providerIDs: [UUID]) {
+        for providerID in providerIDs {
+            guard let apiKey = getAPIKey(for: providerID) else { continue }
+            try? saveAPIKey(for: providerID, apiKey: apiKey)
+        }
+    }
+
     private static func keyIdentifier(for providerID: UUID) -> String {
         "apikey.\(providerID.uuidString)"
+    }
+
+    private static func optionalAccessAttributes(for key: String) -> [String: Any] {
+        guard let access = makeAccess(label: "\(service).\(key)") else {
+            return [:]
+        }
+
+        return [kSecAttrAccess as String: access]
+    }
+
+    private static func makeAccess(label: String) -> SecAccess? {
+        let trustedApps = trustedApplications()
+        guard !trustedApps.isEmpty else { return nil }
+
+        var access: SecAccess?
+        let status = SecAccessCreate(label as CFString, trustedApps as CFArray, &access)
+        guard status == errSecSuccess else { return nil }
+        return access
+    }
+
+    private static func trustedApplications() -> [SecTrustedApplication] {
+        trustedApplicationPaths().compactMap { path in
+            var app: SecTrustedApplication?
+            let status = SecTrustedApplicationCreateFromPath(path, &app)
+            guard status == errSecSuccess else { return nil }
+            return app
+        }
+    }
+
+    private static func trustedApplicationPaths() -> [String] {
+        var paths: [String] = []
+
+        if let executablePath = Bundle.main.executablePath, executablePath.hasPrefix("/") {
+            paths.append(executablePath)
+        }
+
+        if let commandPath = ProcessInfo.processInfo.arguments.first, commandPath.hasPrefix("/") {
+            paths.append(commandPath)
+        }
+
+        let installedExecutable = "/Applications/NotchTerminal.app/Contents/MacOS/NotchTerminal"
+        if FileManager.default.isExecutableFile(atPath: installedExecutable) {
+            paths.append(installedExecutable)
+        }
+
+        return Array(Set(paths))
     }
 }

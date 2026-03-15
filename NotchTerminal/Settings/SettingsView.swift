@@ -34,12 +34,10 @@ struct SettingsView: View {
             return 560
         case .about:
             return 640
-        case .aiProviders:
-            return 520
-        case .aiCronjobs:
-            return 560
         case .experimental:
             return 320
+        case .aiProviders, .aiCronjobs:
+            return 430
         }
     }
 
@@ -72,18 +70,6 @@ struct SettingsView: View {
                 .tag(SettingsTab.about)
                 .tabItem {
                     Label("settings.about".localized, systemImage: "info.circle")
-                }
-
-            AIProvidersSettingsView()
-                .tag(SettingsTab.aiProviders)
-                .tabItem {
-                    Label("AI Providers", systemImage: "server.rack")
-                }
-
-            AICronjobsSettingsView()
-                .tag(SettingsTab.aiCronjobs)
-                .tabItem {
-                    Label("Agent Jobs", systemImage: "cpu")
                 }
 
             if showExperimentalSettings {
@@ -127,6 +113,8 @@ struct SettingsView: View {
             if let requestedTab = SettingsNavigationCoordinator.consumePendingTab() {
                 if requestedTab == .experimental && !showExperimentalSettings {
                     selectedTab = .general
+                } else if requestedTab == .aiProviders || requestedTab == .aiCronjobs {
+                    selectedTab = .general
                 } else {
                     selectedTab = requestedTab
                 }
@@ -142,6 +130,8 @@ struct SettingsView: View {
 
             let requestedTab = SettingsTab(rawValue: rawTab) ?? .general
             if requestedTab == .experimental && !showExperimentalSettings {
+                selectedTab = .general
+            } else if requestedTab == .aiProviders || requestedTab == .aiCronjobs {
                 selectedTab = .general
             } else {
                 selectedTab = requestedTab
