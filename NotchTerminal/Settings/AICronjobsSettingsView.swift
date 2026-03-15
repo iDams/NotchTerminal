@@ -318,6 +318,7 @@ struct AICronjobsSettingsView: View {
     private func saveEditingJob() {
         guard var safeJob = editingCronjob else { return }
         safeJob.connectedApps = safeJob.normalizedConnectedApps
+        safeJob.installedApps = safeJob.normalizedInstalledApps
         if isCreatingNewCronjob {
             experimentalAICronjobsData.append(safeJob)
         } else if let idx = experimentalAICronjobsData.firstIndex(where: { $0.id == safeJob.id }) {

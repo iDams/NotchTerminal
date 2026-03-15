@@ -161,4 +161,24 @@ public extension AIToolSchema {
             )
         )
     }
+
+    static var macAppTool: AIToolSchema {
+        AIToolSchema(
+            type: "function",
+            function: AIFunctionSchema(
+                name: "mac_app",
+                description: "Opens or activates an installed macOS app that is connected to the current job. Use this for @app:bundle.identifier tokens instead of using the terminal.",
+                parameters: AIFunctionParametersSchema(
+                    type: "object",
+                    properties: [
+                        "action": AIPropertySchema(type: "string", description: "Supported actions: open_app, activate_app, type_text, press_key"),
+                        "bundle_identifier": AIPropertySchema(type: "string", description: "Bundle identifier of the connected macOS app, for example com.apple.calculator"),
+                        "text": AIPropertySchema(type: "string", description: "Text to type into the connected app when action is type_text."),
+                        "key": AIPropertySchema(type: "string", description: "Special key to press when action is press_key. Examples: enter, return, escape, tab, delete, up, down, left, right.")
+                    ],
+                    required: ["action", "bundle_identifier"]
+                )
+            )
+        )
+    }
 }

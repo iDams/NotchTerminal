@@ -110,6 +110,27 @@ If you need local signing to run or archive the app:
 
 The shared `Config/Signing.xcconfig` includes that file optionally, so collaborators can sign locally without rewriting shared project settings.
 
+### Debug App Install Flow for macOS Permissions
+
+macOS privacy permissions such as `Accessibility` are more reliable when the app lives at a stable path instead of running directly from Xcode's transient `DerivedData` bundle.
+
+For that reason, Debug builds now install a stable development copy automatically to:
+
+- `/Applications/NotchTerminal Dev.app`
+
+Current Debug workflow:
+
+1. Build from Xcode as usual
+2. The target reinstalls `NotchTerminal Dev.app` automatically
+3. If it was already running, the old dev copy is closed first
+4. Use `NotchTerminal Dev.app` when testing permissions like `Accessibility`
+
+Why this exists:
+
+- TCC / macOS privacy permissions can behave inconsistently for ephemeral app bundles in `DerivedData`
+- A stable app path makes permission prompts and stored approvals much more predictable
+- This keeps the development loop inside Xcode while avoiding manual copy steps
+
 ## Settings Overview
 
 - `General`

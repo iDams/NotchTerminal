@@ -791,6 +791,35 @@ public final class AICronjobManager: ObservableObject {
                                 sawToolFailure = true
                                 log(.error, "Invalid notch_terminal tool arguments.", false)
                             }
+                        } else if toolCall.function.name == "mac_app" {
+                            if let argsData = toolCall.function.arguments.data(using: .utf8),
+                               let argsJSON = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any],
+                               let actionString = argsJSON["action"] as? String,
+                               let action = MacAppAgentToolAction(rawValue: actionString),
+                               let bundleIdentifier = argsJSON["bundle_identifier"] as? String,
+                               !bundleIdentifier.isEmpty {
+                                let text = argsJSON["text"] as? String
+                                let key = argsJSON["key"] as? String
+                                toolOutput = await MainActor.run {
+                                    MacAppAgentToolRunner.run(
+                                        action: action,
+                                        bundleIdentifier: bundleIdentifier,
+                                        installedApps: job.installedApps,
+                                        text: text,
+                                        key: key
+                                    )
+                                }
+                                if toolOutput.hasPrefix("Error:") {
+                                    sawToolFailure = true
+                                    log(.error, toolOutput, false)
+                                } else {
+                                    log(.info, "Ran macOS app action: \(action.rawValue) for \(bundleIdentifier)", false)
+                                }
+                            } else {
+                                toolOutput = "Error: Invalid mac_app action. Use open_app, activate_app, type_text, or press_key with a connected bundle_identifier."
+                                sawToolFailure = true
+                                log(.error, "Invalid mac_app tool arguments.", false)
+                            }
                         } else {
                             toolOutput = "Error: Unknown tool \(toolCall.function.name)"
                             sawToolFailure = true
@@ -940,6 +969,9 @@ public final class AICronjobManager: ObservableObject {
         if job.connectedApps.contains(.notchTerminal) || job.prompt.contains(AICronjobConnectedApp.notchTerminal.promptToken) {
             tools.append(.notchTerminalTool)
         }
+        if !job.installedApps.isEmpty || job.prompt.contains("@app:") {
+            tools.append(.macAppTool)
+        }
         return tools
     }
 
@@ -1085,6 +1117,7 @@ public final class AICronjobManager: ObservableObject {
         ]
 
         parts.append("When the prompt mentions @notch-terminal, you may use the notch_terminal tool. Prefer action write_text with a text value when the user wants the terminal to type something, and set submit to true only when the text should actually be executed.")
+        parts.append("When the prompt mentions @app:bundle.identifier, use the mac_app tool instead of the terminal. Prefer open_app to launch a connected macOS app, activate_app to bring it to the front, type_text to send text into the focused app, and press_key for keys like enter or tab.")
 
         let providerHint = providerCompatibilityHint(for: providerType)
         if !providerHint.isEmpty {

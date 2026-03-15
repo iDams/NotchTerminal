@@ -104,6 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private let persistenceHealth = PersistenceHealth.shared
     private let storageCleanupService = StorageCleanupService.shared
+    private let permissionCoordinator = AppPermissionCoordinator.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let providerIDs = providerIDsForKeychainMigration()
@@ -154,6 +155,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
             DispatchQueue.main.async {
                 self.presentUITestWindow()
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            Task { @MainActor [weak self] in
+                await self?.presentInitialPermissionsIfNeeded()
             }
         }
     }
@@ -369,6 +376,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else if let error = error {
                 print("❌ [AppDelegate] Notification permissions error: \(error.localizedDescription)")
             }
+        }
+    }
+
+    @MainActor
+    private func presentInitialPermissionsIfNeeded() async {
+        await permissionCoordinator.refreshStatuses()
+        guard permissionCoordinator.shouldPresentOnboarding else { return }
+
+        await permissionCoordinator.request(.notifications)
+        await permissionCoordinator.request(.accessibility)
+        await permissionCoordinator.refreshStatuses()
+
+        if permissionCoordinator.statuses.values.contains(where: { !$0.isGranted }) {
+            openSettingsWindow()
         }
     }
     

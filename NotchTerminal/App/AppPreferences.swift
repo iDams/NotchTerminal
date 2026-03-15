@@ -80,6 +80,7 @@ enum AppPreferences {
         static let aiProvidersData = "aiProvidersData"
         static let activeAIProviderID = "activeAIProviderID"
         static let aiCronjobLogsData = "aiCronjobLogsData"
+        static let initialPermissionFlowCompleted = "initialPermissionFlowCompleted"
     }
 
     enum Defaults {
@@ -122,6 +123,7 @@ enum AppPreferences {
         static let aiProvidersData: AIProviderList = AIProviderList()
         static let activeAIProviderID: String = ""
         static let aiCronjobLogsData: AICronjobLogStore = AICronjobLogStore()
+        static let initialPermissionFlowCompleted = false
     }
 
     static func disabledNotchDisplayIDs(in defaults: UserDefaults = .standard) -> Set<CGDirectDisplayID> {

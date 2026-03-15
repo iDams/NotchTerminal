@@ -58,4 +58,24 @@ final class AICronjobTests: XCTestCase {
     func testConnectedAppPromptTokenIsStable() {
         XCTAssertEqual(AICronjobConnectedApp.notchTerminal.promptToken, "@notch-terminal")
     }
+
+    func testInstalledAppsRoundTripAndNormalizeDuplicates() {
+        var job = AICronjob()
+        let safari = AICronjobInstalledApp(
+            bundleIdentifier: "com.apple.Safari",
+            displayName: "Safari",
+            appPath: "/Applications/Safari.app"
+        )
+
+        job.installedApps = [safari, safari]
+
+        XCTAssertEqual(job.normalizedInstalledApps, [safari])
+
+        let jobs = [job]
+        let encoded = jobs.rawValue
+        let decoded = [AICronjob](rawValue: encoded)
+
+        XCTAssertEqual(decoded?.first?.installedApps, [safari])
+        XCTAssertEqual(decoded?.first?.installedApps.first?.promptToken, "@app:com.apple.Safari")
+    }
 }

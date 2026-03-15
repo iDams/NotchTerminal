@@ -19,6 +19,9 @@ struct AICronjobEditView: View {
     @State private var showCustomCron = false
     @State private var promptEditorHeight: CGFloat = 140
     @State private var renderedPrompt = NSAttributedString(string: "")
+    @State private var availableInstalledApps: [AICronjobInstalledApp] = []
+    @State private var installedAppsSearch = ""
+    @State private var showingInstalledAppsPicker = false
     private let presetCrons = ["* * * * *", "*/5 * * * *", "*/15 * * * *", "*/30 * * * *", "0 * * * *", "0 */6 * * *", "0 */12 * * *", "0 0 * * *"]
 
     var body: some View {
@@ -185,6 +188,7 @@ struct AICronjobEditView: View {
         }
         .frame(minWidth: 500, minHeight: minimumHeight)
         .onAppear {
+            availableInstalledApps = InstalledAppsCatalog.load()
             renderedPrompt = PromptTokenRenderer.render(prompt: cronjob.prompt)
         }
         .onChange(of: cronjob.prompt) { _, newValue in
@@ -241,7 +245,7 @@ struct AICronjobEditView: View {
             Text("Connected Apps")
                 .font(.subheadline)
 
-            Text("Attach internal app tools to this job and drag their token into the prompt.")
+            Text("Attach internal app tools or installed Mac apps to this job and drag their token into the prompt.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -249,10 +253,25 @@ struct AICronjobEditView: View {
                 ForEach(AICronjobConnectedApp.allCases) { app in
                     connectedAppChip(app)
                 }
+
+                Button {
+                    showingInstalledAppsPicker = true
+                } label: {
+                    Label("Add Installed App", systemImage: "plus.app")
+                }
+                .buttonStyle(.bordered)
+
                 Spacer(minLength: 0)
+            }
+
+            if !cronjob.installedApps.isEmpty {
+                installedAppsList
             }
         }
         .padding(.vertical, 4)
+        .sheet(isPresented: $showingInstalledAppsPicker) {
+            installedAppsPickerSheet
+        }
     }
 
     private func connectedAppChip(_ app: AICronjobConnectedApp) -> some View {
@@ -306,6 +325,137 @@ struct AICronjobEditView: View {
 
     private func insertConnectedAppToken(_ app: AICronjobConnectedApp) {
         attachConnectedApp(app)
+
+        let trimmedPrompt = cronjob.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPrompt.contains(app.promptToken) else { return }
+
+        if trimmedPrompt.isEmpty {
+            cronjob.prompt = app.promptToken
+        } else if cronjob.prompt.hasSuffix("\n") {
+            cronjob.prompt += "\(app.promptToken) "
+        } else {
+            cronjob.prompt += "\n\(app.promptToken) "
+        }
+    }
+
+    private var installedAppsList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(cronjob.installedApps, id: \.bundleIdentifier) { app in
+                installedAppChip(app)
+            }
+        }
+    }
+
+    private func installedAppChip(_ app: AICronjobInstalledApp) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "app.badge")
+                .font(.system(size: 12, weight: .semibold))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(app.displayName)
+                    .font(.caption.weight(.semibold))
+                Text(app.promptToken)
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Button("Insert") {
+                insertInstalledAppToken(app)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            Button(role: .destructive) {
+                removeInstalledApp(app)
+            } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: 320, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+        .help(app.appPath)
+        .onDrag {
+            let itemProvider = NSItemProvider()
+            itemProvider.registerDataRepresentation(forTypeIdentifier: notchTerminalConnectedAppTokenUTType.rawValue, visibility: .all) { completion in
+                completion(app.promptToken.data(using: .utf8), nil)
+                return nil
+            }
+            itemProvider.registerObject(app.promptToken as NSString, visibility: .all)
+            return itemProvider
+        }
+    }
+
+    private var installedAppsPickerSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Add Installed App")
+                .font(.headline)
+
+            TextField("Search apps", text: $installedAppsSearch)
+
+            List(filteredInstalledApps, id: \.bundleIdentifier) { app in
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(app.displayName)
+                        Text(app.bundleIdentifier)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button("Add") {
+                        attachInstalledApp(app)
+                        insertInstalledAppToken(app)
+                        showingInstalledAppsPicker = false
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(cronjob.installedApps.contains(where: { $0.bundleIdentifier == app.bundleIdentifier }))
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Done") {
+                    showingInstalledAppsPicker = false
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(20)
+        .frame(minWidth: 520, minHeight: 420)
+    }
+
+    private var filteredInstalledApps: [AICronjobInstalledApp] {
+        let query = installedAppsSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return availableInstalledApps }
+
+        return availableInstalledApps.filter {
+            $0.displayName.localizedStandardContains(query) ||
+            $0.bundleIdentifier.localizedStandardContains(query)
+        }
+    }
+
+    private func attachInstalledApp(_ app: AICronjobInstalledApp) {
+        guard !cronjob.installedApps.contains(where: { $0.bundleIdentifier == app.bundleIdentifier }) else { return }
+        cronjob.installedApps.append(app)
+        cronjob.installedApps = cronjob.normalizedInstalledApps
+    }
+
+    private func removeInstalledApp(_ app: AICronjobInstalledApp) {
+        cronjob.installedApps.removeAll { $0.bundleIdentifier == app.bundleIdentifier }
+    }
+
+    private func insertInstalledAppToken(_ app: AICronjobInstalledApp) {
+        attachInstalledApp(app)
 
         let trimmedPrompt = cronjob.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.contains(app.promptToken) else { return }

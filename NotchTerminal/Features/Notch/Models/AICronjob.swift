@@ -39,6 +39,18 @@ public enum AICronjobConnectedApp: String, Codable, Equatable, CaseIterable, Ide
     }
 }
 
+public struct AICronjobInstalledApp: Codable, Equatable, Identifiable, Hashable {
+    public var bundleIdentifier: String
+    public var displayName: String
+    public var appPath: String
+
+    public var id: String { bundleIdentifier }
+
+    public var promptToken: String {
+        "@app:\(bundleIdentifier)"
+    }
+}
+
 public struct AICronjob: Codable, Identifiable, Equatable {
     public var id: UUID = UUID()
     public var name: String = "My AI Cronjob"
@@ -46,6 +58,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
     public var prompt: String = "Hello World"
     public var providerID: UUID? = nil
     public var connectedApps: [AICronjobConnectedApp] = []
+    public var installedApps: [AICronjobInstalledApp] = []
     public var usesDefaultAllowedCommands: Bool = true
     public var allowedCommands: [String] = []
 
@@ -71,6 +84,13 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         }
     }
 
+    public var normalizedInstalledApps: [AICronjobInstalledApp] {
+        var seen = Set<String>()
+        return installedApps.filter { app in
+            seen.insert(app.bundleIdentifier).inserted
+        }
+    }
+
     public init() {}
 
     enum CodingKeys: String, CodingKey {
@@ -80,6 +100,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         case prompt
         case providerID
         case connectedApps
+        case installedApps
         case usesDefaultAllowedCommands
         case allowedCommands
         case mode
@@ -99,6 +120,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         prompt = try container.decodeIfPresent(String.self, forKey: .prompt) ?? "Hello World"
         providerID = try container.decodeIfPresent(UUID.self, forKey: .providerID)
         connectedApps = try container.decodeIfPresent([AICronjobConnectedApp].self, forKey: .connectedApps) ?? []
+        installedApps = try container.decodeIfPresent([AICronjobInstalledApp].self, forKey: .installedApps) ?? []
         usesDefaultAllowedCommands = try container.decodeIfPresent(Bool.self, forKey: .usesDefaultAllowedCommands) ?? true
         allowedCommands = try container.decodeIfPresent([String].self, forKey: .allowedCommands) ?? []
         mode = try container.decodeIfPresent(AICronjobExecutionMode.self, forKey: .mode) ?? .app
@@ -118,6 +140,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         try container.encode(prompt, forKey: .prompt)
         try container.encodeIfPresent(providerID, forKey: .providerID)
         try container.encode(normalizedConnectedApps, forKey: .connectedApps)
+        try container.encode(normalizedInstalledApps, forKey: .installedApps)
         try container.encode(usesDefaultAllowedCommands, forKey: .usesDefaultAllowedCommands)
         try container.encode(allowedCommands, forKey: .allowedCommands)
         try container.encode(mode, forKey: .mode)
@@ -136,6 +159,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         lhs.prompt == rhs.prompt &&
         lhs.providerID == rhs.providerID &&
         lhs.connectedApps == rhs.connectedApps &&
+        lhs.installedApps == rhs.installedApps &&
         lhs.usesDefaultAllowedCommands == rhs.usesDefaultAllowedCommands &&
         lhs.allowedCommands == rhs.allowedCommands &&
         lhs.mode == rhs.mode &&
