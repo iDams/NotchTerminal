@@ -136,6 +136,11 @@ public struct AICronjob: Codable, Identifiable, Equatable {
     public var name: String = "My AI Cronjob"
     public var detail: String = ""
     public var prompt: String = "Hello World"
+    public var recipeAuthor: String = ""
+    public var recipeIdentifier: String = ""
+    public var recipeVersion: Int = 1
+    public var recipeUpdateURL: String = ""
+    public var recipeSourceID: String = ""
     public var providerID: UUID? = nil
     public var connectedApps: [AICronjobConnectedApp] = []
     public var installedApps: [AICronjobInstalledApp] = []
@@ -178,6 +183,11 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         case name
         case detail
         case prompt
+        case recipeAuthor
+        case recipeIdentifier
+        case recipeVersion
+        case recipeUpdateURL
+        case recipeSourceID
         case providerID
         case connectedApps
         case installedApps
@@ -198,6 +208,11 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? "My AI Cronjob"
         detail = try container.decodeIfPresent(String.self, forKey: .detail) ?? ""
         prompt = try container.decodeIfPresent(String.self, forKey: .prompt) ?? "Hello World"
+        recipeAuthor = try container.decodeIfPresent(String.self, forKey: .recipeAuthor) ?? ""
+        recipeIdentifier = try container.decodeIfPresent(String.self, forKey: .recipeIdentifier) ?? ""
+        recipeVersion = try container.decodeIfPresent(Int.self, forKey: .recipeVersion) ?? 1
+        recipeUpdateURL = try container.decodeIfPresent(String.self, forKey: .recipeUpdateURL) ?? ""
+        recipeSourceID = try container.decodeIfPresent(String.self, forKey: .recipeSourceID) ?? ""
         providerID = try container.decodeIfPresent(UUID.self, forKey: .providerID)
         connectedApps = try container.decodeIfPresent([AICronjobConnectedApp].self, forKey: .connectedApps) ?? []
         installedApps = try container.decodeIfPresent([AICronjobInstalledApp].self, forKey: .installedApps) ?? []
@@ -218,6 +233,11 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         try container.encode(name, forKey: .name)
         try container.encode(detail, forKey: .detail)
         try container.encode(prompt, forKey: .prompt)
+        try container.encode(recipeAuthor, forKey: .recipeAuthor)
+        try container.encode(recipeIdentifier, forKey: .recipeIdentifier)
+        try container.encode(recipeVersion, forKey: .recipeVersion)
+        try container.encode(recipeUpdateURL, forKey: .recipeUpdateURL)
+        try container.encode(recipeSourceID, forKey: .recipeSourceID)
         try container.encodeIfPresent(providerID, forKey: .providerID)
         try container.encode(normalizedConnectedApps, forKey: .connectedApps)
         try container.encode(normalizedInstalledApps, forKey: .installedApps)
@@ -237,6 +257,11 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         lhs.name == rhs.name &&
         lhs.detail == rhs.detail &&
         lhs.prompt == rhs.prompt &&
+        lhs.recipeAuthor == rhs.recipeAuthor &&
+        lhs.recipeIdentifier == rhs.recipeIdentifier &&
+        lhs.recipeVersion == rhs.recipeVersion &&
+        lhs.recipeUpdateURL == rhs.recipeUpdateURL &&
+        lhs.recipeSourceID == rhs.recipeSourceID &&
         lhs.providerID == rhs.providerID &&
         lhs.connectedApps == rhs.connectedApps &&
         lhs.installedApps == rhs.installedApps &&

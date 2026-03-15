@@ -1,6 +1,6 @@
 # NotchTerminal
 
-NotchTerminal is a macOS app that brings terminal workflows into the notch area.
+NotchTerminal is a macOS terminal app built around the notch.
 
 <p align="center">
   <img src="docs/logo.png" alt="NotchTerminal Logo" width="160" />
@@ -14,17 +14,25 @@ NotchTerminal is a macOS app that brings terminal workflows into the notch area.
 
 ![Per-display notch settings](docs/screenshots/notch-settings.png)
 
-It combines:
-- A top notch overlay (real notch and no-notch screens)
-- Floating terminal windows
-- Quick terminal actions (restore/minimize/close)
-- Advanced Metal-based visual effects (Aurora background, CRT filter, Fake Notch glow)
+The idea is simple: keep terminal access fast, visible, and close to what you are already doing, without filling the desktop with extra windows.
 
-## What It Does
+## What It Is
+
+NotchTerminal is primarily for:
+
+- opening and managing terminal windows from the notch area
+- restoring active work quickly across displays and sessions
+- keeping common terminal actions close at hand while coding
+- working on both physical-notch Macs and no-notch displays through the same overlay concept
+
+The rest of the app builds around that core workflow.
+
+## Main Features
 
 ### Notch Overlay
 - Expands on hover
-- Works on multi-display setups
+- Works across multiple displays
+- Works on Macs with and without a physical notch
 - Shows minimized terminal chips
 - Opens quick actions:
   - `New`
@@ -32,12 +40,28 @@ It combines:
   - `Bulk` (`Restore All`, `Minimize All`, `Close All`, `Close All on This Display`)
   - `Settings`
 
+### Look And Feel
+- Aurora background styling gives the overlay its signature look
+- The overlay is designed to feel at home on Macs with a physical notch while still working well on displays without one
+
 ### Terminal Windows
 - Open/close/minimize/maximize
 - Compact mode
 - Always on Top toggle
 - Dock-to-notch behavior when dragged near the notch
 - Drag and drop folders/files into the terminal (inserts escaped paths)
+
+### Sessions
+- Stores terminal sessions via SwiftData
+- Restores terminal sessions on launch, including display placement, docked state, sizing, compact mode, always-on-top state, maximize state, and recent project context
+
+### Menu Bar
+- Menu bar status item with quick access to:
+  - `New Terminal`
+  - `Show All Windows`
+  - `Settings`
+  - `Hide`
+  - `Quit`
 
 ### Terminal Actions
 - Context menu includes:
@@ -54,19 +78,14 @@ It combines:
   - `⌘W` close session
   - `⌘+` / `⌘-` font size
 
+## Developer Utilities
+
+These features are useful extras around the main terminal experience.
+
 ### Open Ports Panel
 - Lists listening TCP ports
 - Search and filter by dev/all
 - Kill process by PID from the UI
-
-### Menu Bar Access
-- Menu bar status item with quick access to:
-  - `New Terminal`
-  - `Storage Analysis`
-  - `Show All Windows`
-  - `Settings`
-  - `Hide`
-  - `Quit`
 
 ### Storage Analysis
 - Opens from the menu bar status item
@@ -74,9 +93,9 @@ It combines:
 - Uses a single native macOS window with category sidebar, filters, search, and bulk cleanup actions
 - Warns when folders appear to still be in use before moving them to Trash
 
-### Session Persistence
-- Stores terminal sessions via SwiftData
-- Restores terminal sessions on launch, including display placement, docked state, sizing, compact mode, always-on-top state, maximize state, and recent project context
+## Experimental AI
+
+AI features live off to the side so they do not take over the main terminal-focused product.
 
 ### NotchAgent (Experimental)
 - Dedicated `AI Control Center` window for managing providers, jobs, logs, permissions, and prompt workflows
@@ -105,6 +124,11 @@ It combines:
   - Auto-capture after UI actions when prompt requires visual verification
   - Base64 PNG screenshots embedded in AI message context
   - Fails job with clear error if required screenshot cannot be captured
+
+## Extra Visual Effects
+
+- CRT filter
+- Fake Notch glow
 
 ## Requirements
 

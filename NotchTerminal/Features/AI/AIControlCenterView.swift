@@ -1,5 +1,7 @@
 import AppKit
+import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 private enum AIWorkspaceSection: String, CaseIterable, Identifiable {
     case jobs
@@ -64,6 +66,7 @@ struct AIControlCenterView: View {
     @State private var isTestingProvider = false
     @State private var providerTestMessage = ""
     @State private var providerTestSucceeded = false
+    @State private var jobsImportMessage = ""
 
     private let providerInstructionPresets: [AIProviderType: String] = [
         .minimax: "You are running inside NotchTerminal, a macOS automation agent with strict command safety rules. Never reveal hidden reasoning or thinking tags. Use one simple command at a time. Do not use pipes, redirects, shell chaining, or GUI-launch commands unless explicitly allowed. If a command fails because a service is offline, permissions block it, or the whitelist forbids it, stop and give a short final diagnosis with the best next step.",
@@ -213,6 +216,13 @@ struct AIControlCenterView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(promptImprovementErrorMessage)
+        }
+        .alert("Import Jobs", isPresented: jobsImportAlertBinding) {
+            Button("OK", role: .cancel) {
+                jobsImportMessage = ""
+            }
+        } message: {
+            Text(jobsImportMessage)
         }
         .alert(providerTestSucceeded ? "Connection Succeeded" : "Connection Failed", isPresented: providerTestAlertBinding) {
             Button("OK", role: .cancel) {
@@ -505,9 +515,17 @@ struct AIControlCenterView: View {
                 if let selectedJob {
                     Text(selectedJob.name)
                         .font(.title3.weight(.semibold))
-                    Text(scheduleDescription(for: selectedJob))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        Text(scheduleDescription(for: selectedJob))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if !selectedJob.recipeAuthor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Text("By \(selectedJob.recipeAuthor)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 } else {
                     Text("Agent Jobs")
                         .font(.title3.weight(.semibold))
@@ -518,6 +536,23 @@ struct AIControlCenterView: View {
             }
 
             Spacer(minLength: 0)
+
+            Button(action: importJobs) {
+                Label("Import RecipeJob", systemImage: "square.and.arrow.down")
+            }
+            .buttonStyle(.bordered)
+
+            Button(action: exportSelectedRecipeJob) {
+                Label("Export RecipeJob", systemImage: "square.and.arrow.up.on.square")
+            }
+            .buttonStyle(.bordered)
+            .disabled(selectedJob == nil)
+
+            Button(action: checkSelectedRecipeJobForUpdates) {
+                Label("Check For Update", systemImage: "arrow.trianglehead.clockwise")
+            }
+            .buttonStyle(.bordered)
+            .disabled(selectedJob?.recipeUpdateURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
@@ -596,6 +631,13 @@ struct AIControlCenterView: View {
         )
     }
 
+    private var jobsImportAlertBinding: Binding<Bool> {
+        Binding(
+            get: { !jobsImportMessage.isEmpty },
+            set: { if !$0 { jobsImportMessage = "" } }
+        )
+    }
+
     private var pendingJobDeletionBinding: Binding<Bool> {
         Binding(
             get: { pendingJobDeletion != nil },
@@ -628,6 +670,126 @@ struct AIControlCenterView: View {
     private func beginCreatingCronjob() {
         isCreatingNewCronjob = true
         editingCronjob = AICronjob()
+    }
+
+    private func importJobs() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.json]
+        panel.prompt = "Import"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let importedJobs = try decodeImportedJobs(from: data)
+            guard !importedJobs.isEmpty else {
+                jobsImportMessage = "The selected JSON file does not contain any jobs."
+                return
+            }
+
+            let preparedJobs = importedJobs.map(prepareImportedJob)
+            experimentalAICronjobsData.append(contentsOf: preparedJobs)
+
+            if let firstImported = preparedJobs.first {
+                editingCronjob = firstImported
+                isCreatingNewCronjob = false
+            }
+
+            let count = preparedJobs.count
+            jobsImportMessage = count == 1
+                ? "Imported 1 job. It was added disabled so you can review it first."
+                : "Imported \(count) jobs. They were added disabled so you can review them first."
+        } catch {
+            jobsImportMessage = error.localizedDescription
+        }
+    }
+
+    private func decodeImportedJobs(from data: Data) throws -> [AICronjob] {
+        let decoder = JSONDecoder()
+
+        if let jobs = try? decoder.decode([AICronjob].self, from: data) {
+            return jobs
+        }
+
+        if let job = try? decoder.decode(AICronjob.self, from: data) {
+            return [job]
+        }
+
+        if let recipeJobs = try? decoder.decode([AIRecipeJob].self, from: data) {
+            return recipeJobs.map { $0.makeCronjob() }
+        }
+
+        if let recipeJob = try? decoder.decode(AIRecipeJob.self, from: data) {
+            return [recipeJob.makeCronjob()]
+        }
+
+        throw NSError(
+            domain: "NotchTerminal.JobImport",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "The selected file is not a valid Agent Job or RecipeJob JSON export."]
+        )
+    }
+
+    private func prepareImportedJob(_ job: AICronjob) -> AICronjob {
+        var imported = job
+        imported.id = UUID()
+        imported.isEnabled = false
+        imported.activationDate = Date().timeIntervalSince1970
+        imported.allowedCommands = sanitizeCommands(imported.allowedCommands)
+        imported.connectedApps = imported.normalizedConnectedApps
+        imported.installedApps = imported.normalizedInstalledApps
+        return imported
+    }
+
+    private func exportSelectedJob() {
+        guard let selectedJob else { return }
+
+        do {
+            let data = try JSONEncoder().encode(selectedJob)
+
+            let panel = NSSavePanel()
+            panel.canCreateDirectories = true
+            panel.nameFieldStringValue = sanitizedJobFileName(selectedJob.name) + ".json"
+            panel.allowedContentTypes = [.json]
+
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            try data.write(to: url)
+        } catch {
+            jobsImportMessage = error.localizedDescription
+        }
+    }
+
+    private func exportSelectedRecipeJob() {
+        guard let selectedJob else { return }
+
+        do {
+            let recipeJob = AIRecipeJob.from(job: selectedJob)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+            let data = try encoder.encode(recipeJob)
+
+            let panel = NSSavePanel()
+            panel.canCreateDirectories = true
+            panel.nameFieldStringValue = sanitizedJobFileName(selectedJob.name) + ".recipejob.json"
+            panel.allowedContentTypes = [.json]
+
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            try data.write(to: url)
+        } catch {
+            jobsImportMessage = error.localizedDescription
+        }
+    }
+
+    private func checkSelectedRecipeJobForUpdates() {
+        jobsImportMessage = "RecipeJob update checks will be available soon."
+    }
+
+    private func sanitizedJobFileName(_ name: String) -> String {
+        let invalid = CharacterSet.alphanumerics.union(.init(charactersIn: "-_" )).inverted
+        let cleaned = name.components(separatedBy: invalid).filter { !$0.isEmpty }.joined(separator: "-")
+        return cleaned.isEmpty ? "job" : cleaned.lowercased()
     }
 
     private func beginCreatingProvider() {

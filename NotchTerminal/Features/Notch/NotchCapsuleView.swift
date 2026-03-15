@@ -649,8 +649,8 @@ struct NotchCapsuleView: View {
             HStack(spacing: 6) {
                 if experimentalFloatingMsgEnabled {
                     Button(action: openAIControlCenter) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 12, weight: .semibold))
+                        Image(systemName: "cpu")
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.85))
                             .padding(8)
                             .contentShape(Circle())

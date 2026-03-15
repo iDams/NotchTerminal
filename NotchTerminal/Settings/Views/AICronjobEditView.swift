@@ -217,6 +217,12 @@ struct AICronjobEditView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if !cronjob.recipeAuthor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("RecipeJob by \(cronjob.recipeAuthor)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Toggle("Enable Job", isOn: $cronjob.isEnabled)
                 .toggleStyle(.switch)
         }

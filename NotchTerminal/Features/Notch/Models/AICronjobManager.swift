@@ -1009,7 +1009,6 @@ public final class AICronjobManager: ObservableObject {
         messages: [AIChatMessage],
         sawToolFailure: Bool
     ) async throws -> String {
-        let providerType = AIProviderType(rawValue: provider) ?? .custom
         let usesOpenAICompletionsTokenField = provider == AIProviderType.openai.rawValue && finalModel.lowercased().hasPrefix("gpt-5")
 
         var forcedMessages = messages
