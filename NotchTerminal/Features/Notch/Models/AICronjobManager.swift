@@ -829,6 +829,10 @@ public final class AICronjobManager: ObservableObject {
                                 log(.error, "Invalid mac_app tool arguments.", false)
                             }
                         } else if toolCall.function.name == "capture_app_window" {
+                            // TODO: Support screenshot capture for Notch Terminal (AICronjobConnectedApp).
+                            // Currently only works for installed macOS apps (AICronjobInstalledApp).
+                            // To support Notch Terminal, we would need to capture by window name/title
+                            // or use the app's bundle identifier (marco.NotchTerminal) if running externally.
                             if let argsData = toolCall.function.arguments.data(using: .utf8),
                                let argsJSON = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any],
                                let bundleIdentifier = argsJSON["bundle_identifier"] as? String,
