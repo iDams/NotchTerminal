@@ -15,23 +15,38 @@ class PassthroughHostingView<Content: View>: NSHostingView<Content> {
         true
     }
 
-    private func interactionRects() -> (notchRect: CGRect, orbRect: CGRect?)? {
-        guard let model = model else { return nil }
+    /// Checks whether a screen-coordinate cursor position falls inside the visible notch shape.
+    /// Called proactively from the mouse-tracking timer to set `ignoresMouseEvents` BEFORE events arrive.
+    func isCursorInsideNotchShape(cursor: NSPoint) -> Bool {
+        guard let model = model, let window = window else { return false }
+        // Convert screen cursor to our local coordinate system.
+        let windowPoint = window.convertPoint(fromScreen: cursor)
+        let localPoint = convert(windowPoint, from: nil)
+
         let hostRect = StartupOrbGeometry.hostRectInPanel(
             panelBounds: bounds,
             model: model,
             shadowPadding: 42
         )
-        return (hostRect.insetBy(dx: -20, dy: -20), nil)
+
+        if model.isExpanded {
+            let cornerRadius: CGFloat = 32
+            let shapePath = NSBezierPath(
+                roundedRect: hostRect.insetBy(dx: -2, dy: -2),
+                xRadius: cornerRadius,
+                yRadius: cornerRadius
+            )
+            return shapePath.contains(localPoint)
+        } else {
+            return hostRect.insetBy(dx: -20, dy: -20).contains(localPoint)
+        }
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard let rects = interactionRects() else { return super.hitTest(point) }
-
-        if rects.notchRect.contains(point) || rects.orbRect?.contains(point) == true {
-            return super.hitTest(point)
-        }
-        return nil
+        // The primary passthrough gating is now done proactively via
+        // panel.ignoresMouseEvents in the mouse-tracking timer.
+        // hitTest only serves as a secondary safety net.
+        return super.hitTest(point)
     }
 }
 
@@ -619,6 +634,23 @@ final class NotchOverlayController {
 
         if !changedDisplays.isEmpty {
             layoutPanels(animated: true, displays: changedDisplays)
+        }
+
+        // Proactively update ignoresMouseEvents EVERY frame for expanded panels.
+        // This must run BEFORE any click arrives so the window server knows whether
+        // to route events to this panel or to windows underneath.
+        for screen in NSScreen.screens {
+            guard let displayID = displayID(for: screen),
+                  let panel = panelsByDisplay[displayID],
+                  let model = modelsByDisplay[displayID] else { continue }
+            guard model.isExpanded else { continue }
+            // Skip if the panel is hidden (fullscreen app, etc.)
+            guard panel.alphaValue > 0 else { continue }
+
+            if let hostingView = panel.contentView as? PassthroughHostingView<AnyView> {
+                let cursorInsideNotch = hostingView.isCursorInsideNotchShape(cursor: cursor)
+                panel.ignoresMouseEvents = !cursorInsideNotch
+            }
         }
     }
 

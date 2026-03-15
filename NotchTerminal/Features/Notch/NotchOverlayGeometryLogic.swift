@@ -94,7 +94,18 @@ enum NotchOverlayGeometryLogic {
         constants: Constants
     ) -> CGRect {
         if isExpanded {
-            return panelFrame.insetBy(dx: -54, dy: -76)
+            // Compute the visual notch rect on screen instead of using the entire panel frame.
+            let visualWidth = CGFloat(1100)
+            let visualHeight = CGFloat(160)
+            let topInset = hasPhysicalNotch ? constants.notchTopInset : constants.noNotchTopInset
+            let visualRect = CGRect(
+                x: screenFrame.midX - visualWidth / 2 + configuration.offsetX,
+                y: screenFrame.maxY - visualHeight - topInset - configuration.offsetY,
+                width: visualWidth,
+                height: visualHeight
+            )
+            // Add a modest margin for comfort, NOT the full panel size.
+            return visualRect.insetBy(dx: -20, dy: -30)
         }
 
         if hasPhysicalNotch && hardwareNotchRect != .zero {
@@ -126,7 +137,18 @@ enum NotchOverlayGeometryLogic {
         constants: Constants
     ) -> Bool {
         if isExpanded {
-            return true
+            // When expanded, only allow mouse events if the cursor is reasonably
+            // close to the visual notch area — not the entire panel.
+            let visualWidth = CGFloat(1100)
+            let visualHeight = CGFloat(160)
+            let topInset = hasPhysicalNotch ? constants.notchTopInset : constants.noNotchTopInset
+            let visualRect = CGRect(
+                x: screenFrame.midX - visualWidth / 2,
+                y: screenFrame.maxY - visualHeight - topInset,
+                width: visualWidth,
+                height: visualHeight
+            )
+            return visualRect.insetBy(dx: -30, dy: -30).contains(cursor)
         }
 
         guard !hasPhysicalNotch else { return false }

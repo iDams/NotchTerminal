@@ -70,13 +70,19 @@ It combines:
 - Restores sessions on launch (work in progress)
 
 ### NotchAgent (Experimental)
+- Dedicated `AI Control Center` window for managing providers and agent jobs
 - Scheduled AI cronjobs that run prompts on a timer or via macOS `launchd`
 - Two execution modes:
   - **App Timer**: runs while NotchTerminal is open
   - **Machine Daemon**: runs via native macOS `launchd`, even when the app is closed
-- User-friendly interval picker (1min–daily) or advanced custom cron expression
+- Global active provider plus optional provider override per job
+- Provider API keys stored in macOS Keychain
+- Built-in provider presets for OpenAI, Z.ai, OpenRouter, Gemini, Anthropic, MiniMax, Groq, DeepSeek, Qwen, Cerebras, LM Studio, Ollama, and custom OpenAI-compatible endpoints
+- User-friendly interval picker (1min-daily) or advanced custom cron expression
+- Per-job command permissions / whitelist for local command tools
+- Job logs with recent execution history, rerun actions, and prompt improvement tools
 - Results displayed in the Notch overlay (if app is open) and/or macOS Notification Center
-- Supports OpenAI, OpenRouter (free), and custom API endpoints
+- Provider connection testing and model selection from the workspace UI
 
 ## Requirements
 
@@ -136,11 +142,14 @@ The shared `Config/Signing.xcconfig` includes that file optionally, so collabora
   - Hit-test debug overlay
   - Extra notch geometry offsets for physical-notch displays
 - `NotchAgent`
-  - Experimental tab for scheduled AI background tasks
-  - Global AI provider configuration (OpenAI / OpenRouter / Custom)
-  - Cronjob list with enable/disable, test, edit, and delete
+  - Experimental AI workspace for provider management and scheduled agent jobs
+  - Dedicated `AI Control Center` window opened from the notch overlay
+  - Global provider selection with optional per-job provider override
+  - Provider API keys stored in Keychain
+  - Cronjob list with enable/disable, test, edit, delete, logs, and prompt improvement
   - Per-job execution mode (App Timer or Machine Daemon)
   - Interval picker or advanced cron expression
+  - Job-level command permissions / whitelist for local command execution
 
 ## Project Structure
 

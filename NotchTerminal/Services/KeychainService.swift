@@ -41,7 +41,7 @@ public enum KeychainService {
             kSecAttrAccount as String: key,
             kSecValueData as String: data,
             kSecAttrAccessible as String: backgroundAccessibleClass
-        ].merging(optionalAccessAttributes(for: key)) { current, _ in current }
+        ]
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
@@ -55,7 +55,7 @@ public enum KeychainService {
             let updateAttributes: [String: Any] = [
                 kSecValueData as String: data,
                 kSecAttrAccessible as String: backgroundAccessibleClass
-            ].merging(optionalAccessAttributes(for: key)) { current, _ in current }
+            ]
 
             let updateStatus = SecItemUpdate(updateQuery as CFDictionary, updateAttributes as CFDictionary)
             if updateStatus != errSecSuccess {
@@ -137,51 +137,5 @@ public enum KeychainService {
 
     private static func keyIdentifier(for providerID: UUID) -> String {
         "apikey.\(providerID.uuidString)"
-    }
-
-    private static func optionalAccessAttributes(for key: String) -> [String: Any] {
-        guard let access = makeAccess(label: "\(service).\(key)") else {
-            return [:]
-        }
-
-        return [kSecAttrAccess as String: access]
-    }
-
-    private static func makeAccess(label: String) -> SecAccess? {
-        let trustedApps = trustedApplications()
-        guard !trustedApps.isEmpty else { return nil }
-
-        var access: SecAccess?
-        let status = SecAccessCreate(label as CFString, trustedApps as CFArray, &access)
-        guard status == errSecSuccess else { return nil }
-        return access
-    }
-
-    private static func trustedApplications() -> [SecTrustedApplication] {
-        trustedApplicationPaths().compactMap { path in
-            var app: SecTrustedApplication?
-            let status = SecTrustedApplicationCreateFromPath(path, &app)
-            guard status == errSecSuccess else { return nil }
-            return app
-        }
-    }
-
-    private static func trustedApplicationPaths() -> [String] {
-        var paths: [String] = []
-
-        if let executablePath = Bundle.main.executablePath, executablePath.hasPrefix("/") {
-            paths.append(executablePath)
-        }
-
-        if let commandPath = ProcessInfo.processInfo.arguments.first, commandPath.hasPrefix("/") {
-            paths.append(commandPath)
-        }
-
-        let installedExecutable = "/Applications/NotchTerminal.app/Contents/MacOS/NotchTerminal"
-        if FileManager.default.isExecutableFile(atPath: installedExecutable) {
-            paths.append(installedExecutable)
-        }
-
-        return Array(Set(paths))
     }
 }
