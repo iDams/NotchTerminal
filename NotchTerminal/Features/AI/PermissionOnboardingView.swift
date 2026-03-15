@@ -98,6 +98,8 @@ struct PermissionOnboardingView: View {
             coordinator.openNotificationsSettings()
         case .accessibility:
             coordinator.openAccessibilitySettings()
+        case .screenRecording:
+            coordinator.openScreenRecordingSettings()
         }
     }
 }

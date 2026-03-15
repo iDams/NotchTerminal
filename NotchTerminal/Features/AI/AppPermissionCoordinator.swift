@@ -12,6 +12,7 @@ final class AppPermissionCoordinator {
     enum PermissionKind: String, CaseIterable, Identifiable {
         case notifications
         case accessibility
+        case screenRecording
 
         var id: String { rawValue }
 
@@ -21,6 +22,8 @@ final class AppPermissionCoordinator {
                 return "Notifications"
             case .accessibility:
                 return "Accessibility"
+            case .screenRecording:
+                return "Screen Recording"
             }
         }
 
@@ -30,6 +33,8 @@ final class AppPermissionCoordinator {
                 return "Allow NotchTerminal to deliver AI job results and alerts."
             case .accessibility:
                 return "Allow NotchTerminal to automate and type into macOS apps for AI jobs."
+            case .screenRecording:
+                return "Allow NotchTerminal to capture app windows so AI jobs can inspect the current UI."
             }
         }
 
@@ -39,6 +44,8 @@ final class AppPermissionCoordinator {
                 return "bell.badge"
             case .accessibility:
                 return "figure.wave"
+            case .screenRecording:
+                return "rectangle.on.rectangle"
             }
         }
     }
@@ -57,6 +64,7 @@ final class AppPermissionCoordinator {
         let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()
         statuses[.notifications] = notificationStatus(from: notificationSettings)
         statuses[.accessibility] = accessibilityStatus()
+        statuses[.screenRecording] = screenRecordingStatus()
         shouldPresentOnboarding = shouldShowInitialPermissionFlow && statuses.values.contains(where: { !$0.isGranted })
     }
 
@@ -66,6 +74,8 @@ final class AppPermissionCoordinator {
             _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         case .accessibility:
             _ = MacAppAutomationService.requestAccessibilityPermissionIfNeeded()
+        case .screenRecording:
+            _ = ScreenCaptureService.requestScreenRecordingPermission()
         }
         await refreshStatuses()
     }
@@ -82,6 +92,11 @@ final class AppPermissionCoordinator {
 
     func openNotificationsSettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    func openScreenRecordingSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") else { return }
         NSWorkspace.shared.open(url)
     }
 
@@ -107,6 +122,14 @@ final class AppPermissionCoordinator {
         return PermissionStatus(
             isGranted: granted,
             detail: granted ? "Granted" : "Needs manual approval in System Settings"
+        )
+    }
+
+    private func screenRecordingStatus() -> PermissionStatus {
+        let granted = ScreenCaptureService.hasScreenRecordingPermission()
+        return PermissionStatus(
+            isGranted: granted,
+            detail: granted ? "Granted" : "Needed before AI can inspect app windows"
         )
     }
 }

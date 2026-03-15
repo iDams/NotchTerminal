@@ -89,16 +89,23 @@ enum MacAppAutomationService {
     }
 
     private static func postText(_ text: String, to pid: pid_t) -> Bool {
+        guard !text.isEmpty else { return true }
         guard let source = CGEventSource(stateID: .combinedSessionState) else { return false }
-        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
-              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) else {
-            return false
+
+        for scalar in text.unicodeScalars {
+            guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
+                  let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) else {
+                return false
+            }
+
+            var utf16Units = Array(String(scalar).utf16)
+            keyDown.keyboardSetUnicodeString(stringLength: utf16Units.count, unicodeString: &utf16Units)
+            keyUp.keyboardSetUnicodeString(stringLength: utf16Units.count, unicodeString: &utf16Units)
+            keyDown.postToPid(pid)
+            keyUp.postToPid(pid)
+            usleep(60_000)
         }
 
-        keyDown.keyboardSetUnicodeString(stringLength: text.utf16.count, unicodeString: Array(text.utf16))
-        keyUp.keyboardSetUnicodeString(stringLength: text.utf16.count, unicodeString: Array(text.utf16))
-        keyDown.postToPid(pid)
-        keyUp.postToPid(pid)
         return true
     }
 

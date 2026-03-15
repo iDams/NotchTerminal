@@ -505,6 +505,8 @@ struct GeneralSettingsView: View {
                             permissionCoordinator.openNotificationsSettings()
                         case .accessibility:
                             permissionCoordinator.openAccessibilitySettings()
+                        case .screenRecording:
+                            permissionCoordinator.openScreenRecordingSettings()
                         }
                     }
                     .buttonStyle(.borderless)

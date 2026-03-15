@@ -36,23 +36,84 @@ public struct AIChatRequest: Codable {
     }
 }
 
+public struct AIChatContentPart: Codable {
+    public let type: String
+    public let text: String?
+    public let imageURL: AIImageURLContent?
+
+    public init(type: String, text: String? = nil, imageURL: AIImageURLContent? = nil) {
+        self.type = type
+        self.text = text
+        self.imageURL = imageURL
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case imageURL = "image_url"
+    }
+}
+
+public struct AIImageURLContent: Codable {
+    public let url: String
+}
+
+public enum AIMessageContent: Codable {
+    case text(String)
+    case parts([AIChatContentPart])
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let string = try? container.decode(String.self) {
+            self = .text(string)
+            return
+        }
+        self = .parts(try container.decode([AIChatContentPart].self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .text(let string):
+            try container.encode(string)
+        case .parts(let parts):
+            try container.encode(parts)
+        }
+    }
+}
+
+public extension AIMessageContent {
+    var plainTextValue: String {
+        switch self {
+        case .text(let string):
+            return string
+        case .parts(let parts):
+            return parts.compactMap(\.text).joined(separator: "\n")
+        }
+    }
+}
+
 public struct AIReasoningSchema: Codable {
     public let enabled: Bool
 }
 
 public struct AIChatMessage: Codable {
     public let role: String // "system", "user", "assistant", "tool"
-    public let content: String? // Optional because tool_calls might not have content
+    public let content: AIMessageContent? // Optional because tool_calls might not have content
     public let toolCalls: [AIToolCall]?
     public let toolCallId: String? // Used when replying as "tool"
     public let reasoningContent: String?
     
-    public init(role: String, content: String? = nil, toolCalls: [AIToolCall]? = nil, toolCallId: String? = nil, reasoningContent: String? = nil) {
+    public init(role: String, content: AIMessageContent? = nil, toolCalls: [AIToolCall]? = nil, toolCallId: String? = nil, reasoningContent: String? = nil) {
         self.role = role
         self.content = content
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
         self.reasoningContent = reasoningContent
+    }
+
+    public init(role: String, text: String, toolCalls: [AIToolCall]? = nil, toolCallId: String? = nil, reasoningContent: String? = nil) {
+        self.init(role: role, content: .text(text), toolCalls: toolCalls, toolCallId: toolCallId, reasoningContent: reasoningContent)
     }
     
     enum CodingKeys: String, CodingKey {
@@ -177,6 +238,23 @@ public extension AIToolSchema {
                         "key": AIPropertySchema(type: "string", description: "Special key to press when action is press_key. Examples: enter, return, escape, tab, delete, up, down, left, right.")
                     ],
                     required: ["action", "bundle_identifier"]
+                )
+            )
+        )
+    }
+
+    static var captureAppWindowTool: AIToolSchema {
+        AIToolSchema(
+            type: "function",
+            function: AIFunctionSchema(
+                name: "capture_app_window",
+                description: "Captures a screenshot of a connected macOS app window so the AI job can inspect the current UI. Requires Screen Recording permission.",
+                parameters: AIFunctionParametersSchema(
+                    type: "object",
+                    properties: [
+                        "bundle_identifier": AIPropertySchema(type: "string", description: "Bundle identifier of the connected macOS app to capture, for example com.apple.calculator")
+                    ],
+                    required: ["bundle_identifier"]
                 )
             )
         )

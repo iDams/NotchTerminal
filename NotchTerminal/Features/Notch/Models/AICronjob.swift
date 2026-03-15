@@ -1,3 +1,6 @@
+import AppKit
+import CoreGraphics
+import Darwin
 import Foundation
 
 public enum AICronjobExecutionMode: String, Codable, Equatable {
@@ -48,6 +51,75 @@ public struct AICronjobInstalledApp: Codable, Equatable, Identifiable, Hashable 
 
     public var promptToken: String {
         "@app:\(bundleIdentifier)"
+    }
+}
+
+public enum ScreenCaptureError: Error, LocalizedError {
+    case message(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .message(let message):
+            return message
+        }
+    }
+}
+
+public enum ScreenCaptureService {
+    public static func hasScreenRecordingPermission() -> Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
+    public static func requestScreenRecordingPermission() -> Bool {
+        CGRequestScreenCaptureAccess()
+    }
+
+    @MainActor
+    public static func capturePNGBase64(for app: AICronjobInstalledApp) -> Result<String, ScreenCaptureError> {
+        guard hasScreenRecordingPermission() else {
+            return .failure(.message("Screen Recording permission is required in System Settings > Privacy & Security > Screen Recording."))
+        }
+
+        guard let runningApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleIdentifier).first else {
+            return .failure(.message("App \(app.displayName) is not currently running."))
+        }
+
+        let options = CGWindowListOption(arrayLiteral: .optionOnScreenOnly, .excludeDesktopElements)
+        guard let windowInfo = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
+            return .failure(.message("Unable to inspect on-screen windows."))
+        }
+
+        guard let targetWindow = windowInfo.first(where: { info in
+            let pid = info[kCGWindowOwnerPID as String] as? pid_t
+            let bounds = info[kCGWindowBounds as String] as? [String: Any]
+            let width = bounds?["Width"] as? CGFloat ?? 0
+            let height = bounds?["Height"] as? CGFloat ?? 0
+            return pid == runningApp.processIdentifier && width > 40 && height > 40
+        }),
+        let windowID = targetWindow[kCGWindowNumber as String] as? CGWindowID else {
+            return .failure(.message("No visible window found for \(app.displayName)."))
+        }
+
+        guard let image = screenshotImage(for: windowID) else {
+            return .failure(.message("Failed to capture \(app.displayName)."))
+        }
+
+        let bitmap = NSBitmapImageRep(cgImage: image)
+        guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            return .failure(.message("Failed to encode screenshot as PNG."))
+        }
+
+        return .success(pngData.base64EncodedString())
+    }
+
+    private static func screenshotImage(for windowID: CGWindowID) -> CGImage? {
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CGWindowListCreateImage") else {
+            return nil
+        }
+
+        typealias Function = @convention(c) (CGRect, CGWindowListOption, CGWindowID, CGWindowImageOption) -> Unmanaged<CGImage>?
+        let function = unsafeBitCast(symbol, to: Function.self)
+        return function(.null, .optionIncludingWindow, windowID, [.bestResolution, .boundsIgnoreFraming])?.takeRetainedValue()
     }
 }
 

@@ -647,13 +647,17 @@ public final class AICronjobManager: ObservableObject {
         let systemPrompt = mergedSystemPrompt(for: providerType, providerInstructions: providerInstructions)
 
         var messages: [AIChatMessage] = [
-            AIChatMessage(role: "system", content: systemPrompt),
-            AIChatMessage(role: "user", content: job.prompt)
+            AIChatMessage(role: "system", text: systemPrompt),
+            AIChatMessage(role: "user", text: job.prompt)
         ]
         let maxTurns = 4
         var currentTurn = 0
         var sawToolFailure = false
         var attemptedCommands = Set<String>()
+        let promptRequiresVisualVerification = requiresVisualVerification(for: job.prompt)
+        var lastVisualActionTurn: Int? = nil
+        var lastCaptureTurn: Int? = nil
+        var pendingVisualVerificationApp: AICronjobInstalledApp? = nil
         log(.info, "Starting run with model \(finalModel).", false)
         
         while currentTurn < maxTurns {
@@ -813,6 +817,10 @@ public final class AICronjobManager: ObservableObject {
                                     sawToolFailure = true
                                     log(.error, toolOutput, false)
                                 } else {
+                                    if action == .typeText || action == .pressKey {
+                                        lastVisualActionTurn = currentTurn
+                                        pendingVisualVerificationApp = job.installedApps.first(where: { $0.bundleIdentifier == bundleIdentifier })
+                                    }
                                     log(.info, "Ran macOS app action: \(action.rawValue) for \(bundleIdentifier)", false)
                                 }
                             } else {
@@ -820,16 +828,91 @@ public final class AICronjobManager: ObservableObject {
                                 sawToolFailure = true
                                 log(.error, "Invalid mac_app tool arguments.", false)
                             }
+                        } else if toolCall.function.name == "capture_app_window" {
+                            if let argsData = toolCall.function.arguments.data(using: .utf8),
+                               let argsJSON = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any],
+                               let bundleIdentifier = argsJSON["bundle_identifier"] as? String,
+                               let app = job.installedApps.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
+                                let screenshotResult = await MainActor.run {
+                                    ScreenCaptureService.capturePNGBase64(for: app)
+                                }
+
+                                switch screenshotResult {
+                                case .success(let base64PNG):
+                                    toolOutput = "Captured screenshot for \(app.displayName)."
+                                    let screenshotFollowup = AIChatMessage(
+                                        role: "user",
+                                        content: .parts([
+                                            AIChatContentPart(type: "text", text: "Here is the latest screenshot for @app:\(bundleIdentifier). Inspect the UI and continue the job."),
+                                            AIChatContentPart(type: "image_url", imageURL: AIImageURLContent(url: "data:image/png;base64,\(base64PNG)"))
+                                        ])
+                                    )
+                                    messages.append(AIChatMessage(role: "tool", text: toolOutput, toolCallId: toolCall.id))
+                                    messages.append(screenshotFollowup)
+                                    lastCaptureTurn = currentTurn
+                                    pendingVisualVerificationApp = nil
+                                    log(.info, "Captured app window for \(bundleIdentifier)", false)
+                                case .failure(let error):
+                                    toolOutput = "Error: \(error.localizedDescription)"
+                                    sawToolFailure = true
+                                    log(.error, toolOutput, false)
+                                }
+                            } else {
+                                toolOutput = "Error: Invalid capture_app_window arguments. Use a connected bundle_identifier."
+                                sawToolFailure = true
+                                log(.error, "Invalid capture_app_window arguments.", false)
+                            }
                         } else {
                             toolOutput = "Error: Unknown tool \(toolCall.function.name)"
                             sawToolFailure = true
                             log(.error, "Unknown tool requested: \(toolCall.function.name)", false)
                         }
                         
-                        messages.append(AIChatMessage(role: "tool", content: toolOutput, toolCallId: toolCall.id))
+                        if toolCall.function.name != "capture_app_window" {
+                            messages.append(AIChatMessage(role: "tool", text: toolOutput, toolCallId: toolCall.id))
+                        }
+                    }
+
+                    if promptRequiresVisualVerification,
+                       let app = pendingVisualVerificationApp,
+                       let visualTurn = lastVisualActionTurn,
+                       (lastCaptureTurn == nil || lastCaptureTurn! < visualTurn) {
+                        let screenshotResult = await MainActor.run {
+                            ScreenCaptureService.capturePNGBase64(for: app)
+                        }
+
+                        switch screenshotResult {
+                        case .success(let base64PNG):
+                            let toolMessage = "Captured final verification screenshot for \(app.displayName)."
+                            messages.append(
+                                AIChatMessage(
+                                    role: "user",
+                                    content: .parts([
+                                        AIChatContentPart(type: "text", text: "Automatic final verification screenshot for @app:\(app.bundleIdentifier). Use this screenshot to verify the visible result before answering."),
+                                        AIChatContentPart(type: "image_url", imageURL: AIImageURLContent(url: "data:image/png;base64,\(base64PNG)"))
+                                    ])
+                                )
+                            )
+                            lastCaptureTurn = currentTurn
+                            pendingVisualVerificationApp = nil
+                            log(.info, toolMessage, false)
+                        case .failure(let error):
+                            let failure = "FAILED: Final screenshot verification is required after the latest app interaction, but automatic capture failed. \(error.localizedDescription)"
+                            log(.error, failure, false)
+                            broadcast(failure, job, isBackground)
+                            return
+                        }
                     }
 
                     if currentTurn >= maxTurns {
+                        if promptRequiresVisualVerification,
+                           let visualTurn = lastVisualActionTurn,
+                           lastCaptureTurn == nil || lastCaptureTurn! < visualTurn {
+                            let failure = "FAILED: Final screenshot verification is required after the latest app interaction, but no final capture was completed."
+                            log(.error, failure, false)
+                            broadcast(failure, job, isBackground)
+                            return
+                        }
                         do {
                             let forcedAnswer = try await requestForcedFinalAnswer(
                                 url: url,
@@ -856,10 +939,19 @@ public final class AICronjobManager: ObservableObject {
                 
                 // Final answer
                 let cleanContent = sanitizedFinalResponse(
-                    content: message.content ?? "",
+                    content: message.content?.plainTextValue ?? "",
                     reasoningContent: message.reasoningContent
                 )
                 print("✅ [Agent] Final Message: \(cleanContent)")
+
+                if promptRequiresVisualVerification,
+                   let visualTurn = lastVisualActionTurn,
+                   lastCaptureTurn == nil || lastCaptureTurn! < visualTurn {
+                    let failure = "FAILED: Final screenshot verification is required after the latest app interaction, but no final capture was completed."
+                    log(.error, failure, false)
+                    broadcast(failure, job, isBackground)
+                    return
+                }
 
                 if !cleanContent.isEmpty {
                     log(.success, "Run finished with a final answer.", false)
@@ -878,11 +970,11 @@ public final class AICronjobManager: ObservableObject {
                     messages.append(
                         AIChatMessage(
                             role: "user",
-                            content: sawToolFailure
-                                ? "Reply now with a short final answer only. Do not call more tools unless a completely different command is essential. Explain the failure and the best next step."
-                                : "Reply now with a short final answer only. Do not call tools unless strictly necessary."
-                        )
-                    )
+                    text: sawToolFailure
+                        ? "Reply now with a short final answer only. Do not call more tools unless a completely different command is essential. Explain the failure and the best next step."
+                        : "Reply now with a short final answer only. Do not call tools unless strictly necessary."
+                )
+            )
                     continue
                 }
 
@@ -920,7 +1012,7 @@ public final class AICronjobManager: ObservableObject {
         forcedMessages.append(
             AIChatMessage(
                 role: "user",
-                content: sawToolFailure
+                text: sawToolFailure
                     ? "Stop calling tools. Write the final answer now using the command results and failures already collected. Mention blocked commands or offline services clearly."
                     : "Stop calling tools. Write the final answer now using the command results already collected."
             )
@@ -957,7 +1049,7 @@ public final class AICronjobManager: ObservableObject {
 
         let aiResponse = try JSONDecoder().decode(AIChatResponse.self, from: data)
         let message = aiResponse.choices.first?.message
-        return sanitizedFinalResponse(content: message?.content ?? "", reasoningContent: message?.reasoningContent)
+        return sanitizedFinalResponse(content: message?.content?.plainTextValue ?? "", reasoningContent: message?.reasoningContent)
     }
 
     private func effectiveAllowedCommands(for job: AICronjob) -> Set<String> {
@@ -971,8 +1063,20 @@ public final class AICronjobManager: ObservableObject {
         }
         if !job.installedApps.isEmpty || job.prompt.contains("@app:") {
             tools.append(.macAppTool)
+            tools.append(.captureAppWindowTool)
         }
         return tools
+    }
+
+    private static func requiresVisualVerification(for prompt: String) -> Bool {
+        let lowercased = prompt.localizedLowercase
+        return lowercased.contains("capture_app_window")
+            || lowercased.contains("screenshot")
+            || lowercased.contains("inspect the screenshot")
+            || lowercased.contains("visible result")
+            || lowercased.contains("do not infer")
+            || lowercased.contains("do not guess")
+            || lowercased.contains("only answer using the final screenshot")
     }
 
     private static func allowedCommands(for job: AICronjob, defaults: UserDefaults) -> Set<String> {
@@ -1032,8 +1136,8 @@ public final class AICronjobManager: ObservableObject {
         var requestObject = AIChatRequest(
             model: finalModel,
             messages: [
-                AIChatMessage(role: "system", content: systemPrompt),
-                AIChatMessage(role: "user", content: userPrompt)
+                AIChatMessage(role: "system", text: systemPrompt),
+                AIChatMessage(role: "user", text: userPrompt)
             ],
             toolChoice: "none",
             maxTokens: usesOpenAICompletionsTokenField ? nil : providerType.defaultResponseTokenLimit,
@@ -1067,7 +1171,7 @@ public final class AICronjobManager: ObservableObject {
         }
 
         let completion = try JSONDecoder().decode(AIChatResponse.self, from: data)
-        let text = completion.choices.first?.message.content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let text = completion.choices.first?.message.content?.plainTextValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !text.isEmpty else {
             throw CommandExecutionError.executionFailed("Provider returned an empty prompt suggestion.")
         }
@@ -1118,6 +1222,7 @@ public final class AICronjobManager: ObservableObject {
 
         parts.append("When the prompt mentions @notch-terminal, you may use the notch_terminal tool. Prefer action write_text with a text value when the user wants the terminal to type something, and set submit to true only when the text should actually be executed.")
         parts.append("When the prompt mentions @app:bundle.identifier, use the mac_app tool instead of the terminal. Prefer open_app to launch a connected macOS app, activate_app to bring it to the front, type_text to send text into the focused app, and press_key for keys like enter or tab.")
+        parts.append("If you need to inspect the current UI of a connected macOS app, use capture_app_window and reason over the returned screenshot before deciding the next action.")
 
         let providerHint = providerCompatibilityHint(for: providerType)
         if !providerHint.isEmpty {
