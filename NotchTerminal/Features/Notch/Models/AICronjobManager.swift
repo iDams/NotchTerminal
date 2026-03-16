@@ -69,7 +69,12 @@ public final class AICronjobManager: ObservableObject {
         for (id, task) in cronjobTasks {
             if let active = activeJobs.first(where: { $0.id == id }) {
                 let running = runningCronjobs[id]
-                if running?.interval != active.interval || running?.prompt != active.prompt || running?.name != active.name || running?.mode != active.mode || running?.cronExpression != active.cronExpression {
+                if running?.interval != active.interval
+                    || running?.prompt != active.prompt
+                    || running?.name != active.name
+                    || running?.mode != active.mode
+                    || running?.cronExpression != active.cronExpression
+                    || running?.backgroundExecutablePath != active.backgroundExecutablePath {
                     task.cancel()
                     cronjobTasks.removeValue(forKey: id)
                     runningCronjobs.removeValue(forKey: id)
@@ -96,10 +101,11 @@ public final class AICronjobManager: ObservableObject {
         // Start timers or LaunchAgents for active jobs
         for job in activeJobs {
             if job.mode == .machine {
+                let machineJob = refreshedMachineJob(job)
                 // If the job is machine mode and it's not already running as one via our tracker
-                if runningCronjobs[job.id] == nil {
-                    updateLaunchAgent(for: job)
-                    runningCronjobs[job.id] = job
+                if runningCronjobs[machineJob.id] == nil {
+                    updateLaunchAgent(for: machineJob)
+                    runningCronjobs[machineJob.id] = machineJob
                 }
             } else {
                 if cronjobTasks[job.id] == nil {
@@ -153,14 +159,28 @@ public final class AICronjobManager: ObservableObject {
         try? FileManager.default.createDirectory(at: agentsURL, withIntermediateDirectories: true)
         return agentsURL.appendingPathComponent("com.notchterminal.cronjob.\(id.uuidString).plist")
     }
+
+    private func refreshedMachineJob(_ job: AICronjob) -> AICronjob {
+        var updatedJob = job
+        let resolvedPath = resolvedBackgroundExecutablePath(preferred: job.backgroundExecutablePath)
+        guard updatedJob.backgroundExecutablePath != resolvedPath else {
+            return updatedJob
+        }
+
+        updatedJob.backgroundExecutablePath = resolvedPath
+        if let index = experimentalAICronjobsData.firstIndex(where: { $0.id == job.id }) {
+            experimentalAICronjobsData[index] = updatedJob
+        }
+        return updatedJob
+    }
     
     private func updateLaunchAgent(for job: AICronjob) {
-        guard let intervals = parseCronToLaunchdIntervals(job.cronExpression) else {
-            print("❌ Invalid cron expression: \(job.cronExpression)")
+        guard let schedule = launchdSchedule(for: job.cronExpression) else {
+            print("❌ Invalid cron expression for \(job.name): \(job.cronExpression)")
             return
         }
         
-        let executablePath = resolvedBackgroundExecutablePath()
+        let executablePath = resolvedBackgroundExecutablePath(preferred: job.backgroundExecutablePath)
         let plistURL = launchAgentURL(for: job.id)
         let label = "com.notchterminal.cronjob.\(job.id.uuidString)"
         let uid = getuid()
@@ -168,7 +188,7 @@ public final class AICronjobManager: ObservableObject {
         let plistDict: [String: Any] = [
             "Label": label,
             "ProgramArguments": [executablePath, "--run-cronjob", job.id.uuidString],
-            "StartCalendarInterval": intervals,
+            "StartCalendarInterval": schedule.intervals,
             "RunAtLoad": false
         ]
         
@@ -206,15 +226,18 @@ public final class AICronjobManager: ObservableObject {
         }
     }
 
-    private func resolvedBackgroundExecutablePath() -> String {
-        let bundledPath = Bundle.main.executablePath ?? ""
+    private func resolvedBackgroundExecutablePath(preferred: String = "") -> String {
+        let fileManager = FileManager.default
+        let trimmedPreferred = preferred.trimmingCharacters(in: .whitespacesAndNewlines)
         let installedPath = "/Applications/NotchTerminal.app/Contents/MacOS/NotchTerminal"
+        let bundledPath = Bundle.main.executablePath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        if FileManager.default.isExecutableFile(atPath: installedPath) {
-            return installedPath
+        let candidates = [trimmedPreferred, installedPath, bundledPath].filter { !$0.isEmpty }
+        if let firstMatch = candidates.first(where: { fileManager.isExecutableFile(atPath: $0) }) {
+            return firstMatch
         }
 
-        return bundledPath.isEmpty ? installedPath : bundledPath
+        return installedPath
     }
     
     private func removeLaunchAgent(for id: UUID) {
@@ -237,46 +260,9 @@ public final class AICronjobManager: ObservableObject {
         }
     }
     
-    private func parseCronToLaunchdIntervals(_ cron: String) -> [[String: Int]]? {
-        let parts = cron.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        guard parts.count >= 5 else { return nil }
-        
-        let minPart = parts[0]
-        let hourPart = parts[1]
-        
-        var dicts: [[String: Int]] = []
-        
-        let minValues: [Int]
-        if minPart == "*" {
-            minValues = [-1]
-        } else if minPart.hasPrefix("*/"), let step = Int(minPart.dropFirst(2)), step > 0 {
-            minValues = Array(stride(from: 0, to: 60, by: step))
-        } else if let exact = Int(minPart) {
-            minValues = [exact]
-        } else {
-            return nil
-        }
-        
-        let hourValues: [Int]
-        if hourPart == "*" {
-            hourValues = [-1]
-        } else if hourPart.hasPrefix("*/"), let step = Int(hourPart.dropFirst(2)), step > 0 {
-            hourValues = Array(stride(from: 0, to: 24, by: step))
-        } else if let exact = Int(hourPart) {
-            hourValues = [exact]
-        } else {
-            return nil
-        }
-        
-        for h in hourValues {
-            for m in minValues {
-                var d: [String: Int] = [:]
-                if h != -1 { d["Hour"] = h }
-                if m != -1 { d["Minute"] = m }
-                dicts.append(d)
-            }
-        }
-        return dicts
+    private func launchdSchedule(for cron: String) -> CronExpression.LaunchdSchedule? {
+        guard let expression = try? CronExpression(cron) else { return nil }
+        return expression.makeLaunchdSchedule()
     }
     
     private func broadcastMessage(_ text: String) {
@@ -426,6 +412,12 @@ public final class AICronjobManager: ObservableObject {
               let jobs = try? JSONDecoder().decode([AICronjob].self, from: jsonData),
               let job = jobs.first(where: { $0.id == uuid && $0.isEnabled && $0.mode == .machine }) else {
             print("❌ [BackgroundJob] Job not found or disabled")
+            return
+        }
+
+        if let cron = try? CronExpression(job.cronExpression),
+           !cron.matches(Date()) {
+            print("⏭️ [BackgroundJob] Skipped \(job.name) because the current date does not match \(job.cronExpression)")
             return
         }
         
@@ -804,15 +796,13 @@ public final class AICronjobManager: ObservableObject {
                                !bundleIdentifier.isEmpty {
                                 let text = argsJSON["text"] as? String
                                 let key = argsJSON["key"] as? String
-                                toolOutput = await MainActor.run {
-                                    MacAppAgentToolRunner.run(
-                                        action: action,
-                                        bundleIdentifier: bundleIdentifier,
-                                        installedApps: job.installedApps,
-                                        text: text,
-                                        key: key
-                                    )
-                                }
+                                toolOutput = await MacAppAgentToolRunner.run(
+                                    action: action,
+                                    bundleIdentifier: bundleIdentifier,
+                                    installedApps: job.installedApps,
+                                    text: text,
+                                    key: key
+                                )
                                 if toolOutput.hasPrefix("Error:") {
                                     sawToolFailure = true
                                     log(.error, toolOutput, false)

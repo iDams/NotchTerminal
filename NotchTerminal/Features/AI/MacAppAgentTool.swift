@@ -23,7 +23,7 @@ enum MacAppAgentToolAction: String, Codable, CaseIterable {
 
 enum MacAppAgentToolRunner {
     @MainActor
-    static func run(action: MacAppAgentToolAction, bundleIdentifier: String, installedApps: [AICronjobInstalledApp], text: String? = nil, key: String? = nil) -> String {
+    static func run(action: MacAppAgentToolAction, bundleIdentifier: String, installedApps: [AICronjobInstalledApp], text: String? = nil, key: String? = nil) async -> String {
         guard let app = installedApps.first(where: { $0.bundleIdentifier == bundleIdentifier }) else {
             return "Error: App \(bundleIdentifier) is not connected to this job."
         }
@@ -57,12 +57,12 @@ enum MacAppAgentToolRunner {
             guard let text, !text.isEmpty else {
                 return "Error: type_text requires a text value."
             }
-            return MacAppAutomationService.typeText(text, into: app)
+            return await MacAppAutomationService.typeText(text, into: app)
         case .pressKey:
             guard let key, !key.isEmpty else {
                 return "Error: press_key requires a key value."
             }
-            return MacAppAutomationService.pressKey(key, in: app)
+            return await MacAppAutomationService.pressKey(key, in: app)
         }
     }
 }

@@ -150,6 +150,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
     public var mode: AICronjobExecutionMode = .app
     public var interval: Double = 60.0
     public var cronExpression: String = "0 * * * *"
+    public var backgroundExecutablePath: String = ""
 
     public var isEnabled: Bool = false
     public var autoDisable: Bool = true
@@ -196,6 +197,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         case mode
         case interval
         case cronExpression
+        case backgroundExecutablePath
         case isEnabled
         case autoDisable
         case debugLoggingEnabled
@@ -221,6 +223,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         mode = try container.decodeIfPresent(AICronjobExecutionMode.self, forKey: .mode) ?? .app
         interval = try container.decodeIfPresent(Double.self, forKey: .interval) ?? 60.0
         cronExpression = try container.decodeIfPresent(String.self, forKey: .cronExpression) ?? "0 * * * *"
+        backgroundExecutablePath = try container.decodeIfPresent(String.self, forKey: .backgroundExecutablePath) ?? ""
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? false
         autoDisable = try container.decodeIfPresent(Bool.self, forKey: .autoDisable) ?? true
         debugLoggingEnabled = try container.decodeIfPresent(Bool.self, forKey: .debugLoggingEnabled) ?? false
@@ -246,6 +249,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         try container.encode(mode, forKey: .mode)
         try container.encode(interval, forKey: .interval)
         try container.encode(cronExpression, forKey: .cronExpression)
+        try container.encode(backgroundExecutablePath, forKey: .backgroundExecutablePath)
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encode(autoDisable, forKey: .autoDisable)
         try container.encode(debugLoggingEnabled, forKey: .debugLoggingEnabled)
@@ -270,6 +274,7 @@ public struct AICronjob: Codable, Identifiable, Equatable {
         lhs.mode == rhs.mode &&
         lhs.interval == rhs.interval &&
         lhs.cronExpression == rhs.cronExpression &&
+        lhs.backgroundExecutablePath == rhs.backgroundExecutablePath &&
         lhs.isEnabled == rhs.isEnabled &&
         lhs.autoDisable == rhs.autoDisable &&
         lhs.debugLoggingEnabled == rhs.debugLoggingEnabled

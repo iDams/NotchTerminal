@@ -25,38 +25,40 @@ enum MacAppAutomationService {
         return AXIsProcessTrustedWithOptions(options)
     }
 
-    @MainActor
-    static func typeText(_ text: String, into app: AICronjobInstalledApp) -> String {
+    static func typeText(_ text: String, into app: AICronjobInstalledApp) async -> String {
         guard ensureAccessibilityPermission() else {
             return "Error: NotchTerminal needs Accessibility permission in System Settings > Privacy & Security > Accessibility before it can type into macOS apps."
         }
 
-        guard let runningApp = ensureRunningApp(for: app) else {
+        guard let runningApp = await ensureRunningApp(for: app) else {
             return "Error: Could not launch or find \(app.displayName)."
         }
 
-        runningApp.activate()
-        Thread.sleep(forTimeInterval: 0.25)
+        await MainActor.run {
+            runningApp.activate()
+        }
+        try? await Task.sleep(nanoseconds: 250_000_000)
 
-        guard postText(text, to: runningApp.processIdentifier) else {
+        guard await postText(text, to: runningApp.processIdentifier) else {
             return "Error: Failed to type into \(app.displayName)."
         }
 
         return "Typed text into \(app.displayName): \(text)"
     }
 
-    @MainActor
-    static func pressKey(_ key: String, in app: AICronjobInstalledApp) -> String {
+    static func pressKey(_ key: String, in app: AICronjobInstalledApp) async -> String {
         guard ensureAccessibilityPermission() else {
             return "Error: NotchTerminal needs Accessibility permission in System Settings > Privacy & Security > Accessibility before it can send keys to macOS apps."
         }
 
-        guard let runningApp = ensureRunningApp(for: app) else {
+        guard let runningApp = await ensureRunningApp(for: app) else {
             return "Error: Could not launch or find \(app.displayName)."
         }
 
-        runningApp.activate()
-        Thread.sleep(forTimeInterval: 0.2)
+        await MainActor.run {
+            runningApp.activate()
+        }
+        try? await Task.sleep(nanoseconds: 200_000_000)
 
         guard let keyCode = keyCode(for: key) else {
             return "Error: Unsupported key \(key). Try enter, return, escape, tab, delete, up, down, left, or right."
@@ -69,26 +71,27 @@ enum MacAppAutomationService {
         return "Pressed \(key) in \(app.displayName)."
     }
 
-    @MainActor
-    private static func ensureRunningApp(for app: AICronjobInstalledApp) -> NSRunningApplication? {
+    private static func ensureRunningApp(for app: AICronjobInstalledApp) async -> NSRunningApplication? {
         if let runningApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleIdentifier).first {
             return runningApp
         }
 
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.activates = true
-
-        var launchedApp: NSRunningApplication?
-        let semaphore = DispatchSemaphore(value: 0)
-        NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: app.appPath), configuration: configuration) { app, _ in
-            launchedApp = app
-            semaphore.signal()
+        let launchedApp = await withCheckedContinuation { continuation in
+            Task { @MainActor in
+                let configuration = NSWorkspace.OpenConfiguration()
+                configuration.activates = true
+                NSWorkspace.shared.openApplication(
+                    at: URL(fileURLWithPath: app.appPath),
+                    configuration: configuration
+                ) { launchedApp, _ in
+                    continuation.resume(returning: launchedApp)
+                }
+            }
         }
-        _ = semaphore.wait(timeout: .now() + 3)
         return launchedApp ?? NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleIdentifier).first
     }
 
-    private static func postText(_ text: String, to pid: pid_t) -> Bool {
+    private static func postText(_ text: String, to pid: pid_t) async -> Bool {
         guard !text.isEmpty else { return true }
         guard let source = CGEventSource(stateID: .combinedSessionState) else { return false }
 
@@ -103,7 +106,7 @@ enum MacAppAutomationService {
             keyUp.keyboardSetUnicodeString(stringLength: utf16Units.count, unicodeString: &utf16Units)
             keyDown.postToPid(pid)
             keyUp.postToPid(pid)
-            usleep(60_000)
+            try? await Task.sleep(nanoseconds: 60_000_000)
         }
 
         return true

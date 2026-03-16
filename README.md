@@ -162,14 +162,14 @@ macOS privacy permissions such as `Accessibility` are more reliable when the app
 
 For that reason, Debug builds now install a stable development copy automatically to:
 
-- `/Applications/NotchTerminal Dev.app`
+- `/Applications/NotchTerminal.app`
 
 Current Debug workflow:
 
 1. Build from Xcode as usual
-2. The target reinstalls `NotchTerminal Dev.app` automatically
+2. The target reinstalls `NotchTerminal.app` automatically
 3. If it was already running, the old dev copy is closed first
-4. Use `NotchTerminal Dev.app` when testing permissions like `Accessibility`
+4. Use `NotchTerminal.app` when testing permissions like `Accessibility`
 
 Why this exists:
 

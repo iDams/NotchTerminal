@@ -67,6 +67,7 @@ struct AIControlCenterView: View {
     @State private var providerTestMessage = ""
     @State private var providerTestSucceeded = false
     @State private var jobsImportMessage = ""
+    @State private var importingRecipe: AIRecipeJob?
 
     private let providerInstructionPresets: [AIProviderType: String] = [
         .minimax: "You are running inside NotchTerminal, a macOS automation agent with strict command safety rules. Never reveal hidden reasoning or thinking tags. Use one simple command at a time. Do not use pipes, redirects, shell chaining, or GUI-launch commands unless explicitly allowed. If a command fails because a service is offline, permissions block it, or the whitelist forbids it, stop and give a short final diagnosis with the best next step.",
@@ -184,6 +185,20 @@ struct AIControlCenterView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .sheet(isPresented: Binding(
+            get: { importingRecipe != nil },
+            set: { if !$0 { importingRecipe = nil } }
+        )) {
+            if let recipe = importingRecipe {
+                RecipeImportReviewView(recipe: recipe, onSave: { finalRecipe in
+                    let newJob = finalRecipe.makeCronjob()
+                    let prepared = prepareImportedJob(newJob)
+                    experimentalAICronjobsData.append(prepared)
+                    editingCronjob = prepared
+                    isCreatingNewCronjob = false
+                })
+            }
+        }
         .sheet(isPresented: $showingPermissionsEditor) {
             if let jobBinding = editingCronjobBinding {
                 AIJobPermissionsSheet(
@@ -252,7 +267,7 @@ struct AIControlCenterView: View {
     }
 
     private var sidebar: some View {
-        List([AIWorkspaceSection.jobs], selection: selectedSectionBinding) { section in
+        List(AIWorkspaceSection.allCases, selection: selectedSectionBinding) { section in
             AIWorkspaceSidebarRow(
                 title: section.title,
                 subtitle: section.subtitle,
@@ -263,46 +278,11 @@ struct AIControlCenterView: View {
         }
         .listStyle(.sidebar)
         .safeAreaInset(edge: .bottom) {
-            Button {
-                selectedSection = .providers
-            } label: {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Manage Providers")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        Spacer(minLength: 0)
-
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-
-                    AIWorkspaceMiniStatusRow(
-                        title: "Active Provider",
-                        value: activeProvider?.name ?? "None selected",
-                        systemImage: "bolt.horizontal.circle"
-                    )
-
-                    AIWorkspaceMiniStatusRow(
-                        title: "Model",
-                        value: activeProvider?.effectiveModel ?? "None selected",
-                        systemImage: "cpu"
-                    )
-
-                    AIWorkspaceMiniStatusRow(
-                        title: "API Key",
-                        value: activeProvider == nil ? "No provider" : (activeProviderHasAPIKey ? "Connected" : "Missing key"),
-                        systemImage: activeProviderHasAPIKey ? "key.fill" : "exclamationmark.triangle"
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(selectedSection == .providers ? AnyShapeStyle(Color.accentColor.opacity(0.10)) : AnyShapeStyle(.regularMaterial))
-            }
-            .buttonStyle(.plain)
+            AIWorkspaceSidebarFooter(
+                activeProviderName: activeProvider?.name ?? "None selected",
+                modelName: activeProvider?.effectiveModel ?? "No model",
+                isConnected: activeProvider != nil && activeProviderHasAPIKey
+            )
         }
     }
 
@@ -320,8 +300,6 @@ struct AIControlCenterView: View {
         VStack(alignment: .leading, spacing: 0) {
             jobsHeader
 
-            Divider()
-
             HSplitView {
                 AIWorkspacePane(title: "Jobs") {
                     if experimentalAICronjobsData.isEmpty {
@@ -331,37 +309,42 @@ struct AIControlCenterView: View {
                             systemImage: "sparkles.rectangle.stack"
                         )
                     } else {
-                        List {
-                            ForEach(experimentalAICronjobsData) { job in
-                                AIJobRow(
-                                    job: job,
-                                    isSelected: editingCronjob?.id == job.id && !isCreatingNewCronjob,
-                                    onSelect: {
-                                        isCreatingNewCronjob = false
-                                        editingCronjob = job
-                                    },
-                                    onRun: {
-                                        runJobForDevelopment(job)
-                                    },
-                                    onViewLogs: {
-                                        viewingLogsForJob = job
-                                    },
-                                    onDelete: {
-                                        pendingJobDeletion = job
-                                    }
-                                )
-                                .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
+                        VStack(spacing: 0) {
+                            AIJobListHeader()
+
+                            List {
+                                ForEach(experimentalAICronjobsData) { job in
+                                    AIJobRow(
+                                        job: job,
+                                        isSelected: editingCronjob?.id == job.id && !isCreatingNewCronjob,
+                                        onSelect: {
+                                            isCreatingNewCronjob = false
+                                            editingCronjob = job
+                                        },
+                                        onRun: {
+                                            runJobForDevelopment(job)
+                                        },
+                                        onViewLogs: {
+                                            viewingLogsForJob = job
+                                        },
+                                        onDelete: {
+                                            pendingJobDeletion = job
+                                        }
+                                    )
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                }
                             }
+                            .listStyle(.plain)
+                            .scrollContentBackground(.hidden)
                         }
-                        .listStyle(.plain)
-                        .scrollContentBackground(.hidden)
+                        .background(Color(nsColor: .controlBackgroundColor).opacity(0.12))
                     }
                 }
                 .frame(minWidth: 300, idealWidth: 340, maxWidth: 400)
 
-                AIWorkspacePane(title: selectedJob == nil ? "Details" : (isCreatingNewCronjob ? "New Job" : "Job Details")) {
+                AIWorkspacePane(title: "") {
                     if let jobBinding = editingCronjobBinding {
                         AICronjobEditView(
                             cronjob: jobBinding,
@@ -395,20 +378,32 @@ struct AIControlCenterView: View {
             }
             .layoutPriority(1)
 
-            Divider()
-
             statusFooter(
                 summaryItems: jobsFooterItems,
-                warning: jobsProviderWarning,
-                actionTitle: "New Job",
-                actionSystemImage: "plus",
-                action: beginCreatingCronjob
-            )
+                warning: jobsProviderWarning
+            ) {
+                Menu {
+                    Button("Blank Agent Job", systemImage: "doc.badge.plus") {
+                        beginCreatingCronjob()
+                    }
+                    Button("Import via File...", systemImage: "doc.text") {
+                        importJobs()
+                    }
+                    Button("Import from Clipboard", systemImage: "doc.on.clipboard") {
+                        importJobFromClipboard()
+                    }
+                } label: {
+                    Label("New Job", systemImage: "plus")
+                }
+                .fixedSize()
+            }
         }
     }
 
     private var providersWorkspace: some View {
         VStack(alignment: .leading, spacing: 0) {
+            providersHeader
+
             HSplitView {
                 AIWorkspacePane(title: "Providers") {
                     if providers.isEmpty {
@@ -418,34 +413,37 @@ struct AIControlCenterView: View {
                             systemImage: "server.rack"
                         )
                     } else {
-                        List {
-                            ForEach(providers) { provider in
-                                AIProviderRow(
-                                    provider: provider,
-                                    isSelected: editingProvider?.id == provider.id && !isCreatingNewProvider,
-                                    isActive: activeAIProviderID == provider.id,
-                                    hasAPIKey: provider.type.requiresAPIKey ? (KeychainService.getAPIKey(for: provider.id) != nil) : true,
-                                    onSelect: { loadProviderEditor(provider, isCreating: false) },
-                                    onSetActive: { activeAIProviderID = provider.id },
-                                    onToggle: { isEnabled in
-                                        updateProvider(provider) { item in
-                                            item.isEnabled = isEnabled
-                                        }
-                                    },
-                                    onDelete: { deleteProvider(provider) }
-                                )
-                                .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
+                        VStack(spacing: 0) {
+                            List {
+                                ForEach(providers) { provider in
+                                    AIProviderRow(
+                                        provider: provider,
+                                        isSelected: editingProvider?.id == provider.id && !isCreatingNewProvider,
+                                        isActive: activeAIProviderID == provider.id,
+                                        hasAPIKey: provider.type.requiresAPIKey ? (KeychainService.getAPIKey(for: provider.id) != nil) : true,
+                                        onSelect: { loadProviderEditor(provider, isCreating: false) },
+                                        onSetActive: { activeAIProviderID = provider.id },
+                                        onToggle: { isEnabled in
+                                            updateProvider(provider) { item in
+                                                item.isEnabled = isEnabled
+                                            }
+                                        },
+                                        onDelete: { deleteProvider(provider) }
+                                    )
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                }
                             }
+                            .listStyle(.plain)
+                            .scrollContentBackground(.hidden)
                         }
-                        .listStyle(.plain)
-                        .scrollContentBackground(.hidden)
+                        .background(Color(nsColor: .controlBackgroundColor).opacity(0.12))
                     }
                 }
                 .frame(minWidth: 320, idealWidth: 360, maxWidth: 420)
 
-                AIWorkspacePane(title: editingProvider == nil ? "Details" : (isCreatingNewProvider ? "New Provider" : "Provider Details")) {
+                AIWorkspacePane(title: editingProvider == nil ? "" : "") {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             if let editingProvider {
@@ -497,39 +495,28 @@ struct AIControlCenterView: View {
             }
             .layoutPriority(1)
 
-            Divider()
-
             statusFooter(
                 summaryItems: providersFooterItems,
-                warning: nil,
-                actionTitle: "Add Provider",
-                actionSystemImage: "plus",
-                action: beginCreatingProvider
-            )
+                warning: nil
+            ) {
+                EmptyView()
+            }
         }
     }
 
-    private var jobsHeader: some View {
+    private var providersHeader: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                if let selectedJob {
-                    Text(selectedJob.name)
-                        .font(.title3.weight(.semibold))
-                    HStack(spacing: 8) {
-                        Text(scheduleDescription(for: selectedJob))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        if !selectedJob.recipeAuthor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Text("By \(selectedJob.recipeAuthor)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                if let editingProvider {
+                    Text(editingProvider.name)
+                        .font(.headline.weight(.semibold))
+                    Text(editingProvider.type.displayName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 } else {
-                    Text("Agent Jobs")
-                        .font(.title3.weight(.semibold))
-                    Text("Select a job to edit")
+                    Text("Providers")
+                        .font(.headline.weight(.semibold))
+                    Text("Connections and models")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -537,26 +524,80 @@ struct AIControlCenterView: View {
 
             Spacer(minLength: 0)
 
-            Button(action: importJobs) {
-                Label("Import RecipeJob", systemImage: "square.and.arrow.down")
+            if let activeProvider {
+                Text(activeProvider.name)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+                    .foregroundStyle(Color.accentColor)
             }
-            .buttonStyle(.bordered)
 
-            Button(action: exportSelectedRecipeJob) {
-                Label("Export RecipeJob", systemImage: "square.and.arrow.up.on.square")
+            Button(action: beginCreatingProvider) {
+                Label("Add Provider", systemImage: "plus")
             }
             .buttonStyle(.bordered)
-            .disabled(selectedJob == nil)
-
-            Button(action: checkSelectedRecipeJobForUpdates) {
-                Label("Check For Update", systemImage: "arrow.trianglehead.clockwise")
-            }
-            .buttonStyle(.bordered)
-            .disabled(selectedJob?.recipeUpdateURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .background(.regularMaterial)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+
+    private var jobsHeader: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                if let selectedJob {
+                    Text(selectedJob.name)
+                        .font(.headline.weight(.semibold))
+                    HStack(spacing: 8) {
+                        Text(scheduleDescription(for: selectedJob))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Text(selectedJob.isEnabled ? "Active" : "Paused")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background((selectedJob.isEnabled ? Color.green : Color.secondary).opacity(0.14), in: Capsule())
+                            .foregroundStyle(selectedJob.isEnabled ? Color.green : Color.secondary)
+                    }
+                } else {
+                    Text("Agent Jobs")
+                        .font(.headline.weight(.semibold))
+                    Text("Automations and prompts")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            if let selectedJob {
+                Button {
+                    runJobForDevelopment(selectedJob)
+                } label: {
+                    Label("Run", systemImage: "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            Menu {
+                Button("Import RecipeJob", systemImage: "square.and.arrow.down", action: importJobs)
+                Button("Import from Clipboard", systemImage: "doc.on.clipboard", action: importJobFromClipboard)
+                Divider()
+                Button("Export RecipeJob", systemImage: "square.and.arrow.up.on.square", action: exportSelectedRecipeJob)
+                    .disabled(selectedJob == nil)
+                Button("Check For Update", systemImage: "arrow.trianglehead.clockwise", action: checkSelectedRecipeJobForUpdates)
+                    .disabled(selectedJob?.recipeUpdateURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+            .menuStyle(.borderlessButton)
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
     }
 
     private func preparePermissionsEditor() {
@@ -581,12 +622,10 @@ struct AIControlCenterView: View {
     }
 
     @ViewBuilder
-    private func statusFooter(
+    private func statusFooter<ActionView: View>(
         summaryItems: [AIWorkspaceSummaryItem],
         warning: String?,
-        actionTitle: String,
-        actionSystemImage: String,
-        action: @escaping () -> Void
+        @ViewBuilder actionView: () -> ActionView
     ) -> some View {
         HStack(alignment: .center, spacing: 18) {
             if let warning {
@@ -607,14 +646,11 @@ struct AIControlCenterView: View {
 
             Spacer(minLength: 0)
 
-            Button(action: action) {
-                Label(actionTitle, systemImage: actionSystemImage)
-            }
-            .buttonStyle(.bordered)
+            actionView()
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(.regularMaterial)
+        .padding(.vertical, 9)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     private var promptImprovementErrorBinding: Binding<Bool> {
@@ -683,6 +719,13 @@ struct AIControlCenterView: View {
 
         do {
             let data = try Data(contentsOf: url)
+            
+            let decoder = JSONDecoder()
+            if let recipeJob = try? decoder.decode(AIRecipeJob.self, from: data) {
+                importingRecipe = recipeJob
+                return
+            }
+
             let importedJobs = try decodeImportedJobs(from: data)
             guard !importedJobs.isEmpty else {
                 jobsImportMessage = "The selected JSON file does not contain any jobs."
@@ -703,6 +746,21 @@ struct AIControlCenterView: View {
                 : "Imported \(count) jobs. They were added disabled so you can review them first."
         } catch {
             jobsImportMessage = error.localizedDescription
+        }
+    }
+
+    private func importJobFromClipboard() {
+        guard let string = NSPasteboard.general.string(forType: .string),
+              let data = string.data(using: .utf8) else {
+            jobsImportMessage = "Clipboard does not contain valid text."
+            return
+        }
+        
+        let decoder = JSONDecoder()
+        if let recipeJob = try? decoder.decode(AIRecipeJob.self, from: data) {
+            importingRecipe = recipeJob
+        } else {
+            jobsImportMessage = "Clipboard does not contain a valid Recipe JSON."
         }
     }
 
@@ -832,6 +890,15 @@ struct AIControlCenterView: View {
 
     private func saveEditingJob() {
         guard var safeJob = editingCronjob else { return }
+        if safeJob.mode == .machine {
+            do {
+                _ = try CronExpression(safeJob.cronExpression)
+            } catch {
+                jobsImportMessage = error.localizedDescription
+                return
+            }
+        }
+
         safeJob.allowedCommands = sanitizeCommands(safeJob.allowedCommands)
         safeJob.connectedApps = safeJob.normalizedConnectedApps
         safeJob.installedApps = safeJob.normalizedInstalledApps
@@ -1031,9 +1098,9 @@ struct AIControlCenterView: View {
 
     private func scheduleDescription(for job: AICronjob) -> String {
         if job.mode == .app {
-            return "Every \(Int(job.interval))s"
+            return AIScheduleFormatter.appTimer(job.interval)
         }
-        return "Cron \(job.cronExpression)"
+        return AIScheduleFormatter.cron(job.cronExpression)
     }
 
     private func relativeTimestamp(for timestamp: Double) -> String {
@@ -1081,10 +1148,12 @@ private struct AIWorkspacePane<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 18)
-                .padding(.top, 12)
+            if !title.isEmpty {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 18)
+                    .padding(.top, 12)
+            }
 
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -1120,6 +1189,45 @@ private struct AIWorkspaceMiniStatusRow: View {
     }
 }
 
+private struct AIWorkspaceSidebarFooter: View {
+    let activeProviderName: String
+    let modelName: String
+    let isConnected: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Status")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            AIWorkspaceMiniStatusRow(
+                title: "Provider",
+                value: activeProviderName,
+                systemImage: "bolt.horizontal.circle"
+            )
+
+            AIWorkspaceMiniStatusRow(
+                title: "Model",
+                value: modelName,
+                systemImage: "cpu"
+            )
+
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(isConnected ? Color.green : Color.orange)
+                    .frame(width: 7, height: 7)
+                Text(isConnected ? "Ready" : "Needs setup")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.32))
+    }
+}
+
 private struct AIWorkspaceSidebarRow: View {
     let title: String
     let subtitle: String
@@ -1127,12 +1235,12 @@ private struct AIWorkspaceSidebarRow: View {
     let badge: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Image(systemName: systemImage)
                 .frame(width: 18)
                 .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
                     Text(title)
                         .font(.body.weight(.semibold))
@@ -1143,12 +1251,12 @@ private struct AIWorkspaceSidebarRow: View {
                 }
 
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 3)
     }
 }
 
@@ -1184,67 +1292,86 @@ private struct AIJobRow: View {
     let onViewLogs: () -> Void
     let onDelete: () -> Void
 
+    private var statusText: String {
+        job.isEnabled ? "Active" : "Paused"
+    }
+
+    private var modeText: String {
+        job.mode == .app ? "App Timer" : "Daemon"
+    }
+
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(job.name)
-                        .font(.body.weight(.semibold))
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(isSelected ? Color.accentColor : Color.clear)
+                .frame(width: 3)
 
-                    Text(job.mode == .app ? "App" : "Daemon")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
-                        .foregroundStyle(.secondary)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(job.name)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(1)
+                            .layoutPriority(1)
 
-                    Text(job.isEnabled ? "Active" : "Paused")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background((job.isEnabled ? Color.green : Color.secondary).opacity(0.14), in: Capsule())
-                        .foregroundStyle(job.isEnabled ? Color.green : Color.secondary)
+                        Circle()
+                            .fill(job.isEnabled ? Color.green : Color.secondary.opacity(0.5))
+                            .frame(width: 6, height: 6)
+
+                        Text(modeText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack(spacing: 8) {
+                        Text(statusText)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(job.isEnabled ? Color.green : Color.secondary)
+                    }
                 }
 
-                if !job.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(job.detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                Spacer(minLength: 10)
 
-                Text(job.mode == .app ? "Every \(Int(job.interval)) seconds" : "Cron \(job.cronExpression)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 0)
-
-            HStack(spacing: 10) {
                 Button(action: onRun) {
                     Image(systemName: "play.fill")
+                        .frame(width: 18, height: 18)
                 }
                 .buttonStyle(.borderless)
                 .help("Run Job Now")
 
-                Button(action: onViewLogs) {
-                    Image(systemName: "doc.text.magnifyingglass")
+                Menu {
+                    Button("View Logs", systemImage: "doc.text.magnifyingglass", action: onViewLogs)
+                    Button("Delete Job", systemImage: "trash", role: .destructive, action: onDelete)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 18, height: 18)
                 }
-                .buttonStyle(.borderless)
-                .help("View Logs")
-
-                Button(role: .destructive, action: onDelete) {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.borderless)
+                .menuStyle(.borderlessButton)
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(isSelected ? Color.accentColor.opacity(0.06) : Color.clear)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(isSelected ? Color.accentColor.opacity(0.08) : .clear)
-        .clipShape(.rect(cornerRadius: 10))
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
         .contentShape(.rect)
         .onTapGesture(perform: onSelect)
+    }
+}
+
+private struct AIJobListHeader: View {
+    var body: some View {
+        HStack {
+            Text("Jobs")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.2))
     }
 }
 
@@ -1258,54 +1385,74 @@ private struct AIProviderRow: View {
     let onToggle: (Bool) -> Void
     let onDelete: () -> Void
 
+    private var statusText: String {
+        if !provider.isEnabled {
+            return "Disabled"
+        }
+        if provider.type.requiresAPIKey && !hasAPIKey {
+            return "Needs key"
+        }
+        return isActive ? "Default" : "Ready"
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            providerIcon(provider.type)
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(isSelected ? Color.accentColor : Color.clear)
+                .frame(width: 3)
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 8) {
-                    Text(provider.name)
-                        .font(.body.weight(.semibold))
+            HStack(spacing: 12) {
+                providerIcon(provider.type)
 
-                    if isActive {
-                        Text("Default")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(Color.accentColor.opacity(0.14), in: Capsule())
-                            .foregroundStyle(Color.accentColor)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 8) {
+                        Text(provider.name)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(1)
+                            .layoutPriority(1)
+
+                        if isActive {
+                            Text("Default")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(Color.accentColor)
+                        }
                     }
+
+                    Text("\(provider.type.displayName) • \(provider.effectiveModel)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
 
-                Text("\(provider.type.displayName) - \(provider.effectiveModel)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
 
-                Text(hasAPIKey ? "Keychain ready" : "API key missing")
-                    .font(.caption)
-                    .foregroundStyle(hasAPIKey ? Color.secondary : Color.orange)
-            }
-
-            Spacer(minLength: 0)
-
-            HStack(spacing: 10) {
-                Button(isActive ? "Default" : "Set Default", action: onSetActive)
-                    .controlSize(.small)
-                    .disabled(isActive)
+                Text(statusText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(provider.isEnabled ? Color.secondary : Color.orange)
 
                 Toggle("", isOn: Binding(get: { provider.isEnabled }, set: onToggle))
                     .labelsHidden()
 
-                Button(role: .destructive, action: onDelete) {
-                    Image(systemName: "trash")
+                Menu {
+                    Button(isActive ? "Default Provider" : "Set as Default", systemImage: "checkmark.circle", action: onSetActive)
+                        .disabled(isActive)
+                    Button(role: .destructive, action: onDelete) {
+                        Label("Delete Provider", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20, height: 20)
                 }
-                .buttonStyle(.borderless)
+                .menuStyle(.borderlessButton)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(isSelected ? Color.accentColor.opacity(0.06) : Color.clear)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(isSelected ? Color.accentColor.opacity(0.08) : .clear)
-        .clipShape(.rect(cornerRadius: 10))
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
         .contentShape(.rect)
         .onTapGesture(perform: onSelect)
     }
@@ -1373,13 +1520,13 @@ private struct AIProviderEditorView: View {
     let onSave: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Provider Type")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 14) {
+            providerSection(
+                title: "Identity",
+                subtitle: "Name the provider and choose how NotchTerminal should talk to it."
+            ) {
+                HStack(alignment: .top, spacing: 12) {
+                    providerField("Provider Type") {
                         Picker("Provider Type", selection: $providerType) {
                             ForEach(AIProviderType.allCases, id: \.self) { type in
                                 Text(type.displayName).tag(type)
@@ -1388,144 +1535,132 @@ private struct AIProviderEditorView: View {
                         .pickerStyle(.menu)
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Display Name")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                    providerField("Display Name") {
                         TextField("OpenAI", text: $displayName)
                             .textFieldStyle(.roundedBorder)
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Endpoint")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                providerField("Endpoint") {
                     TextField("https://api.example.com/v1", text: $baseURL)
                         .textFieldStyle(.roundedBorder)
                 }
 
                 if providerType == .zai {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Z.ai Mode")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                    providerField("Z.ai Mode") {
                         Picker("Z.ai Mode", selection: $zAIMode) {
                             ForEach(ZAIMode.allCases, id: \.self) { mode in
                                 Text(mode.displayName).tag(mode)
                             }
                         }
                         .pickerStyle(.segmented)
+
                         Text(zAIMode == .coding ? "Uses the dedicated coding endpoint for GLM coding-plan models." : "Uses the general endpoint for standard Z.ai models.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
+            }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("Model")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Spacer(minLength: 8)
+            providerSection(
+                title: "Connection",
+                subtitle: "Set the model, refresh available options, and verify the endpoint before saving."
+            ) {
+                providerField("Model ID") {
+                    HStack(spacing: 10) {
+                        TextField("Model ID", text: $model)
+                            .textFieldStyle(.roundedBorder)
+
                         if isFetchingModels {
                             ProgressView()
                                 .controlSize(.small)
                         }
                     }
+                }
 
-                    HStack(spacing: 8) {
-                        TextField("Model ID", text: $model)
-                            .textFieldStyle(.roundedBorder)
+                HStack(spacing: 8) {
+                    let suggestedModels = providerType == .zai ? zAIMode.suggestedModels : []
 
-                        let suggestedModels = providerType == .zai ? zAIMode.suggestedModels : []
-
-                        if !suggestedModels.isEmpty {
-                            Menu {
-                                ForEach(suggestedModels, id: \.self) { suggestedModel in
-                                    Button(suggestedModel) {
-                                        model = suggestedModel
-                                        if providerType == .zai {
-                                            baseURL = zAIMode.defaultBaseURL
-                                        }
+                    if !suggestedModels.isEmpty {
+                        Menu {
+                            ForEach(suggestedModels, id: \.self) { suggestedModel in
+                                Button(suggestedModel) {
+                                    model = suggestedModel
+                                    if providerType == .zai {
+                                        baseURL = zAIMode.defaultBaseURL
                                     }
                                 }
-                            } label: {
-                                Label("Presets", systemImage: "slider.horizontal.3")
                             }
-                            .menuStyle(.borderlessButton)
+                        } label: {
+                            Label("Presets", systemImage: "slider.horizontal.3")
                         }
-
-                        if !availableModels.isEmpty {
-                            Menu {
-                                ForEach(availableModels, id: \.self) { availableModel in
-                                    Button(availableModel) {
-                                        model = availableModel
-                                    }
-                                }
-                            } label: {
-                                Label("Models", systemImage: "list.bullet")
-                            }
-                            .menuStyle(.borderlessButton)
-                        }
-
-                        Button(action: onFetchModels) {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Fetch available models")
-
-                        Button(action: onTestConnection) {
-                            if isTestingConnection {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Label("Test", systemImage: "bolt.horizontal.circle")
-                            }
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Test provider connection")
-                        .disabled(isTestingConnection)
+                        .menuStyle(.borderlessButton)
                     }
+
+                    if !availableModels.isEmpty {
+                        Menu {
+                            ForEach(availableModels, id: \.self) { availableModel in
+                                Button(availableModel) {
+                                    model = availableModel
+                                }
+                            }
+                        } label: {
+                            Label("Available Models", systemImage: "list.bullet")
+                        }
+                        .menuStyle(.borderlessButton)
+                    }
+
+                    Button(action: onFetchModels) {
+                        Label("Refresh Models", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button(action: onTestConnection) {
+                        if isTestingConnection {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("Test Connection", systemImage: "bolt.horizontal.circle")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isTestingConnection)
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(providerType == .custom ? "Custom Instructions" : "Provider Instructions")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    TextField(
-                        providerType == .custom
-                            ? "Optional system guidance for this custom provider"
-                            : "Optional provider-specific guidance",
-                        text: $instructions,
-                        axis: .vertical
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(3...6)
-                    Text("Applied before the job prompt. Useful for provider quirks, response style, or custom compatibility notes.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                if providerType.requiresAPIKey {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("API Key")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                providerField("API Key") {
+                    if providerType.requiresAPIKey {
                         SecureField(isCreatingNewProvider ? "sk-..." : "Leave blank to keep existing key", text: $apiKey)
                             .textFieldStyle(.roundedBorder)
-                        Text("Saved securely in Keychain. Existing keys stay untouched if this field stays blank while editing.")
+
+                        Text("Stored in Keychain. Leaving this blank while editing keeps the current key untouched.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("This provider does not require an API key.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                } else {
-                    Text("This provider does not require an API key.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
 
-            Spacer(minLength: 0)
+            providerSection(
+                title: providerType == .custom ? "Custom Instructions" : "Provider Instructions",
+                subtitle: "Optional guidance that runs before each job prompt."
+            ) {
+                TextField(
+                    providerType == .custom
+                        ? "Optional system guidance for this custom provider"
+                        : "Optional provider-specific guidance",
+                    text: $instructions,
+                    axis: .vertical
+                )
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(4...8)
+
+                Text("Use this for provider quirks, compatibility notes, or response style defaults.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             HStack {
                 Button("Cancel", action: onCancel)
@@ -1534,6 +1669,7 @@ private struct AIProviderEditorView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
+            .padding(.top, 18)
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 18)
@@ -1570,6 +1706,37 @@ private struct AIProviderEditorView: View {
                     instructions = providerInstructionPreset(for: providerType)
                 }
             }
+        }
+    }
+
+    private func providerSection<Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.headline)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.42), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func providerField<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            content()
         }
     }
 
@@ -1624,6 +1791,7 @@ private struct AIProviderDetailHeader: View {
         }
         .padding(.horizontal, 18)
         .padding(.top, 2)
+        .padding(.bottom, 4)
     }
 
     @ViewBuilder
@@ -1936,106 +2104,9 @@ private struct AIJobLogsSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
-            HSplitView {
-                VStack(alignment: .leading, spacing: 12) {
-                    filtersBar
-
-                    if entries.isEmpty {
-                        AIWorkspaceEmptyState(
-                            title: "No logs yet",
-                            subtitle: "Run the job or enable debug logging to inspect provider requests, errors, and command activity.",
-                            systemImage: "doc.text.magnifyingglass"
-                        )
-                    } else if filteredEntries.isEmpty {
-                        AIWorkspaceEmptyState(
-                            title: "No matching logs",
-                            subtitle: "Try changing the filters or search text.",
-                            systemImage: "line.3.horizontal.decrease.circle"
-                        )
-                    } else {
-                        GeometryReader { geometry in
-                            ScrollViewReader { proxy in
-                                ZStack(alignment: .bottomTrailing) {
-                                    ScrollView {
-                                        LazyVStack(alignment: .leading, spacing: 0) {
-                                            ForEach(filteredEntries) { entry in
-                                                VStack(alignment: .leading, spacing: 6) {
-                                                    HStack(spacing: 8) {
-                                                        Text(entry.level.rawValue.uppercased())
-                                                            .font(.caption2.weight(.bold))
-                                                            .foregroundStyle(color(for: entry.level))
-
-                                                        Text(timestampText(for: entry.timestamp))
-                                                            .font(.caption)
-                                                            .foregroundStyle(.secondary)
-                                                    }
-
-                                                    Text(entry.message)
-                                                        .font(.system(.body, design: .monospaced))
-                                                        .textSelection(.enabled)
-                                                }
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 10)
-
-                                                Divider()
-                                            }
-
-                                            Color.clear
-                                                .frame(height: 1)
-                                                .id(logBottomID)
-                                                .background(
-                                                    GeometryReader { marker in
-                                                        Color.clear.preference(
-                                                            key: LogBottomOffsetPreferenceKey.self,
-                                                            value: marker.frame(in: .named("AIJobLogsScroll")).maxY
-                                                        )
-                                                    }
-                                                )
-                                        }
-                                    }
-                                    .coordinateSpace(name: "AIJobLogsScroll")
-                                    .clipShape(.rect(cornerRadius: 12))
-                                    .background(Color(nsColor: .textBackgroundColor), in: .rect(cornerRadius: 12))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
-                                    )
-                                    .onAppear {
-                                        logViewportHeight = geometry.size.height
-                                        if autoFollowLogs {
-                                            scrollToBottom(with: proxy, animated: false)
-                                        }
-                                    }
-                                    .onChange(of: geometry.size.height) { _, newHeight in
-                                        logViewportHeight = newHeight
-                                    }
-                                    .onChange(of: filteredEntries.map(\.id)) { _, _ in
-                                        if autoFollowLogs {
-                                            scrollToBottom(with: proxy, animated: true)
-                                        }
-                                    }
-                                    .onPreferenceChange(LogBottomOffsetPreferenceKey.self) { bottomOffset in
-                                        guard !suppressAutoFollowTracking else { return }
-                                        autoFollowLogs = (bottomOffset - logViewportHeight) <= 28
-                                    }
-
-                                    if !autoFollowLogs {
-                                        Button {
-                                            autoFollowLogs = true
-                                            scrollToBottom(with: proxy, animated: true)
-                                        } label: {
-                                            Label("Jump to Latest", systemImage: "arrow.down.circle.fill")
-                                        }
-                                        .buttonStyle(.borderedProminent)
-                                        .padding(12)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .frame(minWidth: 720, minHeight: 480)
+            HStack(alignment: .top, spacing: 16) {
+                logsPane
+                    .frame(minWidth: 720, minHeight: 480)
 
                 aiReviewPane
                     .frame(minWidth: 300, idealWidth: 340)
@@ -2066,9 +2137,11 @@ private struct AIJobLogsSheet: View {
                 Text(jobName)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                Text("\(filteredEntries.count) of \(entries.count) entries")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    logMetaPill("\(filteredEntries.count) shown")
+                    logMetaPill("\(entries.count) total")
+                    logMetaPill(job.mode == .app ? "App Timer" : "Daemon")
+                }
             }
 
             Spacer(minLength: 0)
@@ -2108,8 +2181,8 @@ private struct AIJobLogsSheet: View {
     }
 
     private var filtersBar: some View {
-        HStack(spacing: 10) {
-            ForEach(AICronjobLogLevel.allCases, id: \.self) { level in
+        HStack(alignment: .center, spacing: 10) {
+            FlexibleTagLayout(items: AICronjobLogLevel.allCases) { level in
                 Button {
                     toggle(level)
                 } label: {
@@ -2123,8 +2196,11 @@ private struct AIJobLogsSheet: View {
                 .buttonStyle(.plain)
             }
 
+            Spacer(minLength: 0)
+
             TextField("Filter logs", text: $searchText)
                 .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 260)
 
             Button("All") {
                 selectedLevels = Set(AICronjobLogLevel.allCases)
@@ -2135,15 +2211,22 @@ private struct AIJobLogsSheet: View {
 
     private var aiReviewPane: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("AI Review")
-                .font(.headline)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("AI Review")
+                        .font(.headline)
 
-            Text("Ask what failed, why it happened, or how to fix this job.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                    Text("Ask what failed, why it happened, or how to fix this job.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
 
-            Toggle("Show thinking", isOn: $revealThinking)
-                .toggleStyle(.switch)
+                Spacer(minLength: 0)
+
+                Toggle("Show thinking", isOn: $revealThinking)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+            }
 
             ScrollView {
                 if reviewMessages.isEmpty {
@@ -2159,8 +2242,9 @@ private struct AIJobLogsSheet: View {
                     }
                 }
             }
-
-            Divider()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(10)
+            .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             TextField("What is the main problem here?", text: $aiQuestion, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
@@ -2192,7 +2276,9 @@ private struct AIJobLogsSheet: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.leading, 12)
+        .padding(16)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.28), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var footerBar: some View {
@@ -2335,6 +2421,128 @@ private struct AIJobLogsSheet: View {
         formatter.timeStyle = .medium
         return formatter.string(from: Date(timeIntervalSince1970: timestamp))
     }
+
+    private var logsPane: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            filtersBar
+
+            Group {
+                if entries.isEmpty {
+                    AIWorkspaceEmptyState(
+                        title: "No logs yet",
+                        subtitle: "Run the job or enable debug logging to inspect provider requests, errors, and command activity.",
+                        systemImage: "doc.text.magnifyingglass"
+                    )
+                } else if filteredEntries.isEmpty {
+                    AIWorkspaceEmptyState(
+                        title: "No matching logs",
+                        subtitle: "Try changing the filters or search text.",
+                        systemImage: "line.3.horizontal.decrease.circle"
+                    )
+                } else {
+                    GeometryReader { geometry in
+                        ScrollViewReader { proxy in
+                            ZStack(alignment: .bottomTrailing) {
+                                ScrollView {
+                                    LazyVStack(alignment: .leading, spacing: 0) {
+                                        ForEach(filteredEntries) { entry in
+                                            HStack(alignment: .top, spacing: 10) {
+                                                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                                    .fill(color(for: entry.level))
+                                                    .frame(width: 3, height: 42)
+
+                                                VStack(alignment: .leading, spacing: 6) {
+                                                    HStack(spacing: 8) {
+                                                        Text(entry.level.rawValue.uppercased())
+                                                            .font(.caption2.weight(.bold))
+                                                            .foregroundStyle(color(for: entry.level))
+
+                                                        Text(timestampText(for: entry.timestamp))
+                                                            .font(.caption)
+                                                            .foregroundStyle(.secondary)
+                                                    }
+
+                                                    Text(entry.message)
+                                                        .font(.system(.body, design: .monospaced))
+                                                        .textSelection(.enabled)
+                                                }
+                                            }
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 10)
+                                            .background(Color(nsColor: .textBackgroundColor))
+
+                                            Divider()
+                                        }
+
+                                        Color.clear
+                                            .frame(height: 1)
+                                            .id(logBottomID)
+                                            .background(
+                                                GeometryReader { marker in
+                                                    Color.clear.preference(
+                                                        key: LogBottomOffsetPreferenceKey.self,
+                                                        value: marker.frame(in: .named("AIJobLogsScroll")).maxY
+                                                    )
+                                                }
+                                            )
+                                    }
+                                }
+                                .coordinateSpace(name: "AIJobLogsScroll")
+                                .clipShape(.rect(cornerRadius: 12))
+                                .background(Color(nsColor: .textBackgroundColor), in: .rect(cornerRadius: 12))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                                )
+                                .onAppear {
+                                    logViewportHeight = geometry.size.height
+                                    if autoFollowLogs {
+                                        scrollToBottom(with: proxy, animated: false)
+                                    }
+                                }
+                                .onChange(of: geometry.size.height) { _, newHeight in
+                                    logViewportHeight = newHeight
+                                }
+                                .onChange(of: filteredEntries.map(\.id)) { _, _ in
+                                    if autoFollowLogs {
+                                        scrollToBottom(with: proxy, animated: true)
+                                    }
+                                }
+                                .onPreferenceChange(LogBottomOffsetPreferenceKey.self) { bottomOffset in
+                                    guard !suppressAutoFollowTracking else { return }
+                                    autoFollowLogs = (bottomOffset - logViewportHeight) <= 28
+                                }
+
+                                if !autoFollowLogs {
+                                    Button {
+                                        autoFollowLogs = true
+                                        scrollToBottom(with: proxy, animated: true)
+                                    } label: {
+                                        Label("Jump to Latest", systemImage: "arrow.down.circle.fill")
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .padding(12)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.22), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func logMetaPill(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+    }
 }
 
 private struct AIReviewMessage: Identifiable {
@@ -2418,6 +2626,177 @@ private struct FlexibleTagLayout<Item: Hashable, Content: View>: View {
                 }
             }
         }
+    }
+}
+
+// Vista moderna para previsualizar e importar una receta JSON
+struct RecipeImportReviewView: View {
+    @State var recipe: AIRecipeJob
+    @Environment(\.dismiss) var dismiss
+    
+    // Estados para datos faltantes que el usuario podría querer editar antes de guardar
+    @State private var editedName: String
+    @State private var selectedProviderID: String?
+    
+    // Acción para cuando el usuario decide guardar la receta final
+    var onSave: (AIRecipeJob) -> Void
+    
+    init(recipe: AIRecipeJob, onSave: @escaping (AIRecipeJob) -> Void) {
+        self._recipe = State(initialValue: recipe)
+        self._editedName = State(initialValue: recipe.name)
+        self._selectedProviderID = State(initialValue: recipe.provider.providerID)
+        self.onSave = onSave
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Cabecera tipo Glassmorphism
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Install New Recipe")
+                        .font(.title2.weight(.bold))
+                    Text("Review and configure the imported job.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+            .background(.regularMaterial)
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Tarjeta Principal (Metadata)
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Image(systemName: "cpu.fill")
+                                .font(.largeTitle)
+                                .foregroundStyle(.blue.gradient)
+                                .padding(12)
+                                .background(Color.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                TextField("Recipe Name", text: $editedName)
+                                    .font(.headline)
+                                    .textFieldStyle(.plain)
+                                
+                                HStack(spacing: 8) {
+                                    Label(recipe.author.isEmpty ? "Unknown User" : recipe.author, systemImage: "person.fill")
+                                        .font(.caption.weight(.medium))
+                                        .padding(.horizontal, 8).padding(.vertical, 4)
+                                        .background(Color.secondary.opacity(0.1), in: Capsule())
+                                    
+                                    Text("v\(recipe.schemaVersion)")
+                                        .font(.caption.weight(.bold))
+                                        .padding(.horizontal, 8).padding(.vertical, 4)
+                                        .background((recipe.provider.providerID != nil || recipe.provider.useActiveProvider) ? Color.green.opacity(0.1) : Color.orange.opacity(0.1), in: Capsule())
+                                        .foregroundStyle((recipe.provider.providerID != nil || recipe.provider.useActiveProvider) ? .green : .orange)
+                                }
+                            }
+                        }
+                        
+                        Text(recipe.description)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding()
+                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
+                    
+                    // Tarjeta de Permisos y Configuración Faltante
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Requirements & Configuration")
+                            .font(.headline)
+                        
+                        Divider()
+                        
+                        if recipe.provider.providerID == nil && !recipe.provider.useActiveProvider {
+                            HStack {
+                                Label("Select an AI Provider", systemImage: "bolt.horizontal.fill")
+                                    .foregroundStyle(.orange)
+                                Spacer()
+                                Text("No Provider")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 8)
+                        } else {
+                            HStack {
+                                Label("Uses Active Provider", systemImage: "bolt.fill")
+                                    .foregroundStyle(.green)
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        
+                        Divider()
+                        
+                        HStack {
+                            Label("Execution", systemImage: "timer")
+                            Spacer()
+                            Text(recipe.execution.cronExpression)
+                                .font(.system(.subheadline, design: .monospaced))
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .padding()
+                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
+                    
+                    // Tarjeta del Prompt
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("System Prompt")
+                            .font(.headline)
+                        
+                        Text(recipe.prompt)
+                            .font(.system(.callout, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding()
+                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
+                }
+                .padding()
+            }
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.5))
+            
+            // Footer de Acciones
+            HStack {
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Button(action: {
+                    recipe.name = editedName
+                    onSave(recipe)
+                    dismiss()
+                }) {
+                    Text("Add Job")
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+            }
+            .padding()
+            .background(.regularMaterial)
+            .shadow(color: .black.opacity(0.05), radius: -4, y: 0)
+        }
+        .frame(width: 500, height: 650)
     }
 }
 
