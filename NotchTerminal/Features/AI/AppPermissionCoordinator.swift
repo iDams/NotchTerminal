@@ -50,6 +50,12 @@ final class AppPermissionCoordinator {
         }
     }
 
+    static let aiFeaturePermissions: [PermissionKind] = [
+        .notifications,
+        .accessibility,
+        .screenRecording
+    ]
+
     struct PermissionStatus: Equatable {
         var isGranted: Bool
         var detail: String
@@ -78,6 +84,15 @@ final class AppPermissionCoordinator {
             _ = ScreenCaptureService.requestScreenRecordingPermission()
         }
         await refreshStatuses()
+    }
+
+    func requestMissingAIFeaturePermissions() async {
+        await refreshStatuses()
+
+        for permission in Self.aiFeaturePermissions {
+            guard let status = statuses[permission], !status.isGranted else { continue }
+            await request(permission)
+        }
     }
 
     func completeInitialFlow() {

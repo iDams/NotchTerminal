@@ -23,6 +23,19 @@ enum AIScheduleFormatter {
 
         guard month == "*" else { return "Cron \(cron)" }
 
+        if minute == "*", hour == "*", day == "*", weekday == "*" {
+            return "Every minute"
+        }
+
+        if minute.hasPrefix("*/"), hour == "*", day == "*", weekday == "*", let everyMinute = Int(minute.dropFirst(2)) {
+            return everyMinute == 1 ? "Every minute" : "Every \(everyMinute) minutes"
+        }
+
+        if let minuteValue = Int(minute), hour.hasPrefix("*/"), day == "*", weekday == "*", let everyHour = Int(hour.dropFirst(2)) {
+            let time = String(format: ":%02d", minuteValue)
+            return everyHour == 1 ? "Every hour at \(time)" : "Every \(everyHour) hours at \(time)"
+        }
+
         if hour == "*", day == "*", weekday == "*", let minuteValue = Int(minute) {
             return "Every hour at :\(String(format: "%02d", minuteValue))"
         }

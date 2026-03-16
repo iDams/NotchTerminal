@@ -332,7 +332,10 @@ struct AIControlCenterView: View {
                         )
                     } else {
                         VStack(spacing: 0) {
-                            AIJobListHeader()
+                            AIJobListHeader(
+                                isCreatingNewJob: isCreatingNewCronjob,
+                                onCreate: beginCreatingCronjob
+                            )
 
                             List {
                                 ForEach(experimentalAICronjobsData) { job in
@@ -381,6 +384,9 @@ struct AIControlCenterView: View {
                                     viewingLogsForJob = selectedJob
                                 }
                             },
+                            onToggleEnabled: { isEnabled in
+                                updateSelectedJobEnabled(isEnabled)
+                            },
                             onSave: saveEditingJob,
                             onCancel: {
                                 editingCronjob = nil
@@ -415,7 +421,7 @@ struct AIControlCenterView: View {
                         importJobFromClipboard()
                     }
                 } label: {
-                    Label("New Job", systemImage: "plus")
+                    Label("Opciones", systemImage: "ellipsis.circle")
                 }
                 .fixedSize()
             }
@@ -572,7 +578,7 @@ struct AIControlCenterView: View {
                     Text(selectedJob.name)
                         .font(.headline.weight(.semibold))
                     HStack(spacing: 8) {
-                        Text(scheduleDescription(for: selectedJob))
+                        Text(selectedJob.mode == .app ? "App Timer" : "Daemon")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
@@ -726,8 +732,14 @@ struct AIControlCenterView: View {
     }
 
     private func beginCreatingCronjob() {
+        guard !isCreatingNewCronjob || editingCronjob == nil else { return }
         isCreatingNewCronjob = true
-        editingCronjob = AICronjob()
+        var draft = AICronjob()
+        draft.name = ""
+        draft.detail = ""
+        draft.prompt = ""
+        draft.isEnabled = false
+        editingCronjob = draft
     }
 
     private func importJobs() {
@@ -936,6 +948,19 @@ struct AIControlCenterView: View {
 
         editingCronjob = safeJob
         isCreatingNewCronjob = false
+    }
+
+    private func updateSelectedJobEnabled(_ isEnabled: Bool) {
+        guard let currentJob = editingCronjob else { return }
+
+        if isCreatingNewCronjob {
+            editingCronjob?.isEnabled = isEnabled
+            return
+        }
+
+        updateJob(currentJob) { job in
+            job.isEnabled = isEnabled
+        }
     }
 
     private func runJobForDevelopment(_ job: AICronjob) {
@@ -1322,6 +1347,10 @@ private struct AIJobRow: View {
         job.mode == .app ? "App Timer" : "Daemon"
     }
 
+    private var providerDotColor: Color {
+        job.isEnabled ? .green : .secondary.opacity(0.5)
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             Rectangle()
@@ -1333,11 +1362,11 @@ private struct AIJobRow: View {
                     HStack(spacing: 8) {
                         Text(job.name)
                             .font(.body.weight(.semibold))
-                            .lineLimit(1)
+                            .lineLimit(2)
                             .layoutPriority(1)
 
                         Circle()
-                            .fill(job.isEnabled ? Color.green : Color.secondary.opacity(0.5))
+                            .fill(providerDotColor)
                             .frame(width: 6, height: 6)
 
                         Text(modeText)
@@ -1349,6 +1378,17 @@ private struct AIJobRow: View {
                         Text(statusText)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(job.isEnabled ? Color.green : Color.secondary)
+
+                        if !job.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Text("•")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+
+                            Text(job.detail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
 
@@ -1384,12 +1424,31 @@ private struct AIJobRow: View {
 }
 
 private struct AIJobListHeader: View {
+    let isCreatingNewJob: Bool
+    let onCreate: () -> Void
+
     var body: some View {
         HStack {
             Text("Jobs")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             Spacer()
+            Button(action: onCreate) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(isCreatingNewJob ? Color.accentColor : .secondary)
+                    .frame(width: 22, height: 22)
+                    .background(
+                        Circle()
+                            .fill(
+                                isCreatingNewJob
+                                    ? Color.accentColor.opacity(0.12)
+                                    : Color.secondary.opacity(0.08)
+                            )
+                    )
+            }
+            .buttonStyle(.plain)
+            .help("Create a new job")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)

@@ -247,7 +247,6 @@ struct GeneralSettingsView: View {
     @AppStorage(AppPreferences.Keys.hapticFeedback) var hapticFeedback: Bool = AppPreferences.Defaults.hapticFeedback
     @AppStorage(AppPreferences.Keys.showDockIcon) var showDockIcon: Bool = AppPreferences.Defaults.showDockIcon
     @AppStorage(AppPreferences.Keys.showExperimentalSettings) var showExperimentalSettings: Bool = AppPreferences.Defaults.showExperimentalSettings
-    @AppStorage(AppPreferences.Keys.aiFeaturesEnabled) var aiFeaturesEnabled: Bool = AppPreferences.Defaults.aiFeaturesEnabled
     @AppStorage(AppPreferences.Keys.autoOpenOnHover) var autoOpenOnHover: Bool = AppPreferences.Defaults.autoOpenOnHover
     @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
     @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
@@ -256,7 +255,6 @@ struct GeneralSettingsView: View {
     @ObservedObject private var persistenceHealth = PersistenceHealth.shared
     @State private var selectedLanguage: String = LanguageManager.shared.currentLanguage
     @State private var useSystemLanguage: Bool = !LanguageManager.shared.userHasSelectedLanguage
-    @State private var permissionCoordinator = AppPermissionCoordinator.shared
 
     private var terminalActionConfiguration: AppPreferences.TerminalActionConfiguration {
         AppPreferences.terminalActionConfiguration()
@@ -295,8 +293,6 @@ struct GeneralSettingsView: View {
                 }
                 languageSection
                 systemSection
-                permissionsSection
-                aiFeaturesSection
                 automationSection
                 terminalActionsSection
                 dangerZoneSection
@@ -447,93 +443,6 @@ struct GeneralSettingsView: View {
                 binding: $lockWhileTyping
             )
         }
-    }
-
-    private var aiFeaturesSection: some View {
-        NotchTerminalSettingsSection(contentSpacing: 12) {
-            NotchTerminalSectionHeading(
-                title: "AI Features",
-                subtitle: "Pause or resume the AI workspace whenever you need.",
-                icon: "cpu"
-            )
-
-            NotchTerminalPreferenceToggleRow(
-                title: "Enable AI Features",
-                subtitle: "Turns the AI workspace, jobs, reviews, and automations on or off. You can turn it back on anytime.",
-                icon: "sparkles",
-                binding: $aiFeaturesEnabled,
-                accessibilityID: "settings-ai-features-enabled-row"
-            )
-        }
-    }
-
-    private var permissionsSection: some View {
-        NotchTerminalSettingsSection(contentSpacing: 12) {
-            NotchTerminalSectionHeading(
-                title: "Permissions",
-                subtitle: "Review the macOS access that NotchTerminal needs for notifications and app automation.",
-                icon: "lock.shield"
-            )
-
-            ForEach(AppPermissionCoordinator.PermissionKind.allCases) { permission in
-                permissionRow(permission)
-            }
-        }
-        .task {
-            await permissionCoordinator.refreshStatuses()
-        }
-    }
-
-    private func permissionRow(_ permission: AppPermissionCoordinator.PermissionKind) -> some View {
-        let status = permissionCoordinator.statuses[permission] ?? .init(isGranted: false, detail: "Checking...")
-
-        return HStack(alignment: .top, spacing: 10) {
-            Image(systemName: permission.systemImage)
-                .font(.system(size: 13, weight: .semibold))
-                .frame(width: 20, height: 20)
-                .foregroundStyle(status.isGranted ? .green : .secondary)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(permission.title)
-                    .font(.body.weight(.medium))
-                Text(permission.subtitle)
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
-                Text(status.detail)
-                    .font(.caption)
-                    .foregroundStyle(status.isGranted ? .green : .orange)
-            }
-
-            Spacer(minLength: 8)
-
-            if status.isGranted {
-                Text("Granted")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green)
-            } else {
-                HStack(spacing: 8) {
-                    Button("Request") {
-                        Task {
-                            await permissionCoordinator.request(permission)
-                        }
-                    }
-                    .buttonStyle(.bordered)
-
-                    Button("Open Settings") {
-                        switch permission {
-                        case .notifications:
-                            permissionCoordinator.openNotificationsSettings()
-                        case .accessibility:
-                            permissionCoordinator.openAccessibilitySettings()
-                        case .screenRecording:
-                            permissionCoordinator.openScreenRecordingSettings()
-                        }
-                    }
-                    .buttonStyle(.borderless)
-                }
-            }
-        }
-        .padding(.vertical, 2)
     }
 
     private var terminalActionsSection: some View {

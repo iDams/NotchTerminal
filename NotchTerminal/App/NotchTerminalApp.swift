@@ -117,7 +117,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.async { [weak self] in
             self?.setupEditMenu()
         }
-        requestNotificationPermissions()
         if UITestSupport.isEnabled {
             _ = NSApp.setActivationPolicy(.regular)
         } else {
@@ -382,23 +381,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
     
-    private func requestNotificationPermissions() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
-            if granted {
-                print("✅ [AppDelegate] Notification permissions granted.")
-            } else if let error = error {
-                print("❌ [AppDelegate] Notification permissions error: \(error.localizedDescription)")
-            }
-        }
-    }
-
     @MainActor
     private func presentInitialPermissionsIfNeeded() async {
+        guard AIFeatureAvailability.isEnabled() else { return }
+
         await permissionCoordinator.refreshStatuses()
         guard permissionCoordinator.shouldPresentOnboarding else { return }
 
-        await permissionCoordinator.request(.notifications)
-        await permissionCoordinator.request(.accessibility)
+        await permissionCoordinator.requestMissingAIFeaturePermissions()
         await permissionCoordinator.refreshStatuses()
 
         if permissionCoordinator.statuses.values.contains(where: { !$0.isGranted }) {

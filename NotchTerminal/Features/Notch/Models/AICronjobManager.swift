@@ -106,12 +106,8 @@ public final class AICronjobManager: ObservableObject {
     }
     
     private func syncCronjobs() {
-        if !AIFeatureAvailability.isEnabled() || !experimentalFloatingMsgEnabled {
-            for task in cronjobTasks.values {
-                task.cancel()
-            }
-            cronjobTasks.removeAll()
-            runningCronjobs.removeAll()
+        if !AIFeatureAvailability.isEnabled() {
+            stopAllCronjobs(removeLaunchAgents: true)
             return
         }
 
@@ -200,6 +196,24 @@ public final class AICronjobManager: ObservableObject {
                 }
             }
         }
+    }
+
+    private func stopAllCronjobs(removeLaunchAgents: Bool) {
+        for (id, task) in cronjobTasks {
+            task.cancel()
+            if removeLaunchAgents {
+                removeLaunchAgent(for: id)
+            }
+        }
+
+        if removeLaunchAgents {
+            for id in runningCronjobs.keys {
+                removeLaunchAgent(for: id)
+            }
+        }
+
+        cronjobTasks.removeAll()
+        runningCronjobs.removeAll()
     }
     
     // MARK: - Launchd Management

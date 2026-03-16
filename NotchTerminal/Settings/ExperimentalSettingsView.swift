@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ExperimentalSettingsView: View {
+    @AppStorage(AppPreferences.Keys.aiFeaturesEnabled) private var aiFeaturesEnabled: Bool = AppPreferences.Defaults.aiFeaturesEnabled
     @AppStorage(AppPreferences.Keys.enableCRTFilter) var enableCRTFilter: Bool = AppPreferences.Defaults.enableCRTFilter
     @AppStorage(AppPreferences.Keys.fakeNotchGlowEnabled) var fakeNotchGlowEnabled: Bool = AppPreferences.Defaults.fakeNotchGlowEnabled
     @AppStorage(AppPreferences.Keys.fakeNotchGlowTheme) var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
@@ -10,6 +11,7 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetY) var startupOrbNotchOffsetY: Double = AppPreferences.Defaults.startupOrbNotchOffsetY
     @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
     @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
+    @State private var permissionCoordinator = AppPermissionCoordinator.shared
 
     private var experimentalFeatures: AppPreferences.ExperimentalFeatureConfiguration {
         AppPreferences.experimentalFeatureConfiguration()
@@ -119,6 +121,7 @@ struct ExperimentalSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                aiFeaturesSection
                 geometrySection
                 dockingSection
                 debugSection
@@ -167,6 +170,134 @@ struct ExperimentalSettingsView: View {
             .padding(.vertical, 12)
             .reportSettingsContentHeight(for: .experimental)
         }
+    }
+
+    private var aiFeaturesSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
+                title: "AI Features",
+                subtitle: "Pause or resume the experimental AI workspace whenever you need. Permissions stay ready so you can turn it back on anytime.",
+                icon: "cpu"
+            )
+
+            Text("Experimental workspace")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.orange)
+
+            NotchTerminalPreferenceToggleRow(
+                title: "Enable AI Features",
+                subtitle: "Turns the experimental AI workspace, jobs, reviews, and automations on or off. When enabled, NotchTerminal can request the macOS access needed for AI jobs.",
+                icon: "sparkles",
+                binding: $aiFeaturesEnabled,
+                accessibilityID: "settings-ai-features-enabled-row"
+            )
+
+            if aiFeaturesEnabled {
+                permissionSummary
+
+                ForEach(AppPermissionCoordinator.aiFeaturePermissions) { permission in
+                    permissionRow(permission)
+                }
+            } else {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AI permissions stay saved")
+                            .font(.body.weight(.medium))
+                        Text("When you turn AI Features back on, NotchTerminal will reuse any macOS permissions that are already granted.")
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .task {
+            await permissionCoordinator.refreshStatuses()
+        }
+        .onChange(of: aiFeaturesEnabled) { _, isEnabled in
+            Task {
+                if isEnabled {
+                    await permissionCoordinator.requestMissingAIFeaturePermissions()
+                } else {
+                    await permissionCoordinator.refreshStatuses()
+                }
+            }
+        }
+    }
+
+    private var permissionSummary: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checklist")
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 20, height: 20)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("AI Permissions")
+                    .font(.body.weight(.medium))
+                Text("Notifications, Accessibility, and Screen Recording are only used by the experimental AI workspace and app automation tools.")
+                    .font(.footnote)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func permissionRow(_ permission: AppPermissionCoordinator.PermissionKind) -> some View {
+        let status = permissionCoordinator.statuses[permission] ?? .init(isGranted: false, detail: "Checking...")
+
+        return HStack(alignment: .top, spacing: 10) {
+            Image(systemName: permission.systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 20, height: 20)
+                .foregroundStyle(status.isGranted ? .green : .secondary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(permission.title)
+                    .font(.body.weight(.medium))
+                Text(permission.subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(.tertiary)
+                Text(status.detail)
+                    .font(.caption)
+                    .foregroundStyle(status.isGranted ? .green : .orange)
+            }
+
+            Spacer(minLength: 8)
+
+            if status.isGranted {
+                Text("Granted")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.green)
+            } else {
+                HStack(spacing: 8) {
+                    Button("Request") {
+                        Task {
+                            await permissionCoordinator.request(permission)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button("Open Settings") {
+                        switch permission {
+                        case .notifications:
+                            permissionCoordinator.openNotificationsSettings()
+                        case .accessibility:
+                            permissionCoordinator.openAccessibilitySettings()
+                        case .screenRecording:
+                            permissionCoordinator.openScreenRecordingSettings()
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     private var startupOrbPillSection: some View {

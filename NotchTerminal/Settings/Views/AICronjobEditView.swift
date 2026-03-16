@@ -13,43 +13,35 @@ struct AICronjobEditView: View {
     var onImprovePrompt: (() -> Void)? = nil
     var onConfigurePermissions: (() -> Void)? = nil
     var onViewLogs: (() -> Void)? = nil
+    var onToggleEnabled: ((Bool) -> Void)? = nil
     var onSave: () -> Void
     var onCancel: (() -> Void)? = nil
 
-    @State private var showCustomCron = false
     @State private var promptEditorHeight: CGFloat = 140
     @State private var renderedPrompt = NSAttributedString(string: "")
     @State private var availableInstalledApps: [AICronjobInstalledApp] = []
     @State private var installedAppsSearch = ""
     @State private var showingInstalledAppsPicker = false
-    @State private var appTimerPreset: AppTimerPreset = .hourly
-    @State private var appTimerCustomValue: Double = 1
-    @State private var appTimerCustomUnit: AppTimerUnit = .hours
-    @State private var daemonPreset: DaemonPreset = .daily
+    @State private var appTimerValue: Double = 1
+    @State private var appTimerUnit: ScheduleIntervalUnit = .hours
+    @State private var daemonPattern: DaemonSchedulePattern = .interval
+    @State private var daemonIntervalValue: Int = 1
+    @State private var daemonIntervalUnit: ScheduleIntervalUnit = .hours
+    @State private var daemonIntervalMinuteOffset: Int = 0
     @State private var daemonPrimaryHour: Int = 9
     @State private var daemonPrimaryMinute: Int = 0
     @State private var daemonSecondaryHour: Int = 17
     @State private var daemonSecondaryMinute: Int = 0
-    @State private var daemonWeeklyDay: Int = 1
     @State private var daemonSelectedWeekdays: Set<Int> = [1, 3, 5]
     @State private var daemonMonthDaysText: String = "1,15"
-    @State private var selectedTab: JobEditorTab = .overview
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            tabStrip
-
             ScrollView {
                 VStack(spacing: 16) {
-                    switch selectedTab {
-                    case .overview:
-                        overviewSection
-                    case .compose:
-                        composeSection
-                    case .advanced:
-                        advancedSection
-                    }
+                    overviewSection
+                    composeSection
+                    advancedSection
                 }
                 .padding()
             }
@@ -80,8 +72,10 @@ struct AICronjobEditView: View {
         .frame(minWidth: 500, minHeight: minimumHeight)
         .onAppear {
             availableInstalledApps = InstalledAppsCatalog.load()
-            renderedPrompt = PromptTokenRenderer.render(prompt: cronjob.prompt)
-            syncScheduleControlsFromJob()
+            refreshEditorState()
+        }
+        .onChange(of: cronjob.id) { _, _ in
+            refreshEditorState()
         }
         .onChange(of: cronjob.prompt) { _, newValue in
             renderedPrompt = PromptTokenRenderer.render(prompt: newValue)
@@ -92,64 +86,45 @@ struct AICronjobEditView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(cronjob.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (isNew ? "New Agent Job" : "Untitled Job") : cronjob.name)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Job name", text: $cronjob.name)
                         .font(.title3.weight(.semibold))
+                        .textFieldStyle(.plain)
 
-                    Text(isNew ? "Configure a new automation" : scheduleSummary)
+                    TextField("Describe what this automation does.", text: $cronjob.detail, axis: .vertical)
+                        .lineLimit(2...3)
+                        .font(.callout)
+                        .textFieldStyle(.plain)
+
+                    HStack(spacing: 10) {
+                        overviewPill(providerSummary, accent: .secondary)
+                        overviewPill(cronjob.isEnabled ? "Enabled" : "Paused", accent: cronjob.isEnabled ? .green : .secondary)
+                        overviewPill(cronjob.mode == .app ? "App Timer" : "Daemon")
+                        scheduleHeroPill
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 8) {
+                    Toggle("Enabled", isOn: $cronjob.isEnabled)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .onChange(of: cronjob.isEnabled) { _, isEnabled in
+                            onToggleEnabled?(isEnabled)
+                        }
+
+                    Text(cronjob.isEnabled ? "On" : "Off")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-
-                Spacer(minLength: 0)
-
-                if !cronjob.recipeAuthor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Recipe by \(cronjob.recipeAuthor)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Toggle("Enabled", isOn: $cronjob.isEnabled)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-
-                Text(cronjob.isEnabled ? "On" : "Off")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 8)
-    }
-
-    private var tabStrip: some View {
-        HStack(spacing: 8) {
-            ForEach(JobEditorTab.allCases) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    Text(tab.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(selectedTab == tab ? Color.accentColor : .secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(
-                            selectedTab == tab
-                                ? Color.accentColor.opacity(0.12)
-                                : Color.clear,
-                            in: Capsule()
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 4)
-        .padding(.bottom, 10)
     }
 
     private var permissionSummaryText: String {
@@ -177,32 +152,20 @@ struct AICronjobEditView: View {
 
     private var overviewSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionCard {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            TextField("Agent Job Name", text: $cronjob.name)
-                                .font(.title3.weight(.semibold))
-                                .textFieldStyle(.plain)
-
-                            TextField("Short description", text: $cronjob.detail, axis: .vertical)
-                                .lineLimit(2...3)
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                                .textFieldStyle(.plain)
+            if !providers.isEmpty {
+                sectionCard("Provider") {
+                    HStack {
+                        Label("Model Provider", systemImage: "sparkles")
+                            .font(.subheadline.weight(.medium))
+                        Spacer()
+                        Picker("", selection: providerSelectionBinding) {
+                            Text("Use active provider").tag("")
+                            ForEach(providers) { provider in
+                                Text(provider.name).tag(provider.id.uuidString)
+                            }
                         }
-
-                        Spacer(minLength: 12)
-
-                        VStack(alignment: .trailing, spacing: 8) {
-                            overviewPill(cronjob.mode == .app ? "App Timer" : "Daemon")
-                            overviewPill(cronjob.isEnabled ? "Enabled" : "Paused", accent: cronjob.isEnabled ? .green : .secondary)
-                        }
-                    }
-
-                    HStack(spacing: 12) {
-                        overviewStatCard(title: "Schedule", value: scheduleSummary)
-                        overviewStatCard(title: "Mode", value: modeSummary)
+                        .pickerStyle(.menu)
+                        .frame(width: 240)
                     }
                 }
             }
@@ -224,24 +187,6 @@ struct AICronjobEditView: View {
                     appTimerScheduleEditor
                 } else {
                     daemonScheduleEditor
-                }
-            }
-
-            if !providers.isEmpty {
-                sectionCard("Provider") {
-                    HStack {
-                        Label("Model Provider", systemImage: "sparkles")
-                            .font(.subheadline.weight(.medium))
-                        Spacer()
-                        Picker("", selection: providerSelectionBinding) {
-                            Text("Use active provider").tag("")
-                            ForEach(providers) { provider in
-                                Text(provider.name).tag(provider.id.uuidString)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 240)
-                    }
                 }
             }
         }
@@ -369,18 +314,13 @@ struct AICronjobEditView: View {
             .background(accent.opacity(0.12), in: Capsule())
     }
 
-    private func overviewStatCard(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.8), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    private var scheduleHeroPill: some View {
+        Text(scheduleSummary)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
     }
 
     private var appTimerScheduleEditor: some View {
@@ -389,47 +329,47 @@ struct AICronjobEditView: View {
                 Text("While the app is open")
                     .font(.subheadline)
                 Spacer()
-                Picker("", selection: $appTimerPreset) {
-                    ForEach(AppTimerPreset.allCases) { preset in
-                        Text(preset.title).tag(preset)
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(width: 220)
-                .onChange(of: appTimerPreset) { _, newValue in
-                    applyAppTimerPreset(newValue)
-                }
+                Text("Flexible interval")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            if appTimerPreset == .custom {
-                HStack(spacing: 10) {
-                    Text("Repeat every")
-                        .font(.subheadline)
+            HStack(spacing: 10) {
+                Text("Repeat every")
+                    .font(.subheadline)
 
-                    TextField("", value: $appTimerCustomValue, format: .number.precision(.fractionLength(0)))
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 64)
-                        .multilineTextAlignment(.trailing)
-                        .onChange(of: appTimerCustomValue) { _, _ in
-                            applyCustomAppTimer()
-                        }
-
-                    Picker("", selection: $appTimerCustomUnit) {
-                        ForEach(AppTimerUnit.allCases) { unit in
-                            Text(unit.title).tag(unit)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 180)
-                    .onChange(of: appTimerCustomUnit) { _, _ in
-                        applyCustomAppTimer()
+                TextField("", value: $appTimerValue, format: .number.precision(.fractionLength(0)))
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 64)
+                    .multilineTextAlignment(.trailing)
+                    .onChange(of: appTimerValue) { _, _ in
+                        applyAppTimerInterval()
                     }
 
-                    Spacer()
+                Picker("", selection: $appTimerUnit) {
+                    ForEach(ScheduleIntervalUnit.allCases) { unit in
+                        Text(unit.title).tag(unit)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .frame(width: 180)
+                .onChange(of: appTimerUnit) { _, _ in
+                    applyAppTimerInterval()
+                }
+
+                Spacer()
             }
 
-            Text("Best for repeating checks while NotchTerminal is open, like every 30 minutes or every 2 hours.")
+            quickScheduleChips(
+                options: [.minutes(1), .minutes(15), .minutes(30), .hours(1), .hours(2), .hours(6)],
+                onSelect: { unit, value in
+                    appTimerUnit = unit
+                    appTimerValue = Double(value)
+                    applyAppTimerInterval()
+                }
+            )
+
+            Text("Use any interval you want, like every minute, every 20 minutes, or every 3 hours while the app is open.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -441,22 +381,19 @@ struct AICronjobEditView: View {
                 Text("Schedule")
                     .font(.subheadline)
                 Spacer()
-                Picker("", selection: $daemonPreset) {
-                    ForEach(DaemonPreset.allCases) { preset in
-                        Text(preset.title).tag(preset)
+                Picker("", selection: $daemonPattern) {
+                    ForEach(DaemonSchedulePattern.allCases) { pattern in
+                        Text(pattern.title).tag(pattern)
                     }
                 }
                 .pickerStyle(.menu)
                 .frame(width: 220)
-                .onChange(of: daemonPreset) { _, newValue in
-                    showCustomCron = newValue == .custom
-                    if !showCustomCron {
-                        applyDaemonPreset()
-                    }
+                .onChange(of: daemonPattern) { _, _ in
+                    applyDaemonSchedulePattern()
                 }
             }
 
-            if showCustomCron {
+            if daemonPattern == .custom {
                 HStack {
                     Text("Cron")
                         .font(.subheadline)
@@ -469,69 +406,86 @@ struct AICronjobEditView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else {
-                daemonPresetBuilder
+                daemonPatternBuilder
             }
 
-            Toggle("Advanced Custom Cron", isOn: $showCustomCron)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .onChange(of: showCustomCron) { _, isEnabled in
-                    if isEnabled {
-                        daemonPreset = .custom
-                    } else {
-                        if daemonPreset == .custom {
-                            daemonPreset = .daily
+            quickScheduleChips(
+                options: [.minutes(1), .minutes(15), .hours(1), .daily, .weekdays],
+                onSelect: { unit, value in
+                    switch (unit, value) {
+                    case (.minutes, 1):
+                        daemonPattern = .interval
+                        daemonIntervalUnit = .minutes
+                        daemonIntervalValue = 1
+                    case (.minutes, 15):
+                        daemonPattern = .interval
+                        daemonIntervalUnit = .minutes
+                        daemonIntervalValue = 15
+                    case (.hours, 1):
+                        daemonPattern = .interval
+                        daemonIntervalUnit = .hours
+                        daemonIntervalValue = 1
+                    default:
+                        daemonPattern = value == -1 ? .daily : .weekly
+                        if value == -2 {
+                            daemonSelectedWeekdays = [1, 2, 3, 4, 5]
                         }
-                        applyDaemonPreset()
                     }
+                    applyDaemonSchedulePattern()
                 }
+            )
 
-            Text("Best for daily, weekly, selected weekdays, or month-based schedules, even when the app is closed.")
+            Text("Choose intervals, daily times, selected weekdays, month days, or use a raw cron expression when you need something special.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }
 
     @ViewBuilder
-    private var daemonPresetBuilder: some View {
-        switch daemonPreset {
-        case .hourly:
-            HStack {
-                Text("At minute")
-                    .font(.subheadline)
-                Spacer()
-                minutePicker(selection: $daemonPrimaryMinute)
-                    .onChange(of: daemonPrimaryMinute) { _, _ in applyDaemonPreset() }
-            }
-        case .twiceDaily:
+    private var daemonPatternBuilder: some View {
+        switch daemonPattern {
+        case .interval:
             VStack(alignment: .leading, spacing: 10) {
-                timeEditorRow(title: "First run", hour: $daemonPrimaryHour, minute: $daemonPrimaryMinute)
-                timeEditorRow(title: "Second run", hour: $daemonSecondaryHour, minute: $daemonSecondaryMinute)
-            }
-        case .daily, .weekdays:
-            timeEditorRow(title: "Run at", hour: $daemonPrimaryHour, minute: $daemonPrimaryMinute)
-        case .weekly:
-            HStack {
-                Text("Every")
-                    .font(.subheadline)
-                Spacer()
-                Picker("", selection: $daemonWeeklyDay) {
-                    ForEach(weekdayChoices) { day in
-                        Text(day.title).tag(day.id)
+                HStack(spacing: 10) {
+                    Text("Repeat every")
+                        .font(.subheadline)
+
+                    TextField("", value: $daemonIntervalValue, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 64)
+                        .multilineTextAlignment(.trailing)
+                        .onChange(of: daemonIntervalValue) { _, _ in applyDaemonSchedulePattern() }
+
+                    Picker("", selection: $daemonIntervalUnit) {
+                        ForEach(ScheduleIntervalUnit.allCases) { unit in
+                            Text(unit.title).tag(unit)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 180)
+                    .onChange(of: daemonIntervalUnit) { _, _ in applyDaemonSchedulePattern() }
+
+                    Spacer()
+                }
+
+                if daemonIntervalUnit == .hours {
+                    HStack {
+                        Text("Run at minute")
+                            .font(.subheadline)
+                        Spacer()
+                        minutePicker(selection: $daemonIntervalMinuteOffset)
+                            .onChange(of: daemonIntervalMinuteOffset) { _, _ in applyDaemonSchedulePattern() }
                     }
                 }
-                .pickerStyle(.menu)
-                .frame(width: 160)
-                .onChange(of: daemonWeeklyDay) { _, _ in applyDaemonPreset() }
-
-                hourMinutePickers(hour: $daemonPrimaryHour, minute: $daemonPrimaryMinute)
             }
-        case .selectedWeekdays:
+        case .daily:
+            timeEditorRow(title: "Run at", hour: $daemonPrimaryHour, minute: $daemonPrimaryMinute)
+        case .weekly:
             VStack(alignment: .leading, spacing: 10) {
                 weekdayChipRow
                 timeEditorRow(title: "Run at", hour: $daemonPrimaryHour, minute: $daemonPrimaryMinute)
             }
-        case .monthDays:
+        case .monthly:
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text("Days of month")
@@ -540,12 +494,17 @@ struct AICronjobEditView: View {
                     TextField("1,15,28", text: $daemonMonthDaysText)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 180)
-                        .onChange(of: daemonMonthDaysText) { _, _ in applyDaemonPreset() }
+                        .onChange(of: daemonMonthDaysText) { _, _ in applyDaemonSchedulePattern() }
                 }
                 timeEditorRow(title: "Run at", hour: $daemonPrimaryHour, minute: $daemonPrimaryMinute)
                 Text("Use values from 1 to 31, separated by commas.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+            }
+        case .twiceDaily:
+            VStack(alignment: .leading, spacing: 10) {
+                timeEditorRow(title: "First run", hour: $daemonPrimaryHour, minute: $daemonPrimaryMinute)
+                timeEditorRow(title: "Second run", hour: $daemonSecondaryHour, minute: $daemonSecondaryMinute)
             }
         case .custom:
             EmptyView()
@@ -615,12 +574,9 @@ struct AICronjobEditView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .frame(maxWidth: 280, alignment: .leading)
-        .background(isAttached ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isAttached ? Color.accentColor.opacity(0.35) : Color.primary.opacity(0.08), lineWidth: 1)
-        )
+        .frame(maxWidth: 320, alignment: .leading)
+        .background(appChipBackground(isHighlighted: isAttached, tint: .accentColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(appChipBorder(isHighlighted: isAttached, tint: .accentColor))
         .help(app.shortDescription)
         .onDrag {
             let itemProvider = NSItemProvider()
@@ -726,11 +682,8 @@ struct AICronjobEditView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: 320, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        )
+        .background(appChipBackground(isHighlighted: true, tint: .indigo), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(appChipBorder(isHighlighted: true, tint: .indigo))
         .help(app.appPath)
         .onDrag {
             let itemProvider = NSItemProvider()
@@ -876,6 +829,15 @@ struct AICronjobEditView: View {
         }
     }
 
+    private func appChipBackground(isHighlighted: Bool, tint: Color) -> Color {
+        isHighlighted ? tint.opacity(0.12) : Color(nsColor: .controlBackgroundColor)
+    }
+
+    private func appChipBorder(isHighlighted: Bool, tint: Color) -> some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .stroke(isHighlighted ? tint.opacity(0.35) : Color.primary.opacity(0.08), lineWidth: 1)
+    }
+
     private var providerSelectionBinding: Binding<String> {
         Binding(
             get: { cronjob.providerID?.uuidString ?? "" },
@@ -901,13 +863,13 @@ struct AICronjobEditView: View {
             }
             .pickerStyle(.menu)
             .frame(width: 72)
-            .onChange(of: hour.wrappedValue) { _, _ in applyDaemonPreset() }
+            .onChange(of: hour.wrappedValue) { _, _ in applyDaemonSchedulePattern() }
 
             Text(":")
                 .foregroundStyle(.secondary)
 
             minutePicker(selection: minute)
-                .onChange(of: minute.wrappedValue) { _, _ in applyDaemonPreset() }
+                .onChange(of: minute.wrappedValue) { _, _ in applyDaemonSchedulePattern() }
         }
     }
 
@@ -971,59 +933,29 @@ struct AICronjobEditView: View {
         if daemonSelectedWeekdays.isEmpty {
             daemonSelectedWeekdays.insert(weekday)
         }
-        applyDaemonPreset()
+        applyDaemonSchedulePattern()
     }
 
     private func syncScheduleControlsFromJob() {
         if cronjob.mode == .app {
             let seconds = max(10, cronjob.interval)
-            switch seconds {
-            case 900:
-                appTimerPreset = .quarterHour
-            case 1800:
-                appTimerPreset = .halfHour
-            case 3600:
-                appTimerPreset = .hourly
-            case 7200:
-                appTimerPreset = .twoHours
-            case 21600:
-                appTimerPreset = .sixHours
-            default:
-                appTimerPreset = .custom
-                if seconds >= 3600, seconds.truncatingRemainder(dividingBy: 3600) == 0 {
-                    appTimerCustomUnit = .hours
-                    appTimerCustomValue = max(1, seconds / 3600)
-                } else {
-                    appTimerCustomUnit = .minutes
-                    appTimerCustomValue = max(1, seconds / 60)
-                }
+            if seconds >= 3600, seconds.truncatingRemainder(dividingBy: 3600) == 0 {
+                appTimerUnit = .hours
+                appTimerValue = max(1, seconds / 3600)
+            } else {
+                appTimerUnit = .minutes
+                appTimerValue = max(1, seconds / 60)
             }
             return
         }
 
-        showCustomCron = false
-        switch cronjob.cronExpression {
-        case let value where value.hasPrefix("0 * * * *"):
-            daemonPreset = .hourly
-            daemonPrimaryMinute = 0
-        case let value where value == "\(daemonPrimaryMinute) * * * *":
-            daemonPreset = .hourly
-        case let value where value == "0 9,17 * * *":
-            daemonPreset = .twiceDaily
-            daemonPrimaryHour = 9
-            daemonSecondaryHour = 17
-            daemonPrimaryMinute = 0
-            daemonSecondaryMinute = 0
-        default:
-            parseDaemonCron(cronjob.cronExpression)
-        }
+        parseDaemonCron(cronjob.cronExpression)
     }
 
     private func parseDaemonCron(_ cron: String) {
         let parts = cron.split(whereSeparator: \.isWhitespace).map(String.init)
         guard parts.count == 5 else {
-            daemonPreset = .custom
-            showCustomCron = true
+            daemonPattern = .custom
             return
         }
 
@@ -1034,57 +966,69 @@ struct AICronjobEditView: View {
         let weekday = parts[4]
 
         guard month == "*" else {
-            daemonPreset = .custom
-            showCustomCron = true
+            daemonPattern = .custom
             return
         }
 
         if day == "*", weekday == "*" {
-            if hour == "*", let minuteValue = Int(minute) {
-                daemonPreset = .hourly
-                daemonPrimaryMinute = minuteValue
-            } else if hour.contains(","), minute == "0" {
+            if minute == "*", hour == "*" {
+                daemonPattern = .interval
+                daemonIntervalUnit = .minutes
+                daemonIntervalValue = 1
+                daemonIntervalMinuteOffset = 0
+                return
+            }
+
+            if minute.hasPrefix("*/"), hour == "*", let everyMinute = Int(minute.dropFirst(2)) {
+                daemonPattern = .interval
+                daemonIntervalUnit = .minutes
+                daemonIntervalValue = max(1, everyMinute)
+                daemonIntervalMinuteOffset = 0
+                return
+            }
+
+            if let minuteValue = Int(minute), hour == "*" {
+                daemonPattern = .interval
+                daemonIntervalUnit = .hours
+                daemonIntervalValue = 1
+                daemonIntervalMinuteOffset = minuteValue
+                return
+            }
+
+            if let minuteValue = Int(minute), hour.hasPrefix("*/"), let everyHour = Int(hour.dropFirst(2)) {
+                daemonPattern = .interval
+                daemonIntervalUnit = .hours
+                daemonIntervalValue = max(1, everyHour)
+                daemonIntervalMinuteOffset = minuteValue
+                return
+            }
+
+            if hour.contains(","), minute == "0" {
                 let values = hour.split(separator: ",").compactMap { Int($0) }
                 if values.count == 2 {
-                    daemonPreset = .twiceDaily
+                    daemonPattern = .twiceDaily
                     daemonPrimaryHour = values[0]
                     daemonSecondaryHour = values[1]
                     daemonPrimaryMinute = 0
                     daemonSecondaryMinute = 0
                 } else {
-                    daemonPreset = .custom
-                    showCustomCron = true
+                    daemonPattern = .custom
                 }
-            } else if let minuteValue = Int(minute), let hourValue = Int(hour) {
-                daemonPreset = .daily
+                return
+            }
+
+            if let minuteValue = Int(minute), let hourValue = Int(hour) {
+                daemonPattern = .daily
                 daemonPrimaryHour = hourValue
                 daemonPrimaryMinute = minuteValue
-            } else {
-                daemonPreset = .custom
-                showCustomCron = true
+                return
             }
-            return
         }
 
-        if day == "*", weekday == "1,2,3,4,5", let minuteValue = Int(minute), let hourValue = Int(hour) {
-            daemonPreset = .weekdays
-            daemonPrimaryHour = hourValue
-            daemonPrimaryMinute = minuteValue
-            return
-        }
-
-        if day == "*", !weekday.contains(","), let minuteValue = Int(minute), let hourValue = Int(hour), let weekdayValue = Int(weekday) {
-            daemonPreset = .weekly
-            daemonPrimaryHour = hourValue
-            daemonPrimaryMinute = minuteValue
-            daemonWeeklyDay = weekdayValue == 7 ? 0 : weekdayValue
-            return
-        }
-
-        if day == "*", weekday.contains(","), let minuteValue = Int(minute), let hourValue = Int(hour) {
+        if day == "*", weekday != "*", let minuteValue = Int(minute), let hourValue = Int(hour) {
             let values = Set(weekday.split(separator: ",").compactMap { Int($0) }.map { $0 == 7 ? 0 : $0 })
             if !values.isEmpty {
-                daemonPreset = .selectedWeekdays
+                daemonPattern = .weekly
                 daemonSelectedWeekdays = values
                 daemonPrimaryHour = hourValue
                 daemonPrimaryMinute = minuteValue
@@ -1093,57 +1037,45 @@ struct AICronjobEditView: View {
         }
 
         if weekday == "*", day.contains(","), let minuteValue = Int(minute), let hourValue = Int(hour) {
-            daemonPreset = .monthDays
+            daemonPattern = .monthly
             daemonMonthDaysText = day
             daemonPrimaryHour = hourValue
             daemonPrimaryMinute = minuteValue
             return
         }
 
-        daemonPreset = .custom
-        showCustomCron = true
+        daemonPattern = .custom
     }
 
-    private func applyAppTimerPreset(_ preset: AppTimerPreset) {
-        switch preset {
-        case .quarterHour:
-            cronjob.interval = 900
-        case .halfHour:
-            cronjob.interval = 1800
-        case .hourly:
-            cronjob.interval = 3600
-        case .twoHours:
-            cronjob.interval = 7200
-        case .sixHours:
-            cronjob.interval = 21600
-        case .custom:
-            applyCustomAppTimer()
-        }
+    private func refreshEditorState() {
+        renderedPrompt = PromptTokenRenderer.render(prompt: cronjob.prompt)
+        syncScheduleControlsFromJob()
     }
 
-    private func applyCustomAppTimer() {
-        let value = max(1, appTimerCustomValue)
-        cronjob.interval = appTimerCustomUnit.secondsMultiplier * value
+    private func applyAppTimerInterval() {
+        let value = max(1, appTimerValue)
+        cronjob.interval = appTimerUnit.secondsMultiplier * value
     }
 
-    private func applyDaemonPreset() {
-        guard !showCustomCron else { return }
-
-        switch daemonPreset {
-        case .hourly:
-            cronjob.cronExpression = "\(daemonPrimaryMinute) * * * *"
+    private func applyDaemonSchedulePattern() {
+        switch daemonPattern {
+        case .interval:
+            let value = max(1, daemonIntervalValue)
+            if daemonIntervalUnit == .minutes {
+                cronjob.cronExpression = value == 1 ? "* * * * *" : "*/\(value) * * * *"
+            } else {
+                cronjob.cronExpression = value == 1
+                    ? "\(daemonIntervalMinuteOffset) * * * *"
+                    : "\(daemonIntervalMinuteOffset) */\(value) * * *"
+            }
         case .twiceDaily:
             cronjob.cronExpression = "\(daemonPrimaryMinute) \(daemonPrimaryHour),\(daemonSecondaryHour) * * *"
         case .daily:
             cronjob.cronExpression = "\(daemonPrimaryMinute) \(daemonPrimaryHour) * * *"
-        case .weekdays:
-            cronjob.cronExpression = "\(daemonPrimaryMinute) \(daemonPrimaryHour) * * 1,2,3,4,5"
         case .weekly:
-            cronjob.cronExpression = "\(daemonPrimaryMinute) \(daemonPrimaryHour) * * \(daemonWeeklyDay)"
-        case .selectedWeekdays:
             let weekdays = daemonSelectedWeekdays.sorted().map(String.init).joined(separator: ",")
             cronjob.cronExpression = "\(daemonPrimaryMinute) \(daemonPrimaryHour) * * \(weekdays)"
-        case .monthDays:
+        case .monthly:
             let values = daemonMonthDaysText
                 .split(separator: ",")
                 .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
@@ -1154,31 +1086,36 @@ struct AICronjobEditView: View {
             break
         }
     }
-}
 
-private enum AppTimerPreset: String, CaseIterable, Identifiable {
-    case quarterHour
-    case halfHour
-    case hourly
-    case twoHours
-    case sixHours
-    case custom
+    private var providerSummary: String {
+        if let providerID = cronjob.providerID,
+           let provider = providers.first(where: { $0.id == providerID }) {
+            return provider.name
+        }
+        return "Use active provider"
+    }
 
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .quarterHour: return "Every 15 minutes"
-        case .halfHour: return "Every 30 minutes"
-        case .hourly: return "Every hour"
-        case .twoHours: return "Every 2 hours"
-        case .sixHours: return "Every 6 hours"
-        case .custom: return "Custom"
+    private func quickScheduleChips(options: [QuickScheduleOption], onSelect: @escaping (ScheduleIntervalUnit, Int) -> Void) -> some View {
+        HStack(spacing: 8) {
+            ForEach(options) { option in
+                Button(option.title) {
+                    onSelect(option.unit, option.value)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+            }
+            Spacer()
         }
     }
 }
 
-private enum AppTimerUnit: String, CaseIterable, Identifiable {
+private enum ScheduleIntervalUnit: String, CaseIterable, Identifiable {
     case minutes
     case hours
 
@@ -1199,52 +1136,50 @@ private enum AppTimerUnit: String, CaseIterable, Identifiable {
     }
 }
 
-private enum DaemonPreset: String, CaseIterable, Identifiable {
-    case hourly
+private enum DaemonSchedulePattern: String, CaseIterable, Identifiable {
+    case interval
     case twiceDaily
     case daily
-    case weekdays
     case weekly
-    case selectedWeekdays
-    case monthDays
+    case monthly
     case custom
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .hourly: return "Every hour"
+        case .interval: return "Every X minutes or hours"
         case .twiceDaily: return "2 times a day"
         case .daily: return "Every day"
-        case .weekdays: return "Weekdays"
-        case .weekly: return "Once a week"
-        case .selectedWeekdays: return "Some days each week"
-        case .monthDays: return "Specific days of month"
+        case .weekly: return "Selected weekdays"
+        case .monthly: return "Specific days of month"
         case .custom: return "Custom cron"
         }
     }
+}
+
+private struct QuickScheduleOption: Identifiable {
+    let id = UUID()
+    let title: String
+    let unit: ScheduleIntervalUnit
+    let value: Int
+
+    static func minutes(_ value: Int) -> QuickScheduleOption {
+        .init(title: value == 1 ? "Every minute" : "Every \(value)m", unit: .minutes, value: value)
+    }
+
+    static func hours(_ value: Int) -> QuickScheduleOption {
+        .init(title: value == 1 ? "Every hour" : "Every \(value)h", unit: .hours, value: value)
+    }
+
+    static let daily = QuickScheduleOption(title: "Daily", unit: .hours, value: -1)
+    static let weekdays = QuickScheduleOption(title: "Weekdays", unit: .hours, value: -2)
 }
 
 private struct WeekdayChoice: Identifiable {
     let id: Int
     let title: String
     let shortTitle: String
-}
-
-private enum JobEditorTab: String, CaseIterable, Identifiable {
-    case overview
-    case compose
-    case advanced
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .overview: return "Overview"
-        case .compose: return "Compose"
-        case .advanced: return "Advanced"
-        }
-    }
 }
 
 private struct CronjobPromptEditor: NSViewRepresentable {
@@ -1309,9 +1244,9 @@ private struct CronjobPromptEditor: NSViewRepresentable {
         }
 
         if textView.string != text || textView.textStorage?.isEqual(to: attributedText) == false {
-            let selectedRange = textView.selectedRange()
             textView.setRenderedPrompt(attributedText)
-            textView.setSelectedRange(NSRange(location: min(selectedRange.location, textView.string.count), length: 0))
+            let insertionLocation = text.count
+            textView.setSelectedRange(NSRange(location: insertionLocation, length: 0))
         }
 
         context.coordinator.recalculateHeight(for: textView)
@@ -1446,16 +1381,20 @@ private enum PromptTokenRenderer {
         let nsString = prompt as NSString
 
         for app in AICronjobConnectedApp.allCases {
-            var searchRange = NSRange(location: 0, length: nsString.length)
-            while true {
-                let foundRange = nsString.range(of: app.promptToken, options: [], range: searchRange)
-                if foundRange.location == NSNotFound { break }
+            applyAttributes(
+                connectedChipAttributes(),
+                for: app.promptToken,
+                in: nsString,
+                result: result
+            )
+        }
 
-                result.addAttributes(chipAttributes(), range: foundRange)
-
-                let nextLocation = foundRange.location + foundRange.length
-                guard nextLocation < nsString.length else { break }
-                searchRange = NSRange(location: nextLocation, length: nsString.length - nextLocation)
+        let installedAppPattern = #"@app:[A-Za-z0-9.\-_]+"#
+        if let regex = try? NSRegularExpression(pattern: installedAppPattern) {
+            let fullRange = NSRange(location: 0, length: nsString.length)
+            regex.enumerateMatches(in: prompt, options: [], range: fullRange) { match, _, _ in
+                guard let matchRange = match?.range else { return }
+                result.addAttributes(installedChipAttributes(), range: matchRange)
             }
         }
 
@@ -1469,11 +1408,38 @@ private enum PromptTokenRenderer {
         ]
     }
 
-    private static func chipAttributes() -> [NSAttributedString.Key: Any] {
+    private static func applyAttributes(
+        _ attributes: [NSAttributedString.Key: Any],
+        for token: String,
+        in nsString: NSString,
+        result: NSMutableAttributedString
+    ) {
+        var searchRange = NSRange(location: 0, length: nsString.length)
+        while true {
+            let foundRange = nsString.range(of: token, options: [], range: searchRange)
+            if foundRange.location == NSNotFound { break }
+
+            result.addAttributes(attributes, range: foundRange)
+
+            let nextLocation = foundRange.location + foundRange.length
+            guard nextLocation < nsString.length else { break }
+            searchRange = NSRange(location: nextLocation, length: nsString.length - nextLocation)
+        }
+    }
+
+    private static func connectedChipAttributes() -> [NSAttributedString.Key: Any] {
         [
             .font: NSFont.monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold),
             .foregroundColor: NSColor.controlAccentColor,
             .backgroundColor: NSColor.controlAccentColor.withAlphaComponent(0.14)
+        ]
+    }
+
+    private static func installedChipAttributes() -> [NSAttributedString.Key: Any] {
+        [
+            .font: NSFont.monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold),
+            .foregroundColor: NSColor.systemIndigo,
+            .backgroundColor: NSColor.systemIndigo.withAlphaComponent(0.12)
         ]
     }
 }
