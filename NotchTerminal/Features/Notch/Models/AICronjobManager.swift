@@ -1,18 +1,61 @@
 import Foundation
-import SwiftUI
 import Combine
 import UserNotifications
 
 @MainActor
 public final class AICronjobManager: ObservableObject {
     public static let shared = AICronjobManager()
-    
-    @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
-    @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) private var experimentalAICronjobsData = AppPreferences.Defaults.experimentalAICronjobsData
-    @AppStorage(AppPreferences.Keys.aiProvidersData) private var aiProvidersList = AppPreferences.Defaults.aiProvidersData
-    @AppStorage(AppPreferences.Keys.activeAIProviderID) private var activeAIProviderIDString: String = ""
-    @AppStorage(AppPreferences.Keys.aiCronjobLogsData) private var aiCronjobLogsData = AppPreferences.Defaults.aiCronjobLogsData
-    
+
+    private let defaults: UserDefaults
+    private var hasStarted = false
+
+    private var experimentalFloatingMsgEnabled: Bool {
+        defaults.object(forKey: AppPreferences.Keys.experimentalFloatingMsgEnabled) as? Bool
+            ?? AppPreferences.Defaults.experimentalFloatingMsgEnabled
+    }
+
+    private var experimentalAICronjobsData: [AICronjob] {
+        get {
+            defaults.string(forKey: AppPreferences.Keys.experimentalAICronjobsData)
+                .flatMap { [AICronjob](rawValue: $0) }
+                ?? AppPreferences.Defaults.experimentalAICronjobsData
+        }
+        set {
+            defaults.set(newValue.rawValue, forKey: AppPreferences.Keys.experimentalAICronjobsData)
+        }
+    }
+
+    private var aiProvidersList: AIProviderList {
+        get {
+            defaults.string(forKey: AppPreferences.Keys.aiProvidersData)
+                .flatMap(AIProviderList.init(rawValue:))
+                ?? AppPreferences.Defaults.aiProvidersData
+        }
+        set {
+            defaults.set(newValue.rawValue, forKey: AppPreferences.Keys.aiProvidersData)
+        }
+    }
+
+    private var activeAIProviderIDString: String {
+        get {
+            defaults.string(forKey: AppPreferences.Keys.activeAIProviderID) ?? AppPreferences.Defaults.activeAIProviderID
+        }
+        set {
+            defaults.set(newValue, forKey: AppPreferences.Keys.activeAIProviderID)
+        }
+    }
+
+    private var aiCronjobLogsData: AICronjobLogStore {
+        get {
+            defaults.string(forKey: AppPreferences.Keys.aiCronjobLogsData)
+                .flatMap(AICronjobLogStore.init(rawValue:))
+                ?? AppPreferences.Defaults.aiCronjobLogsData
+        }
+        set {
+            defaults.set(newValue.rawValue, forKey: AppPreferences.Keys.aiCronjobLogsData)
+        }
+    }
+
     private var activeAIProviderID: UUID? {
         get { UUID(uuidString: activeAIProviderIDString) }
         set { activeAIProviderIDString = newValue?.uuidString ?? "" }
@@ -24,8 +67,15 @@ public final class AICronjobManager: ObservableObject {
     
     public static let newMessageNotification = Notification.Name("AICronjobManagerNewMessage")
     private static let distributedNotificationName = "com.notchterminal.agent.message"
-    
-    private init() {
+
+    private init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    public func startIfNeeded() {
+        guard !hasStarted else { return }
+        hasStarted = true
+
         // Observe UserDefaults changes to sync cronjobs dynamically
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
             .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
@@ -43,7 +93,9 @@ public final class AICronjobManager: ObservableObject {
         )
             
         // Initial setup
-        aiCronjobLogsData.pruneAll()
+        var store = aiCronjobLogsData
+        store.pruneAll()
+        aiCronjobLogsData = store
         syncCronjobs()
     }
     
@@ -54,7 +106,7 @@ public final class AICronjobManager: ObservableObject {
     }
     
     private func syncCronjobs() {
-        if !experimentalFloatingMsgEnabled {
+        if !AIFeatureAvailability.isEnabled() || !experimentalFloatingMsgEnabled {
             for task in cronjobTasks.values {
                 task.cancel()
             }
@@ -270,12 +322,16 @@ public final class AICronjobManager: ObservableObject {
     }
     
     public func triggerTest(for job: AICronjob) {
+        guard AIFeatureAvailability.isEnabled() else { return }
         Task {
             await fetchAIResponse(for: job)
         }
     }
 
     public func improvePrompt(_ prompt: String, jobName: String? = nil) async throws -> String {
+        guard AIFeatureAvailability.isEnabled() else {
+            throw CommandExecutionError.executionFailed("AI features are currently disabled.")
+        }
         let (provider, apiKey, customURL, model) = activeProviderConfig
         guard !apiKey.isEmpty else {
             throw CommandExecutionError.executionFailed("Active provider is missing an API key.")
@@ -301,6 +357,9 @@ public final class AICronjobManager: ObservableObject {
         question: String? = nil,
         conversationHistory: [String] = []
     ) async throws -> String {
+        guard AIFeatureAvailability.isEnabled() else {
+            throw CommandExecutionError.executionFailed("AI features are currently disabled.")
+        }
         let (provider, apiKey, customURL, model) = activeProviderConfig
         guard !apiKey.isEmpty else {
             throw CommandExecutionError.executionFailed("Active provider is missing an API key.")
@@ -362,6 +421,9 @@ public final class AICronjobManager: ObservableObject {
         baseURL: String,
         model: String
     ) async throws -> String {
+        guard AIFeatureAvailability.isEnabled() else {
+            throw CommandExecutionError.executionFailed("AI features are currently disabled.")
+        }
         let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -406,6 +468,11 @@ public final class AICronjobManager: ObservableObject {
         }
         
         let defaults = UserDefaults.standard
+
+        guard AIFeatureAvailability.isEnabled(defaults: defaults) else {
+            print("⏸️ [BackgroundJob] AI features are disabled")
+            return
+        }
         
         guard let rawData = defaults.string(forKey: AppPreferences.Keys.experimentalAICronjobsData),
               let jsonData = rawData.data(using: .utf8),

@@ -38,6 +38,7 @@ private enum AIWorkspaceSection: String, CaseIterable, Identifiable {
 }
 
 struct AIControlCenterView: View {
+    @AppStorage(AppPreferences.Keys.aiFeaturesEnabled) private var aiFeaturesEnabled: Bool = AppPreferences.Defaults.aiFeaturesEnabled
     @AppStorage(AppPreferences.Keys.experimentalAIAgentWhitelist) private var experimentalAIAgentWhitelist: String = AppPreferences.Defaults.experimentalAIAgentWhitelist
     @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) private var experimentalAICronjobsData: [AICronjob] = AppPreferences.Defaults.experimentalAICronjobsData
     @AppStorage(AppPreferences.Keys.aiProvidersData) private var aiProvidersList: AIProviderList = AppPreferences.Defaults.aiProvidersData
@@ -177,12 +178,33 @@ struct AIControlCenterView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
-        } detail: {
-            detailContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        Group {
+            if aiFeaturesEnabled {
+                NavigationSplitView {
+                    sidebar
+                        .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
+                } detail: {
+                    detailContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+            } else {
+                VStack(spacing: 14) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(.secondary)
+
+                    Text("AI Features Are Paused")
+                        .font(.title3.weight(.semibold))
+
+                    Text("Turn AI Features back on in Settings to restore Agent Jobs, providers, logs, and the AI Control Center.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 420)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(32)
+            }
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .sheet(isPresented: Binding(

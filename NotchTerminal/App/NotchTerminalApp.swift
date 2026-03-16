@@ -16,6 +16,9 @@ struct NotchTerminalApp: App {
         if let idx = CommandLine.arguments.firstIndex(of: "--run-cronjob"), idx + 1 < CommandLine.arguments.count {
             let jobId = CommandLine.arguments[idx + 1]
             Task {
+                guard AIFeatureAvailability.isEnabled() else {
+                    exit(0)
+                }
                 await AICronjobManager.executeBackgroundJob(id: jobId)
                 // Give UNUserNotificationCenter XPC messages time to flush before killing process
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -105,6 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let persistenceHealth = PersistenceHealth.shared
     private let storageCleanupService = StorageCleanupService.shared
     private let permissionCoordinator = AppPermissionCoordinator.shared
+    private var aiRuntimeStarted = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let providerIDs = providerIDsForKeychainMigration()
@@ -127,13 +131,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor [weak self] in
                 self?.applyDockIconPreference()
                 self?.rebuildStatusItemMenu()
+                self?.syncAIFeatureRuntime()
             }
         }
         
         do {
             modelContainer = try ModelContainer(for: TerminalSession.self)
             persistenceHealth.markAvailable()
-            _ = AICronjobManager.shared // Start AI loop
         } catch {
             let details = PersistenceHealth.userFacingDetails(for: error)
             persistenceHealth.markUnavailable(details: details)
@@ -144,6 +148,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+
+        syncAIFeatureRuntime()
         
         if !UITestSupport.isEnabled {
             notchController = NotchOverlayController(modelContext: modelContainer?.mainContext)
@@ -163,6 +169,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 await self?.presentInitialPermissionsIfNeeded()
             }
         }
+    }
+
+    private func syncAIFeatureRuntime() {
+        guard AIFeatureAvailability.isEnabled() else { return }
+        guard !aiRuntimeStarted else { return }
+        AICronjobManager.shared.startIfNeeded()
+        aiRuntimeStarted = true
     }
 
     private func setupEditMenu() {

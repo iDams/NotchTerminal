@@ -9,6 +9,8 @@ final class AIControlCenterWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
 
     func show(on screen: NSScreen?) {
+        guard AIFeatureAvailability.isEnabled() else { return }
+
         let targetScreen = screen ?? NSScreen.main ?? NSScreen.screens.first
         guard let targetScreen else { return }
 

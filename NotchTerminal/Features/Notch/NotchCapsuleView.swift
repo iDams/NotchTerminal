@@ -27,6 +27,7 @@ struct NotchCapsuleView: View {
     @State private var showsStartupPreview = false
     @State private var startupPreviewDismissWorkItem: DispatchWorkItem?
     @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
+    @AppStorage(AppPreferences.Keys.aiFeaturesEnabled) private var aiFeaturesEnabled = AppPreferences.Defaults.aiFeaturesEnabled
     @AppStorage(AppPreferences.Keys.experimentalAIProvider) private var experimentalAIProvider = AppPreferences.Defaults.experimentalAIProvider
     @AppStorage(AppPreferences.Keys.experimentalAICustomURL) private var experimentalAICustomURL = AppPreferences.Defaults.experimentalAICustomURL
     @AppStorage(AppPreferences.Keys.experimentalAIApiKey) private var experimentalAIApiKey = AppPreferences.Defaults.experimentalAIApiKey
@@ -647,7 +648,7 @@ struct NotchCapsuleView: View {
     private var topTrailingControls: some View {
         if model.isExpanded && showExpandedControls {
             HStack(spacing: 6) {
-                if experimentalFloatingMsgEnabled {
+                if aiFeaturesEnabled && experimentalFloatingMsgEnabled {
                     Button(action: openAIControlCenter) {
                         Image(systemName: "cpu")
                             .font(.system(size: 13, weight: .semibold))

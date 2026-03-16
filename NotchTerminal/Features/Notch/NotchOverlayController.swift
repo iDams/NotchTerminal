@@ -857,6 +857,7 @@ final class NotchOverlayController {
     }
 
     private func openAIControlCenter(for displayID: CGDirectDisplayID) {
+        guard AIFeatureAvailability.isEnabled() else { return }
         aiControlCenterWindowController.show(on: screen(forDisplayID: displayID))
     }
 

@@ -71,6 +71,7 @@ enum AppPreferences {
         static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
         static let experimentalProjectStatusShowFolder = "experimentalProjectStatusShowFolder"
         static let experimentalFloatingMsgEnabled = "experimentalFloatingMsgEnabled"
+        static let aiFeaturesEnabled = "aiFeaturesEnabled"
         static let experimentalAIProvider = "experimentalAIProvider"
         static let experimentalAICustomURL = "experimentalAICustomURL"
         static let experimentalAIApiKey = "experimentalAIApiKey"
@@ -114,6 +115,7 @@ enum AppPreferences {
         static let experimentalProjectStatusShowGit = true
         static let experimentalProjectStatusShowFolder = true
         static let experimentalFloatingMsgEnabled = false
+        static let aiFeaturesEnabled = true
         static let experimentalAIProvider = "openai"
         static let experimentalAICustomURL = "https://api.openai.com/v1"
         static let experimentalAIApiKey = ""

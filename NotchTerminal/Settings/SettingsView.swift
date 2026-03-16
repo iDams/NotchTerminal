@@ -247,6 +247,7 @@ struct GeneralSettingsView: View {
     @AppStorage(AppPreferences.Keys.hapticFeedback) var hapticFeedback: Bool = AppPreferences.Defaults.hapticFeedback
     @AppStorage(AppPreferences.Keys.showDockIcon) var showDockIcon: Bool = AppPreferences.Defaults.showDockIcon
     @AppStorage(AppPreferences.Keys.showExperimentalSettings) var showExperimentalSettings: Bool = AppPreferences.Defaults.showExperimentalSettings
+    @AppStorage(AppPreferences.Keys.aiFeaturesEnabled) var aiFeaturesEnabled: Bool = AppPreferences.Defaults.aiFeaturesEnabled
     @AppStorage(AppPreferences.Keys.autoOpenOnHover) var autoOpenOnHover: Bool = AppPreferences.Defaults.autoOpenOnHover
     @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
     @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
@@ -295,6 +296,7 @@ struct GeneralSettingsView: View {
                 languageSection
                 systemSection
                 permissionsSection
+                aiFeaturesSection
                 automationSection
                 terminalActionsSection
                 dangerZoneSection
@@ -443,6 +445,24 @@ struct GeneralSettingsView: View {
                 subtitle: "settings.lockWhileTyping.subtitle".localized,
                 icon: "keyboard",
                 binding: $lockWhileTyping
+            )
+        }
+    }
+
+    private var aiFeaturesSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
+                title: "AI Features",
+                subtitle: "Pause or resume the AI workspace whenever you need.",
+                icon: "cpu"
+            )
+
+            NotchTerminalPreferenceToggleRow(
+                title: "Enable AI Features",
+                subtitle: "Turns the AI workspace, jobs, reviews, and automations on or off. You can turn it back on anytime.",
+                icon: "sparkles",
+                binding: $aiFeaturesEnabled,
+                accessibilityID: "settings-ai-features-enabled-row"
             )
         }
     }
