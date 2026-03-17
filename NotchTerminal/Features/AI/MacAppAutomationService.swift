@@ -34,7 +34,7 @@ enum MacAppAutomationService {
             return "Error: Could not launch or find \(app.displayName)."
         }
 
-        await MainActor.run {
+        _ = await MainActor.run {
             runningApp.activate()
         }
         try? await Task.sleep(nanoseconds: 250_000_000)
@@ -55,7 +55,7 @@ enum MacAppAutomationService {
             return "Error: Could not launch or find \(app.displayName)."
         }
 
-        await MainActor.run {
+        _ = await MainActor.run {
             runningApp.activate()
         }
         try? await Task.sleep(nanoseconds: 200_000_000)

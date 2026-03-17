@@ -657,7 +657,7 @@ struct NotchCapsuleView: View {
                             .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .help("Open AI Control Center")
+                    .help("Open NotchTerminalAgent")
                 }
 
                 Button(action: openSettingsWindow) {

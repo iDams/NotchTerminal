@@ -17,6 +17,7 @@ struct AICronjobEditView: View {
     var onSave: () -> Void
     var onCancel: (() -> Void)? = nil
 
+    @State private var selectedTab: Int = 0
     @State private var promptEditorHeight: CGFloat = 140
     @State private var renderedPrompt = NSAttributedString(string: "")
     @State private var availableInstalledApps: [AICronjobInstalledApp] = []
@@ -34,16 +35,37 @@ struct AICronjobEditView: View {
     @State private var daemonSecondaryMinute: Int = 0
     @State private var daemonSelectedWeekdays: Set<Int> = [1, 3, 5]
     @State private var daemonMonthDaysText: String = "1,15"
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            header
+            heroHeader
+
+            Picker("", selection: $selectedTab) {
+                Text("Prompt").tag(0)
+                Text("Schedule").tag(1)
+                Text("Safety & Debug").tag(2)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(Color(nsColor: .windowBackgroundColor))
+
+            Divider()
+
             ScrollView {
-                VStack(spacing: 16) {
-                    overviewSection
-                    composeSection
-                    advancedSection
+                VStack(spacing: 20) {
+                    switch selectedTab {
+                    case 0:
+                        promptTab
+                    case 1:
+                        scheduleTab
+                    case 2:
+                        safetyTab
+                    default:
+                        EmptyView()
+                    }
                 }
-                .padding()
+                .padding(20)
             }
             .background(Color(nsColor: .windowBackgroundColor))
 
@@ -85,46 +107,51 @@ struct AICronjobEditView: View {
         }
     }
 
-    private var header: some View {
+    private var heroHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    TextField("Job name", text: $cronjob.name)
-                        .font(.title3.weight(.semibold))
+                    TextField("Job Name", text: $cronjob.name)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
                         .textFieldStyle(.plain)
 
                     TextField("Describe what this automation does.", text: $cronjob.detail, axis: .vertical)
-                        .lineLimit(2...3)
-                        .font(.callout)
+                        .lineLimit(2)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
                         .textFieldStyle(.plain)
 
                     HStack(spacing: 10) {
-                        overviewPill(providerSummary, accent: .secondary)
-                        overviewPill(cronjob.isEnabled ? "Enabled" : "Paused", accent: cronjob.isEnabled ? .green : .secondary)
-                        overviewPill(cronjob.mode == .app ? "App Timer" : "Daemon")
-                        scheduleHeroPill
+                        statusBadge(cronjob.isEnabled ? "Running" : "Paused", color: cronjob.isEnabled ? .green : .secondary)
+                        statusBadge(cronjob.mode == .app ? "App Timer" : "Daemon", color: .blue)
+                        statusBadge(providerSummary, color: .orange)
                     }
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 8) {
-                    Toggle("Enabled", isOn: $cronjob.isEnabled)
-                        .toggleStyle(.switch)
-                        .labelsHidden()
-                        .onChange(of: cronjob.isEnabled) { _, isEnabled in
-                            onToggleEnabled?(isEnabled)
-                        }
-
-                    Text(cronjob.isEnabled ? "On" : "Off")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Toggle("", isOn: $cronjob.isEnabled)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .scaleEffect(1.2)
+                    .onChange(of: cronjob.isEnabled) { _, isEnabled in
+                        onToggleEnabled?(isEnabled)
+                    }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 24)
+        .padding(.top, 24)
+        .padding(.bottom, 16)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private func statusBadge(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption2.weight(.bold).smallCaps())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.12), in: Capsule())
+            .foregroundStyle(color)
     }
 
     private var permissionSummaryText: String {
@@ -150,27 +177,70 @@ struct AICronjobEditView: View {
         cronjob.mode == .app ? "Runs while the app is open" : "Runs in the background with launchd"
     }
 
-    private var overviewSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+    private var promptTab: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            sectionCard("Connected Apps") {
+                connectedAppsSection
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("System Prompt")
+                            .font(.headline)
+                        Text("Instructions for the AI agent.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    if let onImprovePrompt {
+                        Button(action: onImprovePrompt) {
+                            Label(isImprovingPrompt ? "Improving..." : "Improve Prompt", systemImage: "wand.and.stars")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isImprovingPrompt || cronjob.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+
+                CronjobPromptEditor(
+                    text: $cronjob.prompt,
+                    attributedText: $renderedPrompt,
+                    placeholder: "Describe the task...",
+                    dynamicHeight: $promptEditorHeight,
+                    onInsertToken: insertConnectedAppToken
+                )
+                .frame(height: max(promptEditorHeight, 320))
+                .padding(12)
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+            }
+        }
+    }
+
+    private var scheduleTab: some View {
+        VStack(alignment: .leading, spacing: 20) {
             if !providers.isEmpty {
-                sectionCard("Provider") {
+                sectionCard("Provider Settings") {
                     HStack {
-                        Label("Model Provider", systemImage: "sparkles")
+                        Label("Override Provider", systemImage: "sparkles")
                             .font(.subheadline.weight(.medium))
                         Spacer()
                         Picker("", selection: providerSelectionBinding) {
-                            Text("Use active provider").tag("")
+                            Text("Default Active").tag("")
                             ForEach(providers) { provider in
                                 Text(provider.name).tag(provider.id.uuidString)
                             }
                         }
                         .pickerStyle(.menu)
-                        .frame(width: 240)
+                        .frame(width: 200)
                     }
                 }
             }
 
-            sectionCard("Execution") {
+            sectionCard("Execution Schedule") {
                 HStack {
                     Text("Execution Mode")
                         .font(.subheadline.weight(.medium))
@@ -180,8 +250,10 @@ struct AICronjobEditView: View {
                         Text("Daemon").tag(AICronjobExecutionMode.machine)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 220)
+                    .frame(width: 200)
                 }
+
+                Divider().padding(.vertical, 8)
 
                 if cronjob.mode == .app {
                     appTimerScheduleEditor
@@ -192,95 +264,59 @@ struct AICronjobEditView: View {
         }
     }
 
-    private var composeSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionCard("Connected Apps") {
-                connectedAppsSection
+    private var safetyTab: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            sectionCard("Security Whitelist") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Allowed Commands")
+                        .font(.subheadline.weight(.medium))
+                    
+                    Text("Limit which terminal commands this job can execute silently.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if let onConfigurePermissions {
+                        Button(action: onConfigurePermissions) {
+                            Label(permissionSummaryText, systemImage: "checklist")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
             }
 
-            sectionCard("Prompt") {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .center, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("System Prompt")
-                                .font(.headline)
-
-                            Text("Write the task while keeping app tokens and capture helpers visible above.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer(minLength: 0)
-
-                        if let onImprovePrompt {
-                            Button(action: onImprovePrompt) {
-                                if isImprovingPrompt {
-                                    ProgressView().controlSize(.small)
-                                } else {
-                                    Label("Improve Prompt", systemImage: "wand.and.stars")
-                                        .font(.caption.weight(.medium))
-                                }
+            sectionCard("Diagnostics") {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Toggle("Enable Debug Logging", isOn: $cronjob.debugLoggingEnabled)
+                            .font(.subheadline.weight(.medium))
+                        
+                        Spacer()
+                        
+                        if let onViewLogs {
+                            Button(action: onViewLogs) {
+                                Label("Open Log Viewer", systemImage: "text.alignleft")
                             }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.1), in: Capsule())
-                            .foregroundStyle(.blue)
-                                .disabled(isImprovingPrompt || cronjob.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                         }
                     }
 
-                    CronjobPromptEditor(
-                        text: $cronjob.prompt,
-                        attributedText: $renderedPrompt,
-                        placeholder: "Describe what this job should do",
-                        dynamicHeight: $promptEditorHeight,
-                        onInsertToken: insertConnectedAppToken
-                    )
-                    .frame(height: max(promptEditorHeight, 260))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
-                    .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.primary.opacity(0.05), lineWidth: 1))
-                }
-            }
-        }
-    }
+                    Text(debugLoggingFootnote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
-    private var advancedSection: some View {
-        sectionCard {
-            Text("Safety & Debugging")
-                .font(.headline)
+                    Divider().padding(.vertical, 4)
 
-            HStack(spacing: 12) {
-                if let onConfigurePermissions {
-                    Button(action: onConfigurePermissions) {
-                        Label(permissionSummaryText, systemImage: "checklist")
+                    Toggle("Auto-Disable after 3 days", isOn: $cronjob.autoDisable)
+                        .font(.subheadline.weight(.medium))
+
+                    if !cronjob.autoDisable {
+                        Label("Warning: Continuous background execution consumes significant resources.", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
                     }
-                    .buttonStyle(.bordered)
                 }
-
-                if let onViewLogs {
-                    Button(action: onViewLogs) {
-                        Label("View Logs", systemImage: "text.alignleft")
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-
-            Toggle("Enable debug logging", isOn: $cronjob.debugLoggingEnabled)
-                .font(.subheadline)
-            Text(debugLoggingFootnote)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Toggle("Auto-Disable Limit (3 Days)", isOn: $cronjob.autoDisable)
-                .font(.subheadline)
-
-            if !cronjob.autoDisable {
-                Text("Warning: disabling the 3-day limit is not recommended and consumes battery/API quotas.")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
             }
         }
     }
@@ -303,24 +339,6 @@ struct AICronjobEditView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.42), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private func overviewPill(_ text: String, accent: Color = .accentColor) -> some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(accent)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(accent.opacity(0.12), in: Capsule())
-    }
-
-    private var scheduleHeroPill: some View {
-        Text(scheduleSummary)
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
     }
 
     private var appTimerScheduleEditor: some View {
@@ -513,8 +531,20 @@ struct AICronjobEditView: View {
 
     private var connectedAppsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Connected Apps")
-                .font(.subheadline)
+            HStack(alignment: .center, spacing: 10) {
+                Text("Connected Apps")
+                    .font(.subheadline)
+
+                Spacer(minLength: 0)
+
+                Button {
+                    showingInstalledAppsPicker = true
+                } label: {
+                    Label("Add Installed App", systemImage: "plus.app")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
 
             Text("Attach internal app tools or installed Mac apps to this job and drag their token into the prompt.")
                 .font(.caption)
@@ -524,13 +554,6 @@ struct AICronjobEditView: View {
                 ForEach(AICronjobConnectedApp.allCases) { app in
                     connectedAppChip(app)
                 }
-
-                Button {
-                    showingInstalledAppsPicker = true
-                } label: {
-                    Label("Add Installed App", systemImage: "plus.app")
-                }
-                .buttonStyle(.bordered)
 
                 Spacer(minLength: 0)
             }
