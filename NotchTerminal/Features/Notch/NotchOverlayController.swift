@@ -51,6 +51,8 @@ class PassthroughHostingView<Content: View>: NSHostingView<Content> {
 }
 
 @MainActor
+/// Owns one overlay panel per display and coordinates overlay state with the
+/// terminal window manager, hover tracking, and session persistence.
 final class NotchOverlayController {
     private let collapsedNoNotchSize = NSSize(width: 126, height: 26)
     private let expandedSize = NSSize(width: 336, height: 78)
@@ -199,6 +201,8 @@ final class NotchOverlayController {
         guard let modelContext else { return }
         let descriptor = FetchDescriptor<TerminalSession>()
         if let sessions = try? modelContext.fetch(descriptor), !sessions.isEmpty {
+            // Restore only the persisted window graph. Runtime-only state is
+            // rebuilt by the window controller as each window is created.
             let plans = SessionPersistenceLogic.restorePlans(from: sessions)
             for plan in plans {
                 blackWindowController.createWindow(
@@ -222,6 +226,8 @@ final class NotchOverlayController {
         let latestSessions = blackWindowController.currentSessions()
         let latestIDs = Set(latestSessions.map(\.id))
 
+        // Persistence mirrors the live window graph: missing snapshots are
+        // deleted, existing ones are updated, new ones are inserted.
         for existing in existingSessions where !latestIDs.contains(existing.id) {
             modelContext.delete(existing)
         }
@@ -291,6 +297,8 @@ final class NotchOverlayController {
     }
 
     private func startMouseTracking() {
+        // Polling keeps expansion and pass-through accurate across displays,
+        // spaces, and hover transitions that SwiftUI/AppKit do not always emit.
         trackingFPS = preferredTrackingFPS()
         let interval = 1.0 / Double(trackingFPS)
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
@@ -632,9 +640,8 @@ final class NotchOverlayController {
             layoutPanels(animated: true, displays: changedDisplays)
         }
 
-        // Proactively update ignoresMouseEvents EVERY frame for expanded panels.
-        // This must run BEFORE any click arrives so the window server knows whether
-        // to route events to this panel or to windows underneath.
+        // Update pass-through ownership ahead of clicks so the window server
+        // knows whether to route input to the overlay or the window below it.
         for screen in NSScreen.screens {
             guard let displayID = displayID(for: screen),
                   let panel = panelsByDisplay[displayID],

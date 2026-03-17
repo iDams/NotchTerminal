@@ -1,6 +1,9 @@
 import CoreGraphics
 import Foundation
 
+/// Pure geometry helpers for the notch overlay.
+/// Keeping these calculations side-effect free makes hover and hit-test rules
+/// easy to reason about and verify in unit tests.
 enum NotchOverlayGeometryLogic {
     struct DisplayConfiguration {
         let offsetX: CGFloat
@@ -46,6 +49,8 @@ enum NotchOverlayGeometryLogic {
         configuration: DisplayConfiguration,
         constants: Constants
     ) -> CGRect {
+        // The backing panel is intentionally larger than the visible notch so
+        // SwiftUI can animate within a stable container without frame churn.
         let visualSize = CGSize(width: 1100, height: 160)
         let shoulderExtra: CGFloat = hasPhysicalNotch ? 64 : 0
         let topOvershoot: CGFloat = hasPhysicalNotch ? 6 : 0
@@ -94,7 +99,8 @@ enum NotchOverlayGeometryLogic {
         constants: Constants
     ) -> CGRect {
         if isExpanded {
-            // Compute the visual notch rect on screen instead of using the entire panel frame.
+            // Expanded hover should follow the visible notch surface, not the
+            // oversized panel used for shadows and animation.
             let visualWidth = CGFloat(1100)
             let visualHeight = CGFloat(160)
             let topInset = hasPhysicalNotch ? constants.notchTopInset : constants.noNotchTopInset
@@ -104,7 +110,8 @@ enum NotchOverlayGeometryLogic {
                 width: visualWidth,
                 height: visualHeight
             )
-            // Add a modest margin for comfort, NOT the full panel size.
+            // Keep the target forgiving without letting the invisible panel
+            // claim input far away from the notch itself.
             return visualRect.insetBy(dx: -20, dy: -30)
         }
 
@@ -137,8 +144,8 @@ enum NotchOverlayGeometryLogic {
         constants: Constants
     ) -> Bool {
         if isExpanded {
-            // When expanded, only allow mouse events if the cursor is reasonably
-            // close to the visual notch area — not the entire panel.
+            // Mouse ownership stays close to the visible notch even though the
+            // backing panel is larger than the rendered surface.
             let visualWidth = CGFloat(1100)
             let visualHeight = CGFloat(160)
             let topInset = hasPhysicalNotch ? constants.notchTopInset : constants.noNotchTopInset

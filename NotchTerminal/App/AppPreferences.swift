@@ -1,6 +1,8 @@
 import Foundation
 import CoreGraphics
 
+/// Centralizes persisted settings and converts raw `UserDefaults` values into
+/// typed configuration objects used by views and controllers.
 enum AppPreferences {
     struct NotchDisplayConfiguration: Equatable {
         let isEnabled: Bool
@@ -104,6 +106,8 @@ enum AppPreferences {
         static let experimentalProjectStatusShowFolder = true
     }
 
+    /// Disabled displays are stored as a stable comma-separated list so the
+    /// value round-trips predictably across launches and tests.
     static func disabledNotchDisplayIDs(in defaults: UserDefaults = .standard) -> Set<CGDirectDisplayID> {
         guard let rawValue = defaults.string(forKey: Keys.disabledNotchDisplayIDs),
               !rawValue.isEmpty else {
@@ -179,6 +183,8 @@ enum AppPreferences {
         if isEnabled {
             overrideIDs.insert(displayID)
         } else {
+            // Clearing the override also drops per-display values so the screen
+            // cleanly falls back to the shared global appearance again.
             overrideIDs.remove(displayID)
             var enabledMap = perDisplayBoolMap(forKey: Keys.auroraDisplayEnabledMap, in: defaults)
             enabledMap.removeValue(forKey: String(displayID))

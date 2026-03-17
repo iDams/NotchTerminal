@@ -1,5 +1,7 @@
 import Foundation
 
+/// Queue rules for command-orb presentation.
+/// This stays UI-free so the display behavior can be tested deterministically.
 enum NotchCommandOrbLogic {
     struct QueueUpdate {
         let shouldIgnore: Bool
@@ -27,6 +29,8 @@ enum NotchCommandOrbLogic {
 
         var nextActive = activeEvent
         if event.status != .running, activeEvent?.terminalNumber == event.terminalNumber {
+            // A terminal reports completion by reusing the same terminal id, so
+            // we can clear the persistent running marker at that point.
             nextActive = nil
         }
 
