@@ -4,6 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 private enum AIWorkspaceSection: String, CaseIterable, Identifiable {
+    case dashboard
     case jobs
     case providers
 
@@ -11,6 +12,8 @@ private enum AIWorkspaceSection: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .dashboard:
+            return "Dashboard"
         case .jobs:
             return "Agent Jobs"
         case .providers:
@@ -20,6 +23,8 @@ private enum AIWorkspaceSection: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
+        case .dashboard:
+            return "Overview and shortcuts"
         case .jobs:
             return "Automations and prompts"
         case .providers:
@@ -29,6 +34,8 @@ private enum AIWorkspaceSection: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .dashboard:
+            return "square.grid.2x2"
         case .jobs:
             return "cpu"
         case .providers:
@@ -38,6 +45,7 @@ private enum AIWorkspaceSection: String, CaseIterable, Identifiable {
 }
 
 struct AIControlCenterView: View {
+    private let workspaceTitle = "NotchTerminalAgent"
     @AppStorage(AppPreferences.Keys.aiFeaturesEnabled) private var aiFeaturesEnabled: Bool = AppPreferences.Defaults.aiFeaturesEnabled
     @AppStorage(AppPreferences.Keys.experimentalAIAgentWhitelist) private var experimentalAIAgentWhitelist: String = AppPreferences.Defaults.experimentalAIAgentWhitelist
     @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) private var experimentalAICronjobsData: [AICronjob] = AppPreferences.Defaults.experimentalAICronjobsData
@@ -45,7 +53,7 @@ struct AIControlCenterView: View {
     @AppStorage(AppPreferences.Keys.activeAIProviderID) private var activeAIProviderIDString: String = AppPreferences.Defaults.activeAIProviderID
     @AppStorage(AppPreferences.Keys.aiCronjobLogsData) private var aiCronjobLogsData: AICronjobLogStore = AppPreferences.Defaults.aiCronjobLogsData
 
-    @State private var selectedSection: AIWorkspaceSection = .jobs
+    @State private var selectedSection: AIWorkspaceSection = .dashboard
     @State private var editingCronjob: AICronjob?
     @State private var isCreatingNewCronjob = false
     @State private var editingProvider: AIProvider?
@@ -69,6 +77,7 @@ struct AIControlCenterView: View {
     @State private var providerTestSucceeded = false
     @State private var jobsImportMessage = ""
     @State private var importingRecipe: AIRecipeJob?
+    @State private var searchQuery = ""
 
     private let providerInstructionPresets: [AIProviderType: String] = [
         .minimax: "You are running inside NotchTerminal, a macOS automation agent with strict command safety rules. Never reveal hidden reasoning or thinking tags. Use one simple command at a time. Do not use pipes, redirects, shell chaining, or GUI-launch commands unless explicitly allowed. If a command fails because a service is offline, permissions block it, or the whitelist forbids it, stop and give a short final diagnosis with the best next step.",
@@ -104,6 +113,32 @@ struct AIControlCenterView: View {
 
     private var enabledProvidersCount: Int {
         providers.filter(\.isEnabled).count
+    }
+
+    private var pausedJobsCount: Int {
+        max(experimentalAICronjobsData.count - enabledJobsCount, 0)
+    }
+
+    private var filteredJobs: [AICronjob] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return experimentalAICronjobsData }
+
+        return experimentalAICronjobsData.filter { job in
+            job.name.localizedStandardContains(query) ||
+            job.detail.localizedStandardContains(query) ||
+            scheduleDescription(for: job).localizedStandardContains(query)
+        }
+    }
+
+    private var filteredProviders: [AIProvider] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return providers }
+
+        return providers.filter { provider in
+            provider.name.localizedStandardContains(query) ||
+            provider.type.displayName.localizedStandardContains(query) ||
+            provider.effectiveModel.localizedStandardContains(query)
+        }
     }
 
     private var whitelistCommands: [String] {
@@ -154,19 +189,9 @@ struct AIControlCenterView: View {
     }
 
     private var jobsFooterItems: [AIWorkspaceSummaryItem] {
-        guard let selectedJob else {
-            return [
-                .init(title: "Jobs", value: "\(experimentalAICronjobsData.count) configured"),
-                .init(title: "Enabled", value: "\(enabledJobsCount) active")
-            ]
-        }
-
-        let commands = effectiveAllowedCommands(for: selectedJob)
-        let latestLog = selectedJobLogEntries.first.map { relativeTimestamp(for: $0.timestamp) } ?? "No logs"
-        return [
-            .init(title: "Schedule", value: scheduleDescription(for: selectedJob)),
-            .init(title: "Permissions", value: "\(commands.count) command\(commands.count == 1 ? "" : "s")"),
-            .init(title: "Latest Log", value: latestLog)
+        [
+            .init(title: "Jobs", value: "\(experimentalAICronjobsData.count) configured"),
+            .init(title: "Enabled", value: "\(enabledJobsCount) active")
         ]
     }
 
@@ -182,7 +207,16 @@ struct AIControlCenterView: View {
             if aiFeaturesEnabled {
                 NavigationSplitView {
                     sidebar
-                        .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
+                        .navigationTitle("Agent Jobs")
+                        .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 320)
+                        .toolbar {
+                            ToolbarItem(placement: .primaryAction) {
+                                Button(action: beginCreatingCronjob) {
+                                    Image(systemName: "plus")
+                                }
+                                .help("Create a new job")
+                            }
+                        }
                 } detail: {
                     detailContent
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -196,7 +230,7 @@ struct AIControlCenterView: View {
                     Text("AI Features Are Paused")
                         .font(.title3.weight(.semibold))
 
-                    Text("Turn AI Features back on in Settings to restore Agent Jobs, providers, logs, and the AI Control Center.")
+                    Text("Turn AI Features back on in Settings to restore NotchTerminalAgent, jobs, providers, and logs.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -289,28 +323,78 @@ struct AIControlCenterView: View {
     }
 
     private var sidebar: some View {
-        List(AIWorkspaceSection.allCases, selection: selectedSectionBinding) { section in
-            AIWorkspaceSidebarRow(
-                title: section.title,
-                subtitle: section.subtitle,
-                systemImage: section.systemImage,
-                badge: badgeText(for: section)
-            )
-            .tag(section)
-        }
-        .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom) {
+        VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    // Smart Lists Grid
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                        AIWorkspaceQuickCard(
+                            title: "Dashboard",
+                            tint: .blue,
+                            systemImage: "square.grid.2x2.fill",
+                            isSelected: selectedSection == .dashboard,
+                            action: { selectedSection = .dashboard }
+                        )
+
+                        AIWorkspaceQuickCard(
+                            title: "Providers",
+                            tint: .orange,
+                            systemImage: "server.rack",
+                            value: "\(providers.count)",
+                            isSelected: selectedSection == .providers,
+                            action: { selectedSection = .providers }
+                        )
+
+                        AIWorkspaceQuickCard(
+                            title: "Active",
+                            tint: .green,
+                            systemImage: "bolt.fill",
+                            value: "\(enabledJobsCount)",
+                            isSelected: false, // Just a metric
+                            action: {}
+                        )
+
+                        AIWorkspaceQuickCard(
+                            title: "Paused",
+                            tint: .secondary,
+                            systemImage: "pause.fill",
+                            value: "\(pausedJobsCount)",
+                            isSelected: false, // Just a metric
+                            action: {}
+                        )
+                    }
+                    .padding(.top, 10)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("My Jobs")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.leading, 4)
+
+                        sidebarJobList
+                    }
+                }
+                .padding(.horizontal, 14)
+            }
+
+            Spacer(minLength: 0)
+
             AIWorkspaceSidebarFooter(
                 activeProviderName: activeProvider?.name ?? "None selected",
                 modelName: activeProvider?.effectiveModel ?? "No model",
                 isConnected: activeProvider != nil && activeProviderHasAPIKey
             )
+            .padding(.horizontal, 10)
+            .padding(.bottom, 12)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     @ViewBuilder
     private var detailContent: some View {
         switch selectedSection {
+        case .dashboard:
+            dashboardWorkspace
         case .jobs:
             jobsWorkspace
         case .providers:
@@ -318,91 +402,102 @@ struct AIControlCenterView: View {
         }
     }
 
+    private var sidebarJobList: some View {
+        ScrollView {
+            VStack(spacing: 8) {
+                ForEach(filteredJobs) { job in
+                    AISidebarJobRow(
+                        job: job,
+                        isSelected: editingCronjob?.id == job.id && !isCreatingNewCronjob,
+                        onSelect: {
+                            selectedSection = .jobs
+                            isCreatingNewCronjob = false
+                            editingCronjob = job
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private var dashboardWorkspace: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            dashboardHeader
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    dashboardMetrics
+                    dashboardQuickActions
+                }
+                .padding(18)
+            }
+
+            statusFooter(
+                summaryItems: [
+                    .init(title: "Jobs", value: "\(experimentalAICronjobsData.count) configured"),
+                    .init(title: "Enabled", value: "\(enabledJobsCount) active"),
+                    .init(title: "Providers", value: "\(providers.count) connected")
+                ],
+                warning: jobsProviderWarning
+            ) {
+                EmptyView()
+            }
+        }
+    }
+
     private var jobsWorkspace: some View {
         VStack(alignment: .leading, spacing: 0) {
-            jobsHeader
+            if editingCronjob == nil {
+                jobsHeader
+            }
 
-            HSplitView {
-                AIWorkspacePane(title: "Jobs") {
-                    if experimentalAICronjobsData.isEmpty {
-                        AIWorkspaceEmptyState(
-                            title: "No Agent Jobs yet",
-                            subtitle: "Create one recurring task, then tune the schedule and prompt from the detail pane.",
-                            systemImage: "sparkles.rectangle.stack"
-                        )
-                    } else {
-                        VStack(spacing: 0) {
-                            AIJobListHeader(
-                                isCreatingNewJob: isCreatingNewCronjob,
-                                onCreate: beginCreatingCronjob
-                            )
-
-                            List {
-                                ForEach(experimentalAICronjobsData) { job in
-                                    AIJobRow(
-                                        job: job,
-                                        isSelected: editingCronjob?.id == job.id && !isCreatingNewCronjob,
-                                        onSelect: {
-                                            isCreatingNewCronjob = false
-                                            editingCronjob = job
-                                        },
-                                        onRun: {
-                                            runJobForDevelopment(job)
-                                        },
-                                        onViewLogs: {
-                                            viewingLogsForJob = job
-                                        },
-                                        onDelete: {
-                                            pendingJobDeletion = job
-                                        }
-                                    )
-                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                                    .listRowSeparator(.hidden)
-                                    .listRowBackground(Color.clear)
-                                }
+            AIWorkspacePane(title: "") {
+                if experimentalAICronjobsData.isEmpty {
+                    AIWorkspaceEmptyState(
+                        title: "No jobs yet",
+                        subtitle: "Create one recurring task, then tune the schedule and prompt from the detail pane.",
+                        systemImage: "sparkles.rectangle.stack"
+                    )
+                } else if filteredJobs.isEmpty {
+                    AIWorkspaceEmptyState(
+                        title: "No matching jobs",
+                        subtitle: "Try another search to find a job by name, detail, or schedule.",
+                        systemImage: "magnifyingglass"
+                    )
+                } else if let jobBinding = editingCronjobBinding {
+                    AICronjobEditView(
+                        cronjob: jobBinding,
+                        providers: providers,
+                        isNew: isCreatingNewCronjob,
+                        minimumHeight: 0,
+                        isImprovingPrompt: isImprovingPrompt,
+                        onImprovePrompt: improveSelectedJobPrompt,
+                        onConfigurePermissions: preparePermissionsEditor,
+                        onViewLogs: {
+                            if let selectedJob {
+                                viewingLogsForJob = selectedJob
                             }
-                            .listStyle(.plain)
-                            .scrollContentBackground(.hidden)
+                        },
+                        onToggleEnabled: { isEnabled in
+                            updateSelectedJobEnabled(isEnabled)
+                        },
+                        onSave: saveEditingJob,
+                        onCancel: {
+                            editingCronjob = nil
+                            isCreatingNewCronjob = false
+                            syncSelectionState()
                         }
-                        .background(Color(nsColor: .controlBackgroundColor).opacity(0.12))
-                    }
+                    )
+                } else {
+                    AIWorkspaceEmptyState(
+                        title: "Select a job",
+                        subtitle: "Choose a job from the left to inspect it, edit it, or review its logs.",
+                        systemImage: "square.and.pencil"
+                    )
                 }
-                .frame(minWidth: 300, idealWidth: 340, maxWidth: 400)
-
-                AIWorkspacePane(title: "") {
-                    if let jobBinding = editingCronjobBinding {
-                        AICronjobEditView(
-                            cronjob: jobBinding,
-                            providers: providers,
-                            isNew: isCreatingNewCronjob,
-                            minimumHeight: 0,
-                            isImprovingPrompt: isImprovingPrompt,
-                            onImprovePrompt: improveSelectedJobPrompt,
-                            onConfigurePermissions: preparePermissionsEditor,
-                            onViewLogs: {
-                                if let selectedJob {
-                                    viewingLogsForJob = selectedJob
-                                }
-                            },
-                            onToggleEnabled: { isEnabled in
-                                updateSelectedJobEnabled(isEnabled)
-                            },
-                            onSave: saveEditingJob,
-                            onCancel: {
-                                editingCronjob = nil
-                                isCreatingNewCronjob = false
-                                syncSelectionState()
-                            }
-                        )
-                    } else {
-                        AIWorkspaceEmptyState(
-                            title: "Select a job",
-                            subtitle: "Click any job on the left to inspect it, edit it, or review its logs.",
-                            systemImage: "square.and.pencil"
-                        )
-                    }
-                }
-                .frame(minWidth: 560)
             }
             .layoutPriority(1)
 
@@ -410,20 +505,38 @@ struct AIControlCenterView: View {
                 summaryItems: jobsFooterItems,
                 warning: jobsProviderWarning
             ) {
-                Menu {
-                    Button("Blank Agent Job", systemImage: "doc.badge.plus") {
-                        beginCreatingCronjob()
-                    }
-                    Button("Import via File...", systemImage: "doc.text") {
-                        importJobs()
-                    }
-                    Button("Import from Clipboard", systemImage: "doc.on.clipboard") {
-                        importJobFromClipboard()
-                    }
-                } label: {
-                    Label("Opciones", systemImage: "ellipsis.circle")
+                EmptyView()
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button(action: exportSelectedRecipeJob) {
+                    Image(systemName: "square.and.arrow.up")
                 }
-                .fixedSize()
+                .disabled(selectedJob == nil)
+                .help("Export RecipeJob")
+
+                if let selectedJob {
+                    Button {
+                        runJobForDevelopment(selectedJob)
+                    } label: {
+                        Label("Run", systemImage: "play.fill")
+                    }
+                    .help("Run selected job")
+                }
+
+                Menu {
+                    Button("Import RecipeJob", systemImage: "square.and.arrow.down", action: importJobs)
+                    Button("Import from Clipboard", systemImage: "doc.on.clipboard", action: importJobFromClipboard)
+                    Divider()
+                    Button("Export RecipeJob", systemImage: "square.and.arrow.up.on.square", action: exportSelectedRecipeJob)
+                        .disabled(selectedJob == nil)
+                    Button("Check For Update", systemImage: "arrow.trianglehead.clockwise", action: checkSelectedRecipeJobForUpdates)
+                        .disabled(selectedJob?.recipeUpdateURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .help("More actions")
             }
         }
     }
@@ -440,10 +553,16 @@ struct AIControlCenterView: View {
                             subtitle: "Add OpenAI, DeepSeek, Ollama, or a custom endpoint to start wiring Agent Jobs.",
                             systemImage: "server.rack"
                         )
+                    } else if filteredProviders.isEmpty {
+                        AIWorkspaceEmptyState(
+                            title: "No matching providers",
+                            subtitle: "Try another search to find a provider by name, type, or model.",
+                            systemImage: "magnifyingglass"
+                        )
                     } else {
                         VStack(spacing: 0) {
                             List {
-                                ForEach(providers) { provider in
+                                ForEach(filteredProviders) { provider in
                                     AIProviderRow(
                                         provider: provider,
                                         isSelected: editingProvider?.id == provider.id && !isCreatingNewProvider,
@@ -532,6 +651,24 @@ struct AIControlCenterView: View {
         }
     }
 
+    private var dashboardHeader: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Dashboard")
+                    .font(.headline.weight(.semibold))
+
+                Text("Quick actions and a clean overview of the agent workspace")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+
     private var providersHeader: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
@@ -560,38 +697,116 @@ struct AIControlCenterView: View {
                     .background(Color.accentColor.opacity(0.12), in: Capsule())
                     .foregroundStyle(Color.accentColor)
             }
-
-            Button(action: beginCreatingProvider) {
-                Label("Add Provider", systemImage: "plus")
-            }
-            .buttonStyle(.bordered)
         }
         .padding(.horizontal, 18)
         .padding(.top, 8)
         .padding(.bottom, 6)
     }
 
+    private var dashboardMetrics: some View {
+        HStack(spacing: 14) {
+            dashboardMetricCard(
+                title: "Jobs",
+                value: "\(experimentalAICronjobsData.count)",
+                subtitle: "\(enabledJobsCount) active",
+                tint: .blue
+            )
+
+            dashboardMetricCard(
+                title: "Paused",
+                value: "\(pausedJobsCount)",
+                subtitle: "Need review",
+                tint: .orange
+            )
+
+            dashboardMetricCard(
+                title: "Providers",
+                value: "\(providers.count)",
+                subtitle: activeProvider?.name ?? "No active provider",
+                tint: .green
+            )
+        }
+    }
+
+    private var dashboardQuickActions: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Quick Actions")
+                .font(.headline)
+
+            HStack(spacing: 14) {
+                dashboardActionCard(
+                    title: "Blank Agent Job",
+                    subtitle: "Create a new automation from scratch.",
+                    systemImage: "doc.badge.plus",
+                    tint: .blue,
+                    action: beginCreatingCronjob
+                )
+
+                dashboardActionCard(
+                    title: "Import via File",
+                    subtitle: "Load a RecipeJob or saved automation JSON.",
+                    systemImage: "square.and.arrow.down",
+                    tint: .orange,
+                    action: importJobs
+                )
+
+                dashboardActionCard(
+                    title: "Import Clipboard",
+                    subtitle: "Paste a Recipe JSON directly from the clipboard.",
+                    systemImage: "doc.on.clipboard",
+                    tint: .green,
+                    action: importJobFromClipboard
+                )
+            }
+        }
+    }
+
+    private func dashboardMetricCard(
+        title: String,
+        value: String,
+        subtitle: String,
+        tint: Color
+    ) -> some View {
+        AIDashboardMetricCard(
+            title: title,
+            value: value,
+            subtitle: subtitle,
+            tint: tint
+        )
+    }
+
+    private func dashboardActionCard(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        AIDashboardActionCard(
+            title: title,
+            subtitle: subtitle,
+            systemImage: systemImage,
+            tint: tint,
+            action: action
+        )
+    }
+
     private var jobsHeader: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                if let selectedJob {
-                    Text(selectedJob.name)
+            if let selectedJob {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(selectedJob.name.isEmpty ? "New Job" : selectedJob.name)
                         .font(.headline.weight(.semibold))
-                    HStack(spacing: 8) {
-                        Text(selectedJob.mode == .app ? "App Timer" : "Daemon")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
 
-                        Text(selectedJob.isEnabled ? "Active" : "Paused")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background((selectedJob.isEnabled ? Color.green : Color.secondary).opacity(0.14), in: Capsule())
-                            .foregroundStyle(selectedJob.isEnabled ? Color.green : Color.secondary)
-                    }
-                } else {
+                    Text(scheduleDescription(for: selectedJob))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Agent Jobs")
                         .font(.headline.weight(.semibold))
+
                     Text("Automations and prompts")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -599,29 +814,6 @@ struct AIControlCenterView: View {
             }
 
             Spacer(minLength: 0)
-
-            if let selectedJob {
-                Button {
-                    runJobForDevelopment(selectedJob)
-                } label: {
-                    Label("Run", systemImage: "play.fill")
-                }
-                .buttonStyle(.borderedProminent)
-            }
-
-            Menu {
-                Button("Import RecipeJob", systemImage: "square.and.arrow.down", action: importJobs)
-                Button("Import from Clipboard", systemImage: "doc.on.clipboard", action: importJobFromClipboard)
-                Divider()
-                Button("Export RecipeJob", systemImage: "square.and.arrow.up.on.square", action: exportSelectedRecipeJob)
-                    .disabled(selectedJob == nil)
-                Button("Check For Update", systemImage: "arrow.trianglehead.clockwise", action: checkSelectedRecipeJobForUpdates)
-                    .disabled(selectedJob?.recipeUpdateURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 16, weight: .semibold))
-            }
-            .menuStyle(.borderlessButton)
         }
         .padding(.horizontal, 18)
         .padding(.top, 8)
@@ -638,15 +830,6 @@ struct AIControlCenterView: View {
         }
 
         showingPermissionsEditor = true
-    }
-
-    private func badgeText(for section: AIWorkspaceSection) -> String {
-        switch section {
-        case .jobs:
-            return experimentalAICronjobsData.isEmpty ? "New" : "\(enabledJobsCount)/\(experimentalAICronjobsData.count)"
-        case .providers:
-            return providers.isEmpty ? "Add" : "\(providers.count)"
-        }
     }
 
     @ViewBuilder
@@ -732,7 +915,11 @@ struct AIControlCenterView: View {
     }
 
     private func beginCreatingCronjob() {
-        guard !isCreatingNewCronjob || editingCronjob == nil else { return }
+        guard !isCreatingNewCronjob || editingCronjob == nil else {
+            selectedSection = .jobs
+            return
+        }
+        selectedSection = .jobs
         isCreatingNewCronjob = true
         var draft = AICronjob()
         draft.name = ""
@@ -1271,39 +1458,144 @@ private struct AIWorkspaceSidebarFooter: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.32))
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.32), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
-private struct AIWorkspaceSidebarRow: View {
+private struct AIWorkspaceSearchField: View {
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+
+            TextField("Search", text: $text)
+                .textFieldStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.thinMaterial, in: Capsule())
+    }
+}
+
+private struct AIDashboardMetricCard: View {
+    let title: String
+    let value: String
+    let subtitle: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text(value)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [tint.opacity(0.18), tint.opacity(0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(tint.opacity(0.18), lineWidth: 1)
+        )
+    }
+}
+
+private struct AIDashboardActionCard: View {
     let title: String
     let subtitle: String
     let systemImage: String
-    let badge: String
+    let tint: Color
+    let action: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Image(systemName: systemImage)
-                .frame(width: 18)
-                .foregroundStyle(.secondary)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(tint)
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.body.weight(.semibold))
-                    Spacer(minLength: 6)
-                    Text(badge)
-                        .font(.caption.weight(.semibold))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Text(subtitle)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
+            .padding(16)
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.32), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct AIWorkspaceQuickCard: View {
+    let title: String
+    let tint: Color
+    let systemImage: String
+    var value: String? = nil
+    var isSelected: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.92))
+                    Spacer()
+                    if let value {
+                        Text(value)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
                 }
 
-                Text(subtitle)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+            .background(
+                LinearGradient(
+                    colors: [
+                        tint.opacity(isSelected ? 0.95 : 0.84),
+                        tint.opacity(isSelected ? 0.75 : 0.62)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
         }
-        .padding(.vertical, 3)
+        .buttonStyle(.plain)
     }
 }
 
@@ -1328,6 +1620,58 @@ private struct AIWorkspaceEmptyState: View {
                 .frame(maxWidth: 320)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct AISidebarJobRow: View {
+    let job: AICronjob
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    private var statusDotColor: Color {
+        job.isEnabled ? .green : .secondary.opacity(0.5)
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "cpu")
+                .frame(width: 18)
+                .foregroundStyle(isSelected ? .white : .secondary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(job.name)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(isSelected ? .white : .primary)
+                    .lineLimit(1)
+
+                Text(job.mode == .app ? "App Timer" : "Daemon")
+                    .font(.caption2)
+                    .foregroundStyle(isSelected ? .white.opacity(0.82) : .secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            Circle()
+                .fill(statusDotColor)
+                .frame(width: 8, height: 8)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            isSelected
+                ? AnyShapeStyle(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.9), Color.blue.opacity(0.65)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                : AnyShapeStyle(Color.clear),
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .contentShape(.rect)
+        .onTapGesture(perform: onSelect)
     }
 }
 
@@ -1420,39 +1764,6 @@ private struct AIJobRow: View {
         }
         .contentShape(.rect)
         .onTapGesture(perform: onSelect)
-    }
-}
-
-private struct AIJobListHeader: View {
-    let isCreatingNewJob: Bool
-    let onCreate: () -> Void
-
-    var body: some View {
-        HStack {
-            Text("Jobs")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Spacer()
-            Button(action: onCreate) {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(isCreatingNewJob ? Color.accentColor : .secondary)
-                    .frame(width: 22, height: 22)
-                    .background(
-                        Circle()
-                            .fill(
-                                isCreatingNewJob
-                                    ? Color.accentColor.opacity(0.12)
-                                    : Color.secondary.opacity(0.08)
-                            )
-                    )
-            }
-            .buttonStyle(.plain)
-            .help("Create a new job")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.2))
     }
 }
 

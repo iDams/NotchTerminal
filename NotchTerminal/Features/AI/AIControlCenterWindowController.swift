@@ -29,7 +29,7 @@ final class AIControlCenterWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "AI Control Center"
+        window.title = "NotchTerminalAgent"
         window.contentViewController = hostingController
         window.isReleasedWhenClosed = false
         window.titleVisibility = .hidden
