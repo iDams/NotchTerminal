@@ -105,9 +105,6 @@
 "settings.experimental.effects" = "Effets expérimentaux";
 "settings.experimental.effects.subtitle" = "Visuels optionnels qui peuvent varier selon l'écran/GPU.";
 "settings.experimental.effects.help" = "Effets visuels qui modifient l'apparence du notch ou de la zone du terminal. Certaines options peuvent utiliser davantage de GPU et de batterie, et le rendu peut varier selon l'ecran.";
-"settings.experimental.debug" = "Debug";
-"settings.experimental.debug.subtitle" = "Outils et repères visuels réservés au développement.";
-"settings.experimental.debug.help" = "Diagnostics temporaires pour verifier les zones de hit-testing et d'ancrage. La plupart des utilisateurs peuvent laisser ces options desactivees sauf en cas de reglage ou de depannage du notch.";
 "settings.experimental.startupOrb.section" = "Orbe de notification";
 "settings.experimental.startupOrb.section.subtitle" = "Apparence et position expérimentales de l’orbe de notification.";
 "settings.experimental.startupOrb.section.help" = "Controle le petit orbe affiche pres du notch pour les etats de demarrage ou de notification. Utilisez les offsets pour affiner sa position sur les ecrans a faux notch ou a notch physique.";
@@ -127,8 +124,6 @@
 "settings.experimental.docking.help" = "Controle la facon dont les fenetres terminal s'ancrent dans la zone du notch lorsqu'elles sont glissees a proximite. Une sensibilite plus elevee declenche l'ancrage plus facilement.";
 "settings.experimental.dragToNotch" = "Activer l’ancrage au notch par glisser-déposer";
 "settings.experimental.dragToNotch.subtitle" = "Permet aux fenêtres terminal de s’ancrer au notch lorsqu’elles sont glissées à proximité. Expérimental et encore instable.";
-"settings.experimental.hitTestDebugOverlay" = "Afficher les contours de débogage de l’ancrage";
-"settings.experimental.hitTestDebugOverlay.subtitle" = "Affiche les guides colorés en pointillés pour les zones d’ancrage et de détection.";
 "settings.experimental.projectStatus.help" = "Affiche un contexte leger du projet dans le notch developpe, comme le nom du dossier courant et l'etat git de la session terminal active.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Effet de lueur néon violet pour les notches simulés.";

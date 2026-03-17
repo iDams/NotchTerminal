@@ -386,8 +386,6 @@ struct NotchCapsuleView: View {
         }
         .overlay(alignment: .topLeading) { topLeadingControls }
         .overlay(alignment: .topTrailing) { topTrailingControls }
-        .overlay { panelFrameDebugOverlay }
-        .overlay(alignment: .top) { hitTestDebugOverlay }
     }
 
     @ViewBuilder
@@ -708,53 +706,6 @@ struct NotchCapsuleView: View {
         }
     }
 
-    @ViewBuilder
-    private var panelFrameDebugOverlay: some View {
-        if experimentalFeatures.hitTestDebugOverlayEnabled && !model.hasPhysicalNotch {
-            GeometryReader { proxy in
-                Rectangle()
-                    .fill(Color.orange.opacity(0.06))
-                    .overlay {
-                        Rectangle()
-                            .stroke(Color.orange.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [10, 6]))
-                    }
-                    .frame(width: proxy.size.width, height: proxy.size.height)
-                    .allowsHitTesting(false)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var hitTestDebugOverlay: some View {
-        if experimentalFeatures.hitTestDebugOverlayEnabled && !model.hasPhysicalNotch && !model.isExpanded {
-            ZStack {
-                RoundedRectangle(cornerRadius: notchCornerRadius + 20, style: .continuous)
-                    .fill(Color.red.opacity(0.16))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: notchCornerRadius + 20, style: .continuous)
-                            .stroke(Color.red.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
-                    }
-                    .frame(width: capsuleWidth + 40, height: model.closedSize.height + 40)
-                    .offset(y: -20)
-
-                Circle()
-                    .fill(Color.cyan.opacity(0.22))
-                    .overlay {
-                        Circle()
-                            .stroke(Color.cyan.opacity(0.95), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
-                    }
-                    .frame(
-                        width: StartupOrbGeometry.bubbleSize(for: .pill) + 16,
-                        height: StartupOrbGeometry.bubbleSize(for: .pill) + 16
-                    )
-                    .offset(
-                        x: StartupOrbGeometry.detachedOffsetX(for: .pill, hostWidth: capsuleWidth),
-                        y: StartupOrbGeometry.offsetY(for: .pill) - 8
-                    )
-            }
-            .allowsHitTesting(false)
-        }
-    }
 }
 
 // MARK: - Preference Key

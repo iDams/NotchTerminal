@@ -171,7 +171,6 @@ Why this exists:
   - Project Status Card (contextual details like Folder Name and Git Status in the Notch)
   - Fake Notch Glow and theme
   - CRT Filter
-  - Hit-test debug overlay
   - Extra notch geometry offsets for physical-notch displays
 
 ## Project Structure

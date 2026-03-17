@@ -26,7 +26,6 @@ enum AppPreferences {
     struct ExperimentalFeatureConfiguration: Equatable {
         let dragToNotchEnabled: Bool
         let startupOrbEnabled: Bool
-        let hitTestDebugOverlayEnabled: Bool
         let notchDockingSensitivity: Double
         let projectStatusCardEnabled: Bool
         let projectStatusShowGit: Bool
@@ -67,7 +66,6 @@ enum AppPreferences {
         static let startupOrbPillOffsetY = "startupOrbPillOffsetY"
         static let startupOrbNotchOffsetX = "startupOrbNotchOffsetX"
         static let startupOrbNotchOffsetY = "startupOrbNotchOffsetY"
-        static let hitTestDebugOverlayEnabled = "hitTestDebugOverlayEnabled"
         static let enableCRTFilter = "enableCRTFilter"
         static let experimentalProjectStatusCardEnabled = "experimentalProjectStatusCardEnabled"
         static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
@@ -99,7 +97,6 @@ enum AppPreferences {
         static let startupOrbPillOffsetY: Double = 0
         static let startupOrbNotchOffsetX: Double = 9
         static let startupOrbNotchOffsetY: Double = 4
-        static let hitTestDebugOverlayEnabled = false
         static let enableCRTFilter = false
         static let experimentalProjectStatusCardEnabled = false
         static let experimentalProjectStatusShowGit = true
@@ -279,11 +276,6 @@ enum AppPreferences {
             startupOrbEnabled: bool(
                 forKey: Keys.experimentalStartupOrbEnabled,
                 default: Defaults.experimentalStartupOrbEnabled,
-                in: defaults
-            ),
-            hitTestDebugOverlayEnabled: bool(
-                forKey: Keys.hitTestDebugOverlayEnabled,
-                default: Defaults.hitTestDebugOverlayEnabled,
                 in: defaults
             ),
             notchDockingSensitivity: double(

@@ -105,9 +105,6 @@
 "settings.experimental.effects" = "Experimental Effects";
 "settings.experimental.effects.subtitle" = "Optional visuals that may vary by screen/GPU.";
 "settings.experimental.effects.help" = "Visual effects that change how the notch or terminal area looks. Some options may use more GPU and battery, and behavior can vary by display type.";
-"settings.experimental.debug" = "Debug";
-"settings.experimental.debug.subtitle" = "Development-only tools and visual guides.";
-"settings.experimental.debug.help" = "Temporary diagnostics for validating hit-testing and docking areas. Most people can leave these off unless they are tuning or troubleshooting notch interactions.";
 "settings.experimental.startupOrb.section" = "Notification Orb";
 "settings.experimental.startupOrb.section.subtitle" = "Experimental notification orb appearance and positioning.";
 "settings.experimental.startupOrb.section.help" = "Controls the small orb shown near the notch for startup or notification states. Use the offsets to fine-tune its position on fake-notch and physical-notch displays.";
@@ -127,8 +124,6 @@
 "settings.experimental.docking.help" = "Controls how terminal windows snap into the notch area when dragged nearby. Higher sensitivity makes docking trigger more easily.";
 "settings.experimental.dragToNotch" = "Enable drag-to-notch docking";
 "settings.experimental.dragToNotch.subtitle" = "Lets terminal windows snap into the notch when dragged nearby. Experimental and currently unstable.";
-"settings.experimental.hitTestDebugOverlay" = "Show docking debug outlines";
-"settings.experimental.hitTestDebugOverlay.subtitle" = "Displays the colored dashed guides for the docking and hit-test areas.";
 "settings.experimental.projectStatus.help" = "Shows lightweight project context in the expanded notch, such as the current folder name and git state for the active terminal session.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Neon purple glow effect for simulated notches.";

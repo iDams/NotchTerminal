@@ -105,9 +105,6 @@
 "settings.experimental.effects" = "実験的エフェクト";
 "settings.experimental.effects.subtitle" = "画面/GPUによって異なる場合があります。";
 "settings.experimental.effects.help" = "ノッチやターミナル領域の見た目を変える視覚効果です。設定によってはGPUやバッテリー消費が増え、表示はディスプレイごとに異なる場合があります。";
-"settings.experimental.debug" = "デバッグ";
-"settings.experimental.debug.subtitle" = "開発用のツールと視覚ガイドです。";
-"settings.experimental.debug.help" = "ヒットテスト領域やドッキング領域を確認するための一時的な診断機能です。ノッチ挙動の調整や調査をしない限り、通常はオフのままで問題ありません。";
 "settings.experimental.startupOrb.section" = "通知オーブ";
 "settings.experimental.startupOrb.section.subtitle" = "通知オーブの外観と位置に関する実験的設定です。";
 "settings.experimental.startupOrb.section.help" = "起動時や通知時にノッチ付近へ表示される小さなオーブを制御します。擬似ノッチ画面と物理ノッチ画面の両方で、オフセットを使って位置を微調整できます。";
@@ -127,8 +124,6 @@
 "settings.experimental.docking.help" = "ターミナルウィンドウを近くまでドラッグしたときに、ノッチ領域へどのように吸着するかを制御します。感度を高くすると、より簡単にドッキングします。";
 "settings.experimental.dragToNotch" = "ドラッグでノッチにドッキングを有効化";
 "settings.experimental.dragToNotch.subtitle" = "近くまでドラッグしたターミナルウィンドウをノッチへスナップさせます。実験的で、まだ不安定です。";
-"settings.experimental.hitTestDebugOverlay" = "ドッキングのデバッグ輪郭を表示";
-"settings.experimental.hitTestDebugOverlay.subtitle" = "ドッキング領域とヒットテスト領域の色付き破線ガイドを表示します。";
 "settings.experimental.projectStatus.help" = "展開したノッチ内に、現在のフォルダ名やアクティブなターミナルセッションのgit状態など、軽量なプロジェクト情報を表示します。";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "シミュレートされたノッチのネオン紫グローエフェクト。";

@@ -29,13 +29,6 @@ struct ExperimentalSettingsView: View {
         )
     }
 
-    private var hitTestDebugOverlayBinding: Binding<Bool> {
-        Binding(
-            get: { experimentalFeatures.hitTestDebugOverlayEnabled },
-            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.hitTestDebugOverlayEnabled) }
-        )
-    }
-
     private var notchDockingSensitivityBinding: Binding<Double> {
         Binding(
             get: { experimentalFeatures.notchDockingSensitivity },
@@ -121,7 +114,6 @@ struct ExperimentalSettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 geometrySection
                 dockingSection
-                debugSection
                 startupOrbSection
                 projectStatusCardSection
                 NotchTerminalSettingsSection(contentSpacing: 12) {
@@ -270,24 +262,6 @@ struct ExperimentalSettingsView: View {
                     valueFormatter: { "\(Int($0)) pt" }
                 )
             }
-        }
-    }
-
-    private var debugSection: some View {
-        NotchTerminalSettingsSection(contentSpacing: 12) {
-            NotchTerminalSectionHeading(
-                title: "settings.experimental.debug".localized,
-                subtitle: "settings.experimental.debug.subtitle".localized,
-                icon: "ladybug",
-                helpTooltip: "settings.experimental.debug.help".localized
-            )
-
-            NotchTerminalPreferenceToggleRow(
-                title: "settings.experimental.hitTestDebugOverlay".localized,
-                subtitle: "settings.experimental.hitTestDebugOverlay.subtitle".localized,
-                icon: "viewfinder.circle",
-                binding: hitTestDebugOverlayBinding
-            )
         }
     }
 

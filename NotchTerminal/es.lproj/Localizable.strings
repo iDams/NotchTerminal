@@ -105,9 +105,6 @@
 "settings.experimental.effects" = "Efectos experimentales";
 "settings.experimental.effects.subtitle" = "Visuales opcionales que pueden variar según pantalla/GPU.";
 "settings.experimental.effects.help" = "Efectos visuales que cambian como se ve el notch o el area del terminal. Algunas opciones pueden usar mas GPU y bateria, y su comportamiento puede variar segun la pantalla.";
-"settings.experimental.debug" = "Debug";
-"settings.experimental.debug.subtitle" = "Herramientas y guías visuales solo para desarrollo.";
-"settings.experimental.debug.help" = "Diagnosticos temporales para validar las zonas de hit-testing y acople. La mayoria de usuarios puede dejarlos apagados salvo que este ajustando o depurando la interaccion del notch.";
 "settings.experimental.startupOrb.section" = "Orb de notificaciones";
 "settings.experimental.startupOrb.section.subtitle" = "Apariencia y posición experimental del orb de notificaciones.";
 "settings.experimental.startupOrb.section.help" = "Controla el pequeno orb que aparece cerca del notch para estados de inicio o notificaciones. Usa los offsets para afinar su posicion en pantallas con notch simulado o notch fisico.";
@@ -127,8 +124,6 @@
 "settings.experimental.docking.help" = "Controla como las ventanas de terminal se acoplan al area del notch al arrastrarlas cerca. Una sensibilidad mas alta hace que el acople se active con mayor facilidad.";
 "settings.experimental.dragToNotch" = "Activar acople al notch por arrastre";
 "settings.experimental.dragToNotch.subtitle" = "Permite que las ventanas de terminal se acoplen al notch al arrastrarlas cerca. Experimental y aún inestable.";
-"settings.experimental.hitTestDebugOverlay" = "Mostrar contornos de depuración del acople";
-"settings.experimental.hitTestDebugOverlay.subtitle" = "Muestra las guías discontinuas de color para las zonas de acople y detección.";
 "settings.experimental.projectStatus.help" = "Muestra contexto ligero del proyecto en el notch expandido, como el nombre de la carpeta actual y el estado de git de la sesion de terminal activa.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Efecto de brillo néon morado para notches simulados.";
