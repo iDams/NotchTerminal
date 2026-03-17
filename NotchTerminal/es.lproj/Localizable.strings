@@ -95,19 +95,11 @@
 "settings.notchDockingSensitivity" = "Radio de detección";
 "settings.notchDockingSensitivity.subtitle" = "Más grande significa detección más temprana, más pequeño requiere acercarse más.";
 
-"settings.appearance.compactTicker" = "Ticker compacto";
-"settings.appearance.compactTicker.subtitle" = "Estado del proveedor en modo notch cerrado.";
 "settings.appearance.effects" = "Efectos";
 "settings.appearance.effects.subtitle" = "Efectos visuales para la superficie del notch.";
 "settings.appearance.effects.help" = "Controla estilos visuales opcionales, como el fondo Aurora usado detras del contenido del notch en pantallas compatibles.";
 "settings.appearance.reset" = "Restablecer ajustes de apariencia";
 "settings.appearance.reset.subtitle" = "Restaura los valores por defecto de esta pestaña.";
-"settings.compactTickerEnabled" = "Mostrar ticker de proveedor compacto";
-"settings.compactTickerEnabled.subtitle" = "Cuando el notch está cerrado, rota el estado del proveedor en una fila compacta.";
-"settings.compactTickerInterval" = "Intervalo de rotación";
-"settings.compactTickerInterval.subtitle" = "Con qué frecuencia cambia la vista previa del proveedor.";
-"settings.compactTickerClosedExtraWidth" = "Ancho extra del notch cerrado";
-"settings.compactTickerClosedExtraWidth.subtitle" = "Ancho extra disponible en modo compacto.";
 
 /* Settings - Experimental */
 "settings.experimental.effects" = "Efectos experimentales";

@@ -95,19 +95,11 @@
 "settings.notchDockingSensitivity" = "検出半径";
 "settings.notchDockingSensitivity.subtitle" = "大きいほど早期検出、小さいほど近づく必要があります。";
 
-"settings.appearance.compactTicker" = "コンパクトティッカー";
-"settings.appearance.compactTicker.subtitle" = "ノッチ閉じた状態でのプロバイダー状態。";
 "settings.appearance.effects" = "エフェクト";
 "settings.appearance.effects.subtitle" = "ノッチ表面のビジュアルエフェクト。";
 "settings.appearance.effects.help" = "対応ディスプレイでノッチ内容の背後に使われるAurora背景など、任意の視覚スタイルを制御します。";
 "settings.appearance.reset" = "外観設定をリセット";
 "settings.appearance.reset.subtitle" = "このタブのデフォルト値に戻します。";
-"settings.compactTickerEnabled" = "コンパクトプロバイダーティッカーを表示";
-"settings.compactTickerEnabled.subtitle" = "ノッチが閉じているとき、プロバイダー状態コンパクトな行でローテーションします。";
-"settings.compactTickerInterval" = "ローテーション間隔";
-"settings.compactTickerInterval.subtitle" = "プロバイダープレビューが変化する頻度。";
-"settings.compactTickerClosedExtraWidth" = "閉じたノッチの追加幅";
-"settings.compactTickerClosedExtraWidth.subtitle" = "コンパクトモードで利用可能な追加幅。";
 
 /* Settings - Experimental */
 "settings.experimental.effects" = "実験的エフェクト";

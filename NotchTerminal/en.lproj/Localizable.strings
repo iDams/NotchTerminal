@@ -95,19 +95,11 @@
 "settings.notchDockingSensitivity" = "Detection radius";
 "settings.notchDockingSensitivity.subtitle" = "Larger means earlier detection, smaller requires getting closer.";
 
-"settings.appearance.compactTicker" = "Compact Ticker";
-"settings.appearance.compactTicker.subtitle" = "Provider status in closed-notch mode.";
 "settings.appearance.effects" = "Effects";
 "settings.appearance.effects.subtitle" = "Visual effects for the notch surface.";
 "settings.appearance.effects.help" = "Controls optional visual styling such as the Aurora background theme used behind notch content on supported displays.";
 "settings.appearance.reset" = "Reset appearance settings";
 "settings.appearance.reset.subtitle" = "Restore the default values for this tab.";
-"settings.compactTickerEnabled" = "Show compact provider ticker";
-"settings.compactTickerEnabled.subtitle" = "When the notch is closed, rotate provider status in a compact row.";
-"settings.compactTickerInterval" = "Rotation interval";
-"settings.compactTickerInterval.subtitle" = "How often the provider preview changes.";
-"settings.compactTickerClosedExtraWidth" = "Closed notch extra width";
-"settings.compactTickerClosedExtraWidth.subtitle" = "Extra width available in compact mode.";
 
 /* Settings - Experimental */
 "settings.experimental.effects" = "Experimental Effects";
