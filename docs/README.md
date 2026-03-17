@@ -2,9 +2,6 @@
 
 ## Structure
 
-- `ai/`
-  AI-specific documentation, including Connected Apps and AI Vision behavior.
-
 - `done/`
   Completed work records, archived sprint notes, and closed implementation summaries.
 
@@ -33,10 +30,6 @@
   Shared documentation assets referenced by the root `README.md`.
 
 ## Files
-
-### AI
-
-- `ai/VISION.md`
 
 ### Done
 

@@ -5,8 +5,6 @@ enum SettingsTab: String, Hashable {
     case notch
     case appearance
     case about
-    case aiProviders
-    case aiCronjobs
     case experimental
 
     init(uiTestValue: String) {
@@ -17,10 +15,6 @@ enum SettingsTab: String, Hashable {
             self = .appearance
         case "about":
             self = .about
-        case "aiproviders":
-            self = .aiProviders
-        case "aicronjobs":
-            self = .aiCronjobs
         case "experimental":
             self = .experimental
         default:

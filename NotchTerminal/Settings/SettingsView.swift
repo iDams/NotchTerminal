@@ -36,8 +36,6 @@ struct SettingsView: View {
             return 640
         case .experimental:
             return 320
-        case .aiProviders, .aiCronjobs:
-            return 430
         }
     }
 
@@ -113,8 +111,6 @@ struct SettingsView: View {
             if let requestedTab = SettingsNavigationCoordinator.consumePendingTab() {
                 if requestedTab == .experimental && !showExperimentalSettings {
                     selectedTab = .general
-                } else if requestedTab == .aiProviders || requestedTab == .aiCronjobs {
-                    selectedTab = .general
                 } else {
                     selectedTab = requestedTab
                 }
@@ -130,8 +126,6 @@ struct SettingsView: View {
 
             let requestedTab = SettingsTab(rawValue: rawTab) ?? .general
             if requestedTab == .experimental && !showExperimentalSettings {
-                selectedTab = .general
-            } else if requestedTab == .aiProviders || requestedTab == .aiCronjobs {
                 selectedTab = .general
             } else {
                 selectedTab = requestedTab

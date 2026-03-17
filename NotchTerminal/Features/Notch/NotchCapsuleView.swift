@@ -15,7 +15,6 @@ struct NotchCapsuleView: View {
     let closeAllWindows: () -> Void
     let closeAllWindowsOnDisplay: () -> Void
     let requestCloseAllConfirmation: (CGDirectDisplayID) -> Void
-    let openAIControlCenter: () -> Void
     let openSettings: () -> Void
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
@@ -26,16 +25,6 @@ struct NotchCapsuleView: View {
     @State private var isHoveringPlus = false
     @State private var showsStartupPreview = false
     @State private var startupPreviewDismissWorkItem: DispatchWorkItem?
-    @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
-    @AppStorage(AppPreferences.Keys.aiFeaturesEnabled) private var aiFeaturesEnabled = AppPreferences.Defaults.aiFeaturesEnabled
-    @AppStorage(AppPreferences.Keys.experimentalAIProvider) private var experimentalAIProvider = AppPreferences.Defaults.experimentalAIProvider
-    @AppStorage(AppPreferences.Keys.experimentalAICustomURL) private var experimentalAICustomURL = AppPreferences.Defaults.experimentalAICustomURL
-    @AppStorage(AppPreferences.Keys.experimentalAIApiKey) private var experimentalAIApiKey = AppPreferences.Defaults.experimentalAIApiKey
-    @AppStorage(AppPreferences.Keys.experimentalAIModel) private var experimentalAIModel = AppPreferences.Defaults.experimentalAIModel
-    @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) private var experimentalAICronjobsData = AppPreferences.Defaults.experimentalAICronjobsData
-
-    @State private var showingFloatingMessage = false
-    @State private var floatingMessageText = "Hello World 😉"
 
     private var expandedWidth: CGFloat {
         let minWidth: CGFloat = 680
@@ -95,7 +84,6 @@ struct NotchCapsuleView: View {
         closeAllWindows: @escaping () -> Void = {},
         closeAllWindowsOnDisplay: @escaping () -> Void = {},
         requestCloseAllConfirmation: @escaping (CGDirectDisplayID) -> Void = { _ in },
-        openAIControlCenter: @escaping () -> Void = {},
         openSettings: @escaping () -> Void = {}
     ) {
         self.openBlackWindow = openBlackWindow
@@ -110,7 +98,6 @@ struct NotchCapsuleView: View {
         self.closeAllWindows = closeAllWindows
         self.closeAllWindowsOnDisplay = closeAllWindowsOnDisplay
         self.requestCloseAllConfirmation = requestCloseAllConfirmation
-        self.openAIControlCenter = openAIControlCenter
         self.openSettings = openSettings
     }
 
@@ -196,50 +183,7 @@ struct NotchCapsuleView: View {
         .padding(shadowPadding)
         // Ensure the entire Notch expanding structure is anchored to the top of the NSPanel
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .overlay(alignment: .top) {
-            if !model.isExpanded && showingFloatingMessage {
-                Text(floatingMessageText)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.black.opacity(0.85))
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
-                    }
-                    .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
-                    .padding(.top, shadowPadding + (model.hasPhysicalNotch ? 38 : 28) + 12)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
-                    .zIndex(100)
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: AICronjobManager.newMessageNotification)) { notification in
-            if let text = notification.userInfo?["text"] as? String {
-                showFloatingMessage(text)
-            }
-        }
         // Removed implicit animation modifier here to avoid repeated implicit animations during state changes
-    }
-
-
-    private func showFloatingMessage(_ text: String) {
-        Task { @MainActor in
-            self.floatingMessageText = text
-            guard !self.model.isExpanded else { return }
-            
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                self.showingFloatingMessage = true
-            }
-            
-            // Auto hide after 5 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                withAnimation(.easeIn(duration: 0.2)) {
-                    self.showingFloatingMessage = false
-                }
-            }
-        }
     }
 
     // MARK: - Subviews
@@ -648,18 +592,6 @@ struct NotchCapsuleView: View {
     private var topTrailingControls: some View {
         if model.isExpanded && showExpandedControls {
             HStack(spacing: 6) {
-                if aiFeaturesEnabled && experimentalFloatingMsgEnabled {
-                    Button(action: openAIControlCenter) {
-                        Image(systemName: "cpu")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.85))
-                            .padding(8)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Open NotchTerminalAgent")
-                }
-
                 Button(action: openSettingsWindow) {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 12, weight: .semibold))

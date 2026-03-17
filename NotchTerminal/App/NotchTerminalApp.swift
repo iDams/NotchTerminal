@@ -11,23 +11,6 @@ import Observation
 struct NotchTerminalApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
-    init() {
-        // Machine Daemon Mode (launched by launchd)
-        if let idx = CommandLine.arguments.firstIndex(of: "--run-cronjob"), idx + 1 < CommandLine.arguments.count {
-            let jobId = CommandLine.arguments[idx + 1]
-            Task {
-                guard AIFeatureAvailability.isEnabled() else {
-                    exit(0)
-                }
-                await AICronjobManager.executeBackgroundJob(id: jobId)
-                // Give UNUserNotificationCenter XPC messages time to flush before killing process
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                exit(0)
-            }
-            RunLoop.main.run()
-        }
-    }
-
     var body: some Scene {
         Settings {
             SettingsView()
@@ -36,15 +19,6 @@ struct NotchTerminalApp: App {
             NotchTerminalAppCommands(appDelegate: appDelegate)
         }
     }
-}
-
-private func providerIDsForKeychainMigration(defaults: UserDefaults = .standard) -> [UUID] {
-    if let rawProviders = defaults.string(forKey: AppPreferences.Keys.aiProvidersData),
-       let providers = AIProviderList(rawValue: rawProviders)?.providers {
-        return providers.map(\.id)
-    }
-
-    return AppPreferences.Defaults.aiProvidersData.providers.map(\.id)
 }
 
 private struct NotchTerminalAppCommands: Commands {
@@ -107,13 +81,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private let persistenceHealth = PersistenceHealth.shared
     private let storageCleanupService = StorageCleanupService.shared
-    private let permissionCoordinator = AppPermissionCoordinator.shared
-    private var aiRuntimeStarted = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let providerIDs = providerIDsForKeychainMigration()
-        KeychainService.migrateAPIKeysForBackgroundAccess(providerIDs: providerIDs)
-
         DispatchQueue.main.async { [weak self] in
             self?.setupEditMenu()
         }
@@ -130,7 +99,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor [weak self] in
                 self?.applyDockIconPreference()
                 self?.rebuildStatusItemMenu()
-                self?.syncAIFeatureRuntime()
             }
         }
         
@@ -148,8 +116,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        syncAIFeatureRuntime()
-        
         if !UITestSupport.isEnabled {
             notchController = NotchOverlayController(modelContext: modelContainer?.mainContext)
             notchController?.start()
@@ -163,18 +129,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-            Task { @MainActor [weak self] in
-                await self?.presentInitialPermissionsIfNeeded()
-            }
-        }
-    }
-
-    private func syncAIFeatureRuntime() {
-        guard AIFeatureAvailability.isEnabled() else { return }
-        guard !aiRuntimeStarted else { return }
-        AICronjobManager.shared.startIfNeeded()
-        aiRuntimeStarted = true
     }
 
     private func setupEditMenu() {
@@ -380,22 +334,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func quitFromStatusItem(_ sender: Any?) {
         NSApp.terminate(nil)
     }
-    
-    @MainActor
-    private func presentInitialPermissionsIfNeeded() async {
-        guard AIFeatureAvailability.isEnabled() else { return }
 
-        await permissionCoordinator.refreshStatuses()
-        guard permissionCoordinator.shouldPresentOnboarding else { return }
-
-        await permissionCoordinator.requestMissingAIFeaturePermissions()
-        await permissionCoordinator.refreshStatuses()
-
-        if permissionCoordinator.statuses.values.contains(where: { !$0.isGranted }) {
-            openSettingsWindow()
-        }
-    }
-    
     @MainActor
     private func presentUITestWindow() {
         if let uiTestWindow {

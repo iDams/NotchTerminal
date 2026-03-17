@@ -70,18 +70,6 @@ enum AppPreferences {
         static let experimentalProjectStatusCardEnabled = "experimentalProjectStatusCardEnabled"
         static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
         static let experimentalProjectStatusShowFolder = "experimentalProjectStatusShowFolder"
-        static let experimentalFloatingMsgEnabled = "experimentalFloatingMsgEnabled"
-        static let aiFeaturesEnabled = "aiFeaturesEnabled"
-        static let experimentalAIProvider = "experimentalAIProvider"
-        static let experimentalAICustomURL = "experimentalAICustomURL"
-        static let experimentalAIApiKey = "experimentalAIApiKey"
-        static let experimentalAIAgentWhitelist = "experimentalAIAgentWhitelist"
-        static let experimentalAIModel = "experimentalAIModel"
-        static let experimentalAICronjobsData = "experimentalAICronjobsData"
-        static let aiProvidersData = "aiProvidersData"
-        static let activeAIProviderID = "activeAIProviderID"
-        static let aiCronjobLogsData = "aiCronjobLogsData"
-        static let initialPermissionFlowCompleted = "initialPermissionFlowCompleted"
     }
 
     enum Defaults {
@@ -114,18 +102,6 @@ enum AppPreferences {
         static let experimentalProjectStatusCardEnabled = false
         static let experimentalProjectStatusShowGit = true
         static let experimentalProjectStatusShowFolder = true
-        static let experimentalFloatingMsgEnabled = false
-        static let aiFeaturesEnabled = true
-        static let experimentalAIProvider = "openai"
-        static let experimentalAICustomURL = "https://api.openai.com/v1"
-        static let experimentalAIApiKey = ""
-        static let experimentalAIAgentWhitelist = "ls, cat, pwd, whoami, date, uptime, sysctl, system_profiler, docker, pmset, df, du, git, top, ps, netstat, lsof, ifconfig, ping, curl, vm_stat, memory_pressure"
-        static let experimentalAIModel = "gpt-4o-mini"
-        static let experimentalAICronjobsData: [AICronjob] = []
-        static let aiProvidersData: AIProviderList = AIProviderList()
-        static let activeAIProviderID: String = ""
-        static let aiCronjobLogsData: AICronjobLogStore = AICronjobLogStore()
-        static let initialPermissionFlowCompleted = false
     }
 
     static func disabledNotchDisplayIDs(in defaults: UserDefaults = .standard) -> Set<CGDirectDisplayID> {

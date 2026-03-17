@@ -63,7 +63,6 @@ final class NotchOverlayController {
     private var panelsByDisplay: [CGDirectDisplayID: NSPanel] = [:]
     private var hostsByDisplay: [CGDirectDisplayID: PassthroughHostingView<AnyView>] = [:]
     private var modelsByDisplay: [CGDirectDisplayID: NotchViewModel] = [:]
-    private let aiControlCenterWindowController = AIControlCenterWindowController()
     private let blackWindowController = MetalBlackWindowsManager()
     private var timer: Timer?
     private var trackingFPS: Int = 60
@@ -358,13 +357,6 @@ final class NotchOverlayController {
         }
         observers.append(dockHoverToken)
 
-        let agentToolToken = center.addObserver(forName: .notchTerminalAgentToolRequested, object: nil, queue: .main) { [weak self] note in
-            Task { @MainActor [weak self] in
-                self?.handleAgentToolNotification(note)
-            }
-        }
-        observers.append(agentToolToken)
-
         let activeSpaceToken = workspaceCenter.addObserver(
             forName: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil,
@@ -499,9 +491,6 @@ final class NotchOverlayController {
                 },
                 requestCloseAllConfirmation: { [weak self] sourceDisplayID in
                     self?.presentSystemCloseAllAlert(for: sourceDisplayID)
-                },
-                openAIControlCenter: { [weak self] in
-                    self?.openAIControlCenter(for: displayID)
                 },
                 openSettings: { [weak self] in
                     self?.openSettings(for: displayID)
@@ -854,30 +843,6 @@ final class NotchOverlayController {
             NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
         }
         NSApp.activate(ignoringOtherApps: true)
-    }
-
-    private func openAIControlCenter(for displayID: CGDirectDisplayID) {
-        guard AIFeatureAvailability.isEnabled() else { return }
-        aiControlCenterWindowController.show(on: screen(forDisplayID: displayID))
-    }
-
-    private func handleAgentToolNotification(_ notification: Notification) {
-        guard let rawAction = notification.userInfo?[NotchTerminalAgentToolUserInfoKey.action] as? String,
-              let action = NotchTerminalAgentToolAction(rawValue: rawAction) else {
-            return
-        }
-
-        switch action {
-        case .openTerminal:
-            openBlackWindowForCurrentInteractionScreen()
-        case .restoreAllWindows:
-            restoreAllWindows()
-        case .writeText:
-            let text = notification.userInfo?[NotchTerminalAgentToolUserInfoKey.text] as? String ?? ""
-            let submit = notification.userInfo?[NotchTerminalAgentToolUserInfoKey.submit] as? Bool ?? false
-            guard !text.isEmpty else { return }
-            blackWindowController.openWindowAndWrite(text: text, submit: submit, displayID: displayIDForCurrentInteractionScreen())
-        }
     }
 
     private func applyTerminalItems(_ items: [TerminalWindowItem]) {
