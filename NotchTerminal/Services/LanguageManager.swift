@@ -7,7 +7,19 @@ final class LanguageManager: ObservableObject {
 
     private let userOverrideKey = "userLanguageOverride"
     private let fallbackLanguageCode = "en"
-    private let supportedLanguageCodes = ["en", "es", "fr", "ja", "zh-Hans", "de", "pt-BR", "ko"]
+    private let supportedLanguageCodes = ["en", "es", "fr", "ja", "zh-Hans", "de", "pt-BR", "ko", "it", "ru"]
+    private let supportedLanguageDisplayNames = [
+        "en": "English",
+        "es": "Español",
+        "fr": "Français",
+        "ja": "日本語",
+        "zh-Hans": "简体中文",
+        "de": "Deutsch",
+        "pt-BR": "Português (Brasil)",
+        "ko": "한국어",
+        "it": "Italiano",
+        "ru": "Русский"
+    ]
     
     private var _updateTrigger: Int = 0
     var updateTrigger: Int {
@@ -47,17 +59,8 @@ final class LanguageManager: ObservableObject {
     }
 
     func displayName(for languageCode: String) -> String {
-        if languageCode == "zh-Hans" {
-            return "简体中文"
-        }
-        if languageCode == "de" {
-            return "Deutsch"
-        }
-        if languageCode == "pt-BR" {
-            return "Português (Brasil)"
-        }
-        if languageCode == "ko" {
-            return "한국어"
+        if let displayName = supportedLanguageDisplayNames[languageCode] {
+            return displayName
         }
         let locale = Locale(identifier: languageCode)
         return locale.localizedString(forLanguageCode: languageCode) ?? languageCode.uppercased()
@@ -94,6 +97,8 @@ final class LanguageManager: ObservableObject {
         if normalizedIdentifier.hasPrefix("de") { return "de" }
         if normalizedIdentifier.hasPrefix("pt-br") || normalizedIdentifier.hasPrefix("pt") { return "pt-BR" }
         if normalizedIdentifier.hasPrefix("ko") { return "ko" }
+        if normalizedIdentifier.hasPrefix("it") { return "it" }
+        if normalizedIdentifier.hasPrefix("ru") { return "ru" }
 
         return fallbackLanguageCode
     }
