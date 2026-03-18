@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 struct AboutSettingsView: View {
+    @AppStorage(AppPreferences.Keys.showExperimentalSettings) private var showExperimentalSettings = AppPreferences.Defaults.showExperimentalSettings
     @State private var showThirdPartyNotices = false
     @State private var showOpenURLError = false
     @State private var openURLErrorMessage = ""
@@ -15,6 +16,7 @@ struct AboutSettingsView: View {
             VStack(spacing: 16) {
                 headerCard
                 actionsList
+                experimentalAccessSection
                 thirdPartyButton
                 Divider()
                 copyrightText
@@ -122,6 +124,19 @@ struct AboutSettingsView: View {
         .buttonStyle(.link)
     }
 
+    private var experimentalAccessSection: some View {
+        VStack(spacing: 8) {
+            AboutToggleCard(
+                title: "settings.showExperimentalSettings".localized,
+                subtitle: "settings.showExperimentalSettings.subtitle".localized,
+                systemImage: "flask",
+                accessibilityID: "about-show-experimental",
+                isOn: $showExperimentalSettings
+            )
+        }
+        .padding(.horizontal, 6)
+    }
+
     private var copyrightText: some View {
         Text("settings.about.copyright".localized)
             .font(.footnote)
@@ -191,6 +206,49 @@ struct AboutActionButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityIdentifier(accessibilityID)
+    }
+}
+
+struct AboutToggleCard: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let accessibilityID: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 14, weight: .semibold))
+                .frame(width: 20)
+                .foregroundStyle(.primary)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .accessibilityLabel(title)
+                .accessibilityIdentifier(accessibilityID)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.7))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
         .accessibilityIdentifier(accessibilityID)
     }
 }

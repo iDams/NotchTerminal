@@ -498,7 +498,10 @@ final class NotchOverlayController {
                     self?.blackWindowController.closeAllWindows(on: displayID)
                 },
                 requestCloseAllConfirmation: { [weak self] sourceDisplayID in
-                    self?.presentSystemCloseAllAlert(for: sourceDisplayID)
+                    self?.presentSystemCloseAllAlert(for: sourceDisplayID, scope: .allDisplays)
+                },
+                requestCloseAllOnDisplayConfirmation: { [weak self] sourceDisplayID in
+                    self?.presentSystemCloseAllAlert(for: sourceDisplayID, scope: .singleDisplay(displayID))
                 },
                 openSettings: { [weak self] in
                     self?.openSettings(for: displayID)
@@ -728,8 +731,6 @@ final class NotchOverlayController {
             screenNotchSize: screen.notchSize,
             fallbackNotchSize: collapsedNoNotchSize,
             hasPhysicalNotch: model.hasPhysicalNotch,
-            widthOffset: model.notchWidthOffset,
-            heightOffset: model.notchHeightOffset,
             configuration: configuration,
             constants: constants
         )
@@ -820,6 +821,8 @@ final class NotchOverlayController {
             collapsedNoNotchSize: collapsedNoNotchSize,
             notchClosedWidthScale: notchClosedWidthScale,
             notchClosedHeightScale: notchClosedHeightScale,
+            physicalNotchBaseWidthAdjustment: -80,
+            physicalNotchBaseHeightAdjustment: -8,
             shadowPadding: shadowPadding,
             noNotchTopInset: noNotchTopInset,
             notchTopInset: notchTopInset
@@ -947,13 +950,30 @@ final class NotchOverlayController {
         }
     }
 
-    private func presentSystemCloseAllAlert(for sourceDisplayID: CGDirectDisplayID) {
-        let terminalCount = modelsByDisplay.values.first?.terminalItems.count ?? 0
+    private enum CloseAllAlertScope {
+        case allDisplays
+        case singleDisplay(CGDirectDisplayID)
+    }
+
+    private func presentSystemCloseAllAlert(for sourceDisplayID: CGDirectDisplayID, scope: CloseAllAlertScope) {
+        let terminalCount: Int
+        switch scope {
+        case .allDisplays:
+            terminalCount = modelsByDisplay.values.first?.terminalItems.count ?? 0
+        case .singleDisplay(let displayID):
+            terminalCount = modelsByDisplay[displayID]?.terminalItems.filter { $0.displayID == displayID }.count ?? 0
+        }
+
         guard terminalCount > 0 else { return }
         pinDisplayExpanded(sourceDisplayID)
 
         let alert = NSAlert()
-        alert.messageText = "Close all terminals?"
+        switch scope {
+        case .allDisplays:
+            alert.messageText = "Close all terminals?"
+        case .singleDisplay:
+            alert.messageText = "Close all terminals on this display?"
+        }
         alert.informativeText = "Close \(terminalCount) terminal\(terminalCount == 1 ? "" : "s")?"
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Close All")
@@ -968,7 +988,12 @@ final class NotchOverlayController {
             AppPreferences.setConfirmBeforeCloseAll(false)
         }
         if response == .alertFirstButtonReturn {
-            blackWindowController.closeAllWindows()
+            switch scope {
+            case .allDisplays:
+                blackWindowController.closeAllWindows()
+            case .singleDisplay(let displayID):
+                blackWindowController.closeAllWindows(on: displayID)
+            }
         }
 
         unpinDisplayExpanded(sourceDisplayID)

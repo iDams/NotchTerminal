@@ -18,7 +18,8 @@ enum StorageCleanupActions {
             _ = try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
             return true
         } catch {
-            NSLog("Failed to move item to trash: %@", error.localizedDescription)
+            // Re-enable if trash operations need deeper local debugging.
+            // NSLog("Failed to move item to trash: %@", error.localizedDescription)
             return false
         }
     }

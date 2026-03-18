@@ -15,6 +15,8 @@ enum NotchOverlayGeometryLogic {
         let collapsedNoNotchSize: CGSize
         let notchClosedWidthScale: CGFloat
         let notchClosedHeightScale: CGFloat
+        let physicalNotchBaseWidthAdjustment: CGFloat
+        let physicalNotchBaseHeightAdjustment: CGFloat
         let shadowPadding: CGFloat
         let noNotchTopInset: CGFloat
         let notchTopInset: CGFloat
@@ -24,8 +26,6 @@ enum NotchOverlayGeometryLogic {
         screenNotchSize: CGSize,
         fallbackNotchSize: CGSize,
         hasPhysicalNotch: Bool,
-        widthOffset: CGFloat,
-        heightOffset: CGFloat,
         configuration: DisplayConfiguration,
         constants: Constants
     ) -> CGSize {
@@ -38,8 +38,13 @@ enum NotchOverlayGeometryLogic {
 
         let raw = screenNotchSize == .zero ? fallbackNotchSize : screenNotchSize
         return CGSize(
-            width: max(92, raw.width * constants.notchClosedWidthScale + widthOffset + configuration.widthAdjustment),
-            height: max(22, raw.height * constants.notchClosedHeightScale + heightOffset)
+            width: max(
+                92,
+                raw.width * constants.notchClosedWidthScale
+                    + constants.physicalNotchBaseWidthAdjustment
+                    + configuration.widthAdjustment
+            ),
+            height: max(22, raw.height * constants.notchClosedHeightScale + constants.physicalNotchBaseHeightAdjustment)
         )
     }
 

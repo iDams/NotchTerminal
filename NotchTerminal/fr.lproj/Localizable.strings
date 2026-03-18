@@ -39,6 +39,8 @@
 "settings.hapticFeedback.subtitle" = "Utilise le retour haptique lors des interactions dans le notch.";
 "settings.showDockIcon" = "Afficher l'icône dans le Dock";
 "settings.showDockIcon.subtitle" = "Affiche l'icône de l'application dans le Dock en utilisant l'asset AppIcon.";
+"settings.system.menuBar.shortcuts" = "Afficher l'icone dans la barre de menu";
+"settings.system.menuBar.shortcuts.subtitle" = "Affiche l'icone NotchTerminal dans la barre de menu de macOS.";
 "settings.showExperimentalSettings" = "Afficher l’onglet Expérimental";
 "settings.showExperimentalSettings.subtitle" = "Affiche les réglages expérimentaux et les fonctionnalités instables dans Réglages.";
 "settings.quitApp" = "Quitter l'application";
@@ -56,17 +58,17 @@
 "settings.lockWhileTyping.subtitle" = "Évite la fermeture automatique pendant que vous tapez activement.";
 
 /* Settings - Terminal Actions */
-"settings.terminalActions" = "Actions du terminal";
-"settings.terminalActions.subtitle" = "Actions groupées, vérifications de sécurité et comportement par puce.";
+"settings.terminalActions" = "Fermeture et securite";
+"settings.terminalActions.subtitle" = "Confirmation et comportement de fermeture pour les sessions terminal.";
 "settings.terminalActions.help" = "Definit le comportement des puces terminal et des actions groupees, y compris les confirmations de securite et le choix entre fermer seulement la fenetre ou aussi terminer le processus actif.";
 "settings.showChipCloseButton" = "Afficher le bouton fermer au survol de la puce";
 "settings.showChipCloseButton.subtitle" = "Affiche un petit bouton fermer lors du survol d'une puce.";
+"settings.showTerminalPreview" = "Afficher l'aperçu du terminal";
+"settings.showTerminalPreview.subtitle" = "Affiche l'aperçu du terminal lors du survol d'une puce.";
 "settings.confirmBeforeCloseAll" = "Confirmer avant Tout fermer";
-"settings.confirmBeforeCloseAll.subtitle" = "Demande confirmation avant de fermer toutes les fenêtres de terminal.";
-"settings.closeActionMode" = "Mode d'action Fermer";
-"settings.closeActionMode.subtitle" = "Définit ce que fait Fermer dans les actions puce/contexte/groupées.";
-"settings.closeActionMode.closeWindow" = "Fermer uniquement la fenêtre";
-"settings.closeActionMode.terminateProcess" = "Terminer le processus et fermer";
+"settings.confirmBeforeCloseAll.subtitle" = "Demande confirmation avant les actions Tout fermer.";
+"settings.closeActionMode" = "Arreter aussi la commande en cours a la fermeture";
+"settings.closeActionMode.subtitle" = "Si desactive, fermer ne fait que fermer la fenetre. Si active, le processus terminal en cours est aussi termine.";
 "settings.dangerZone" = "Zone sensible";
 "settings.dangerZone.subtitle" = "Actions sensibles qui affectent toute l'application.";
 "settings.dangerZone.help" = "Contient des actions a impact global immediat, comme quitter l'application. Utilisez-les lorsque vous voulez arreter toute l'activite en cours dans NotchTerminal.";
@@ -77,10 +79,9 @@
 "settings.appearance.geometry.help" = "Ajuste l'espacement interne du notch afin que l'interface reste equilibree sur differentes tailles d'ecran et densites de contenu.";
 "settings.contentPadding" = "Remplissage du contenu";
 "settings.contentPadding.subtitle" = "Espacement entre le contenu du terminal et les bords du notch.";
-"settings.notchWidthOffset" = "Ajustement fin de la largeur du notch";
-"settings.notchWidthOffset.subtitle" = "Ajuste le décalage horizontal de la taille du notch.";
-"settings.notchHeightOffset" = "Ajustement fin de la hauteur du notch";
-"settings.notchHeightOffset.subtitle" = "Ajuste le décalage vertical de la taille du notch.";
+"settings.appearance.terminalChips" = "Puces terminal";
+"settings.appearance.terminalChips.subtitle" = "Controles des terminaux affiches dans le notch.";
+"settings.appearance.terminalChips.help" = "Ajuste le comportement des puces terminal et les controles affiches directement dans le notch.";
 
 "settings.appearance.terminalDefaults" = "Valeurs par défaut de la fenêtre terminal";
 "settings.appearance.terminalDefaults.subtitle" = "Paramètres de taille pour les nouvelles sessions de terminal.";
@@ -89,6 +90,8 @@
 "settings.terminalDefaultWidth.subtitle" = "Taille horizontale en points.";
 "settings.terminalDefaultHeight" = "Hauteur par défaut";
 "settings.terminalDefaultHeight.subtitle" = "Taille verticale en points.";
+"settings.showActivePorts" = "Afficher les ports actifs";
+"settings.showActivePorts.subtitle" = "Affiche l'outil des ports actifs dans les fenetres terminal.";
 
 "settings.appearance.docking" = "Sensibilité d'ancrage";
 "settings.appearance.docking.subtitle" = "À quelle distance une fenêtre doit être pour s'ancrer dans le notch.";
@@ -98,6 +101,15 @@
 "settings.appearance.effects" = "Effets";
 "settings.appearance.effects.subtitle" = "Effets visuels pour la surface du notch.";
 "settings.appearance.effects.help" = "Controle les styles visuels optionnels, comme le fond Aurora utilise derriere le contenu du notch sur les ecrans compatibles.";
+"settings.appearance.projectStatus" = "Carte d'etat du projet";
+"settings.appearance.projectStatus.subtitle" = "Affiche des details contextuels du projet dans le notch developpe.";
+"settings.appearance.projectStatus.help" = "Affiche un contexte leger du projet dans le notch developpe, comme le nom du dossier courant et l'etat git de la session terminal active.";
+"settings.appearance.projectStatus.enabled" = "Activer la carte d'etat du projet";
+"settings.appearance.projectStatus.enabled.subtitle" = "Affiche la carte lorsque le notch est developpe.";
+"settings.appearance.projectStatus.showFolder" = "Afficher le nom du dossier";
+"settings.appearance.projectStatus.showFolder.subtitle" = "Affiche le dossier du projet du terminal actif.";
+"settings.appearance.projectStatus.showGit" = "Afficher l'etat Git";
+"settings.appearance.projectStatus.showGit.subtitle" = "Affiche la branche actuelle et les changements en attente.";
 "settings.appearance.reset" = "Réinitialiser les réglages d'apparence";
 "settings.appearance.reset.subtitle" = "Rétablit les valeurs par défaut de cet onglet.";
 
@@ -119,12 +131,10 @@
 "settings.experimental.startupOrb.notchOffsetY" = "Décalage Y de l’orbe de notification sur notch réel";
 "settings.experimental.startupOrb.notchOffsetY.subtitle" = "Ajuste le décalage vertical de l’orbe sur les écrans avec notch physique.";
 "settings.experimental.warning" = "Ces effets visuels sont hautement expérimentaux et consomment de la batterie.";
-"settings.experimental.notchOffsets.note" = "N'affecte que le notch fermé sur les écrans avec un notch physique.";
 "settings.experimental.geometry.help" = "Ajustements avances de geometrie pour les ecrans avec notch physique. A utiliser seulement si le masque du notch ne s'aligne pas correctement avec votre materiel.";
 "settings.experimental.docking.help" = "Controle la facon dont les fenetres terminal s'ancrent dans la zone du notch lorsqu'elles sont glissees a proximite. Une sensibilite plus elevee declenche l'ancrage plus facilement.";
 "settings.experimental.dragToNotch" = "Activer l’ancrage au notch par glisser-déposer";
 "settings.experimental.dragToNotch.subtitle" = "Permet aux fenêtres terminal de s’ancrer au notch lorsqu’elles sont glissées à proximité. Expérimental et encore instable.";
-"settings.experimental.projectStatus.help" = "Affiche un contexte leger du projet dans le notch developpe, comme le nom du dossier courant et l'etat git de la session terminal active.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Effet de lueur néon violet pour les notches simulés.";
 "settings.fakeNotchGlowTheme" = "Thème de lueur";
@@ -253,8 +263,8 @@
 "storage.inUse.more" = "%d autre(s) element(s) ont aussi signale une activite.";
 "storage.inUse.partialCheck" = "%d element(s) selectionnes ont ete verifies avant de continuer.";
 
-/* Open Ports */
-"openPorts.title" = "Ports ouverts";
+/* Active Ports */
+"openPorts.title" = "Ports actifs";
 "openPorts.subtitle" = "Inspecter et arrêter rapidement les ports occupés";
 "openPorts.theme" = "Thème";
 "openPorts.theme.system" = "Système";
@@ -262,9 +272,13 @@
 "openPorts.theme.light" = "Clair";
 "openPorts.scope.dev" = "Dev";
 "openPorts.scope.all" = "Tous";
+"openPorts.scope.picker" = "Portee";
 "openPorts.scope.other" = "Autres";
 "openPorts.search.placeholder" = "Filtrer par port, processus ou PID";
 "openPorts.scanning" = "Analyse des ports...";
+"openPorts.action.refresh" = "Actualiser";
+"openPorts.summary.count" = "%d dev";
+"openPorts.summary.other" = "%d autres";
 "openPorts.empty.all" = "Aucun port ouvert ne correspond à ce filtre.";
 "openPorts.empty.dev" = "Aucun port dev ne correspond à ce filtre.";
 "openPorts.row.pidAndEndpoint" = "PID %@ • %@";

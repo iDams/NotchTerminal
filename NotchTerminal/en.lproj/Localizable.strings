@@ -39,6 +39,8 @@
 "settings.hapticFeedback.subtitle" = "Use haptics when interactions occur in the notch.";
 "settings.showDockIcon" = "Show Dock icon";
 "settings.showDockIcon.subtitle" = "Display the app icon in the Dock using the configured AppIcon asset.";
+"settings.system.menuBar.shortcuts" = "Show menu bar icon";
+"settings.system.menuBar.shortcuts.subtitle" = "Displays the NotchTerminal icon in the macOS menu bar.";
 "settings.showExperimentalSettings" = "Show Experimental tab";
 "settings.showExperimentalSettings.subtitle" = "Reveals experimental settings and unstable features in Settings.";
 "settings.quitApp" = "Quit application";
@@ -56,17 +58,17 @@
 "settings.lockWhileTyping.subtitle" = "Avoid auto-close while you are actively typing.";
 
 /* Settings - Terminal Actions */
-"settings.terminalActions" = "Terminal Actions";
-"settings.terminalActions.subtitle" = "Bulk actions, safety checks, and per-chip behavior.";
+"settings.terminalActions" = "Closing & Safety";
+"settings.terminalActions.subtitle" = "Confirmation and close behavior for terminal sessions.";
 "settings.terminalActions.help" = "Defines how terminal chips and bulk actions behave, including safety confirmations and whether closing a session only closes the window or also terminates the running process.";
 "settings.showChipCloseButton" = "Show close button on chip hover";
 "settings.showChipCloseButton.subtitle" = "Display a small close button when hovering a terminal chip.";
+"settings.showTerminalPreview" = "Show terminal preview";
+"settings.showTerminalPreview.subtitle" = "Display the live terminal preview when hovering a chip.";
 "settings.confirmBeforeCloseAll" = "Confirm before Close All";
-"settings.confirmBeforeCloseAll.subtitle" = "Ask for confirmation before closing every terminal window.";
-"settings.closeActionMode" = "Close action mode";
-"settings.closeActionMode.subtitle" = "Defines what Close does in chip/context/bulk actions.";
-"settings.closeActionMode.closeWindow" = "Close window only";
-"settings.closeActionMode.terminateProcess" = "Terminate process and close";
+"settings.confirmBeforeCloseAll.subtitle" = "Ask for confirmation before Close All actions.";
+"settings.closeActionMode" = "Also stop the running command when closing";
+"settings.closeActionMode.subtitle" = "If off, closing only closes the window. If on, it also terminates the running terminal process.";
 "settings.dangerZone" = "Danger Zone";
 "settings.dangerZone.subtitle" = "Sensitive actions that affect the whole app.";
 "settings.dangerZone.help" = "Contains actions with immediate global impact, such as quitting the app. Use these when you want to stop all current NotchTerminal activity.";
@@ -77,10 +79,9 @@
 "settings.appearance.geometry.help" = "Adjust spacing inside the notch so the UI feels balanced across different screen sizes and content densities.";
 "settings.contentPadding" = "Content padding";
 "settings.contentPadding.subtitle" = "Spacing between terminal content and notch edges.";
-"settings.notchWidthOffset" = "Notch width fine-tune";
-"settings.notchWidthOffset.subtitle" = "Adjust horizontal notch size offset.";
-"settings.notchHeightOffset" = "Notch height fine-tune";
-"settings.notchHeightOffset.subtitle" = "Adjust vertical notch size offset.";
+"settings.appearance.terminalChips" = "Terminal Chips";
+"settings.appearance.terminalChips.subtitle" = "Controls for terminal items shown inside the notch.";
+"settings.appearance.terminalChips.help" = "Adjust how terminal chips behave and what controls appear directly inside the notch.";
 
 "settings.appearance.terminalDefaults" = "Terminal Window Defaults";
 "settings.appearance.terminalDefaults.subtitle" = "Size parameters for new terminal sessions.";
@@ -89,6 +90,8 @@
 "settings.terminalDefaultWidth.subtitle" = "Horizontal size in points.";
 "settings.terminalDefaultHeight" = "Default height";
 "settings.terminalDefaultHeight.subtitle" = "Vertical size in points.";
+"settings.showActivePorts" = "Show Active Ports";
+"settings.showActivePorts.subtitle" = "Display the Active Ports tool in terminal windows.";
 
 "settings.appearance.docking" = "Docking Sensitivity";
 "settings.appearance.docking.subtitle" = "How close a window needs to be to snap into the notch.";
@@ -98,6 +101,15 @@
 "settings.appearance.effects" = "Effects";
 "settings.appearance.effects.subtitle" = "Visual effects for the notch surface.";
 "settings.appearance.effects.help" = "Controls optional visual styling such as the Aurora background theme used behind notch content on supported displays.";
+"settings.appearance.projectStatus" = "Project Status Card";
+"settings.appearance.projectStatus.subtitle" = "Show contextual project details in the expanded notch.";
+"settings.appearance.projectStatus.help" = "Shows lightweight project context in the expanded notch, such as the current folder name and git state for the active terminal session.";
+"settings.appearance.projectStatus.enabled" = "Enable Project Status Card";
+"settings.appearance.projectStatus.enabled.subtitle" = "Show the card when the notch is expanded.";
+"settings.appearance.projectStatus.showFolder" = "Show Folder Name";
+"settings.appearance.projectStatus.showFolder.subtitle" = "Display the active terminal's project folder.";
+"settings.appearance.projectStatus.showGit" = "Show Git Status";
+"settings.appearance.projectStatus.showGit.subtitle" = "Display the current branch and pending changes.";
 "settings.appearance.reset" = "Reset appearance settings";
 "settings.appearance.reset.subtitle" = "Restore the default values for this tab.";
 
@@ -119,12 +131,10 @@
 "settings.experimental.startupOrb.notchOffsetY" = "Notification orb notch Y offset";
 "settings.experimental.startupOrb.notchOffsetY.subtitle" = "Adjust the orb vertical offset for physical notch displays.";
 "settings.experimental.warning" = "These visual effects are highly experimental and cost battery life.";
-"settings.experimental.notchOffsets.note" = "Only affects the closed notch on displays with a physical notch.";
 "settings.experimental.geometry.help" = "Advanced geometry adjustments for physical-notch displays. Use these only when the notch mask does not line up correctly with your hardware.";
 "settings.experimental.docking.help" = "Controls how terminal windows snap into the notch area when dragged nearby. Higher sensitivity makes docking trigger more easily.";
 "settings.experimental.dragToNotch" = "Enable drag-to-notch docking";
 "settings.experimental.dragToNotch.subtitle" = "Lets terminal windows snap into the notch when dragged nearby. Experimental and currently unstable.";
-"settings.experimental.projectStatus.help" = "Shows lightweight project context in the expanded notch, such as the current folder name and git state for the active terminal session.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Neon purple glow effect for simulated notches.";
 "settings.fakeNotchGlowTheme" = "Glow Theme";
@@ -258,18 +268,22 @@
 "storage.inUse.more" = "%d more item(s) also reported activity.";
 "storage.inUse.partialCheck" = "Checked %d selected item(s) before continuing.";
 
-/* Open Ports */
-"openPorts.title" = "Open Ports";
-"openPorts.subtitle" = "Inspect and terminate occupied ports quickly";
+/* Active Ports */
+"openPorts.title" = "Active Ports";
+"openPorts.subtitle" = "Inspect and stop listening local ports quickly";
 "openPorts.theme" = "Theme";
 "openPorts.theme.system" = "System";
 "openPorts.theme.dark" = "Dark";
 "openPorts.theme.light" = "Light";
 "openPorts.scope.dev" = "Dev";
 "openPorts.scope.all" = "All";
+"openPorts.scope.picker" = "Scope";
 "openPorts.scope.other" = "Other";
 "openPorts.search.placeholder" = "Filter by port, process or PID";
 "openPorts.scanning" = "Scanning ports...";
+"openPorts.action.refresh" = "Refresh";
+"openPorts.summary.count" = "%d dev";
+"openPorts.summary.other" = "%d other";
 "openPorts.empty.all" = "No open ports match this filter.";
 "openPorts.empty.dev" = "No dev ports match this filter.";
 "openPorts.row.pidAndEndpoint" = "PID %@ • %@";

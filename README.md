@@ -86,6 +86,7 @@ These features are useful extras around the main terminal experience.
 - Lists listening TCP ports
 - Search and filter by dev/all
 - Kill process by PID from the UI
+- Opens from the menu bar icon and can also appear inside terminal windows
 
 ### Storage Analysis
 - Opens from the menu bar status item
@@ -148,12 +149,12 @@ Why this exists:
   - Language: system default or manual override (`en`, `es`, `fr`, `ja`)
   - Haptics
   - Dock icon toggle
-  - Show Experimental tab
+  - Menu bar icon toggle
   - Hover/open behavior and delay
   - Keep open while typing
-  - Chip close button on hover
+  - Default terminal width/height
   - Close confirmation behavior
-  - Close action mode (`Close window only` / `Terminate process and close`)
+  - Stop running command when closing
   - Quit app action
 - `Notch`
   - Per-display notch enable/disable
@@ -161,17 +162,18 @@ Why this exists:
   - Per-display custom Aurora background override
 - `Appearance`
   - Content padding
-  - Default terminal width/height
+  - Chip close button on hover
+  - Terminal preview on hover
+  - Project Status Card
   - Global Aurora background and theme
 - `About`
+  - Show Experimental tab
 - `Experimental`
   - Hidden by default behind `Show Experimental tab`
   - Drag to Notch and docking sensitivity
   - Startup Orb and its offset tuning
-  - Project Status Card (contextual details like Folder Name and Git Status in the Notch)
   - Fake Notch Glow and theme
   - CRT Filter
-  - Extra notch geometry offsets for physical-notch displays
 
 ## Project Structure
 

@@ -81,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private let persistenceHealth = PersistenceHealth.shared
     private let storageCleanupService = StorageCleanupService.shared
+    private let openPortsOverviewService = OpenPortsOverviewService.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         DispatchQueue.main.async { [weak self] in
@@ -98,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.applyDockIconPreference()
-                self?.rebuildStatusItemMenu()
+                self?.applyStatusItemPreference()
             }
         }
         
@@ -108,7 +109,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             let details = PersistenceHealth.userFacingDetails(for: error)
             persistenceHealth.markUnavailable(details: details)
-            NSLog("Failed to initialize SwiftData container: %@", details)
+            // Re-enable for low-level startup diagnostics if persistence setup fails again.
+            // NSLog("Failed to initialize SwiftData container: %@", details)
             if !UITestSupport.isEnabled {
                 DispatchQueue.main.async { [weak self] in
                     self?.presentPersistenceUnavailableAlert(details: details)
@@ -119,7 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !UITestSupport.isEnabled {
             notchController = NotchOverlayController(modelContext: modelContainer?.mainContext)
             notchController?.start()
-            setupStatusItem()
+            applyStatusItemPreference()
         }
 
         if UITestSupport.isEnabled {
@@ -184,9 +186,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
-    private func setupStatusItem() {
-        if let statusItem {
+    private func applyStatusItemPreference() {
+        let showStatusItem = UserDefaults.standard.object(forKey: AppPreferences.Keys.showMenuBarShortcuts) as? Bool
+            ?? AppPreferences.Defaults.showMenuBarShortcuts
+
+        if showStatusItem {
+            setupStatusItem()
+        } else if let statusItem {
             NSStatusBar.system.removeStatusItem(statusItem)
+            self.statusItem = nil
+        }
+    }
+
+    private func setupStatusItem() {
+        if statusItem != nil {
+            rebuildStatusItemMenu()
+            return
         }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -236,6 +251,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         storageItem.image = NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil)
         storageItem.target = self
         menu.addItem(storageItem)
+
+        let activePortsItem = NSMenuItem(
+            title: "openPorts.title".localized,
+            action: #selector(openActivePortsFromStatusItem(_:)),
+            keyEquivalent: ""
+        )
+        activePortsItem.image = NSImage(systemSymbolName: "network", accessibilityDescription: nil)
+        activePortsItem.target = self
+        menu.addItem(activePortsItem)
         menu.addItem(.separator())
 
         let showAllWindowsItem = NSMenuItem(
@@ -323,6 +347,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc
     private func openStorageOverviewFromStatusItem(_ sender: Any?) {
         storageCleanupService.showOverview()
+    }
+
+    @objc
+    private func openActivePortsFromStatusItem(_ sender: Any?) {
+        openPortsOverviewService.showOverview()
     }
 
     @objc

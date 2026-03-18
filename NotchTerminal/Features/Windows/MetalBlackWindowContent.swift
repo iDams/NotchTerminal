@@ -27,6 +27,7 @@ struct MetalBlackWindowContent: View {
     let preferMouseReporting: Bool
 
     @AppStorage(AppPreferences.Keys.enableCRTFilter) private var enableCRTFilter: Bool = AppPreferences.Defaults.enableCRTFilter
+    @AppStorage(AppPreferences.Keys.showActivePortsInTerminal) private var showActivePortsInTerminal: Bool = AppPreferences.Defaults.showActivePortsInTerminal
     @Environment(\.controlActiveState) private var controlActiveState
     @State private var showOpenPortsPopover = false
     @State private var openPorts: [OpenPortEntry] = []
@@ -138,7 +139,9 @@ struct MetalBlackWindowContent: View {
 
             Spacer()
 
-            networkButton
+            if showActivePortsInTerminal {
+                networkButton
+            }
 
             Button(action: toggleAlwaysOnTop) {
                 Image(systemName: isAlwaysOnTop ? "pin.fill" : "pin.slash")

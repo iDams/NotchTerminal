@@ -3,6 +3,7 @@ import SwiftUI
 struct NotchCapsuleView: View {
     @EnvironmentObject private var model: NotchViewModel
     @Environment(\.openSettings) private var openSettingsNative
+    @AppStorage(AppPreferences.Keys.showTerminalPreviewOnHover) private var showTerminalPreviewOnHover = AppPreferences.Defaults.showTerminalPreviewOnHover
     let openBlackWindow: () -> Void
     let reorganizeBlackWindows: () -> Void
     let restoreBlackWindow: (UUID) -> Void
@@ -15,6 +16,7 @@ struct NotchCapsuleView: View {
     let closeAllWindows: () -> Void
     let closeAllWindowsOnDisplay: () -> Void
     let requestCloseAllConfirmation: (CGDirectDisplayID) -> Void
+    let requestCloseAllOnDisplayConfirmation: (CGDirectDisplayID) -> Void
     let openSettings: () -> Void
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
@@ -84,6 +86,7 @@ struct NotchCapsuleView: View {
         closeAllWindows: @escaping () -> Void = {},
         closeAllWindowsOnDisplay: @escaping () -> Void = {},
         requestCloseAllConfirmation: @escaping (CGDirectDisplayID) -> Void = { _ in },
+        requestCloseAllOnDisplayConfirmation: @escaping (CGDirectDisplayID) -> Void = { _ in },
         openSettings: @escaping () -> Void = {}
     ) {
         self.openBlackWindow = openBlackWindow
@@ -98,6 +101,7 @@ struct NotchCapsuleView: View {
         self.closeAllWindows = closeAllWindows
         self.closeAllWindowsOnDisplay = closeAllWindowsOnDisplay
         self.requestCloseAllConfirmation = requestCloseAllConfirmation
+        self.requestCloseAllOnDisplayConfirmation = requestCloseAllOnDisplayConfirmation
         self.openSettings = openSettings
     }
 
@@ -405,14 +409,14 @@ struct NotchCapsuleView: View {
                     .font(.system(size: 12, weight: .semibold))
             }
 
-            if let preview = item.preview {
+            if showTerminalPreviewOnHover, let preview = item.preview {
                 Image(nsImage: preview)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
                     .frame(maxWidth: 360)
                     .clipShape(.rect(cornerRadius: 8))
-            } else {
+            } else if showTerminalPreviewOnHover {
                 Text("No preview")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
@@ -430,6 +434,18 @@ struct NotchCapsuleView: View {
             requestCloseAllConfirmation(displayID)
         case .closeImmediately:
             closeAllWindows()
+        }
+    }
+
+    private func requestCloseAllOnDisplay() {
+        switch NotchCapsuleActionLogic.resolveCloseAllAction(
+            confirmBeforeCloseAll: terminalActionConfiguration.confirmBeforeCloseAll,
+            ownDisplayID: model.ownDisplayID
+        ) {
+        case .requestConfirmation(let displayID):
+            requestCloseAllOnDisplayConfirmation(displayID)
+        case .closeImmediately:
+            closeAllWindowsOnDisplay()
         }
     }
 
@@ -561,7 +577,7 @@ struct NotchCapsuleView: View {
                         }
                         Divider()
                         Button("Close All on This Display", systemImage: "xmark.square") {
-                            closeAllWindowsOnDisplay()
+                            requestCloseAllOnDisplay()
                         }
                         Button("Close All", systemImage: "xmark.circle", role: .destructive) {
                             requestCloseAll()

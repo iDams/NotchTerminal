@@ -574,7 +574,8 @@ struct SwiftTermContainerView: NSViewRepresentable {
 
         func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
         func setTerminalTitle(source: LocalProcessTerminalView, title: String) {
-            print("🔮 [TerminalTitle] Shell reported title: '\(title)'")
+            // Re-enable when debugging shell-driven title updates from SwiftTerm.
+            // print("🔮 [TerminalTitle] Shell reported title: '\(title)'")
         }
         func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {
             if let directory {

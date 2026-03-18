@@ -6,6 +6,8 @@ final class NotchOverlayGeometryLogicTests: XCTestCase {
         collapsedNoNotchSize: CGSize(width: 126, height: 26),
         notchClosedWidthScale: 0.92,
         notchClosedHeightScale: 0.90,
+        physicalNotchBaseWidthAdjustment: -80,
+        physicalNotchBaseHeightAdjustment: -8,
         shadowPadding: 42,
         noNotchTopInset: 6,
         notchTopInset: 0
@@ -16,8 +18,6 @@ final class NotchOverlayGeometryLogicTests: XCTestCase {
             screenNotchSize: .zero,
             fallbackNotchSize: CGSize(width: 126, height: 26),
             hasPhysicalNotch: false,
-            widthOffset: 0,
-            heightOffset: 0,
             configuration: .init(offsetX: 0, offsetY: 0, widthAdjustment: 14),
             constants: constants
         )
@@ -30,14 +30,12 @@ final class NotchOverlayGeometryLogicTests: XCTestCase {
             screenNotchSize: CGSize(width: 210, height: 34),
             fallbackNotchSize: CGSize(width: 126, height: 26),
             hasPhysicalNotch: true,
-            widthOffset: 10,
-            heightOffset: 4,
             configuration: .init(offsetX: 0, offsetY: 0, widthAdjustment: 8),
             constants: constants
         )
 
-        XCTAssertEqual(size.width, max(92, 210 * 0.92 + 10 + 8))
-        XCTAssertEqual(size.height, max(22, 34 * 0.90 + 4))
+        XCTAssertEqual(size.width, max(92, 210 * 0.92 - 80 + 8))
+        XCTAssertEqual(size.height, max(22, 34 * 0.90 - 8))
     }
 
     func testPanelFrameCentersExpandedInteractionArea() {

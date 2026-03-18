@@ -41,8 +41,6 @@ enum AppPreferences {
         static let auroraDisplayEnabledMap = "auroraDisplayEnabledMap"
         static let auroraDisplayThemeMap = "auroraDisplayThemeMap"
         static let contentPadding = "contentPadding"
-        static let notchWidthOffset = "notchWidthOffset"
-        static let notchHeightOffset = "notchHeightOffset"
         static let fakeNotchGlowEnabled = "fakeNotchGlowEnabled"
         static let fakeNotchGlowTheme = "fakeNotchGlowTheme"
         static let auroraBackgroundEnabled = "auroraBackgroundEnabled"
@@ -50,15 +48,18 @@ enum AppPreferences {
         static let showExperimentalSettings = "showExperimentalSettings"
         static let hapticFeedback = "hapticFeedback"
         static let showDockIcon = "showDockIcon"
+        static let showMenuBarShortcuts = "showMenuBarShortcuts"
         static let autoOpenOnHover = "autoOpenOnHover"
         static let autoOpenOnHoverDelay = "autoOpenOnHoverDelay"
         static let lockWhileTyping = "lockWhileTyping"
         static let preventCloseOnMouseLeave = "preventCloseOnMouseLeave"
         static let showChipCloseButtonOnHover = "showChipCloseButtonOnHover"
+        static let showTerminalPreviewOnHover = "showTerminalPreviewOnHover"
         static let confirmBeforeCloseAll = "confirmBeforeCloseAll"
         static let closeActionMode = "closeActionMode"
         static let terminalDefaultWidth = "terminalDefaultWidth"
         static let terminalDefaultHeight = "terminalDefaultHeight"
+        static let showActivePortsInTerminal = "showActivePortsInTerminal"
         static let notchDockingSensitivity = "notchDockingSensitivity"
         static let experimentalDragToNotchEnabled = "experimentalDragToNotchEnabled"
         static let experimentalStartupOrbEnabled = "experimentalStartupOrbEnabled"
@@ -74,22 +75,23 @@ enum AppPreferences {
 
     enum Defaults {
         static let contentPadding: Double = 30
-        static let notchWidthOffset: Double = -80
-        static let notchHeightOffset: Double = -8
         static let fakeNotchGlowEnabled = false
         static let auroraBackgroundEnabled = false
         static let showExperimentalSettings = false
         static let hapticFeedback = true
         static let showDockIcon = false
+        static let showMenuBarShortcuts = true
         static let autoOpenOnHover = true
         static let autoOpenOnHoverDelay: Double = 0.5
         static let lockWhileTyping = true
         static let preventCloseOnMouseLeave = false
         static let showChipCloseButtonOnHover = true
+        static let showTerminalPreviewOnHover = true
         static let confirmBeforeCloseAll = true
         static let closeActionMode = "terminateProcessAndClose"
         static let terminalDefaultWidth: Double = 740
         static let terminalDefaultHeight: Double = 480
+        static let showActivePortsInTerminal = true
         static let notchDockingSensitivity: Double = 80
         static let experimentalDragToNotchEnabled = false
         static let experimentalStartupOrbEnabled = false
