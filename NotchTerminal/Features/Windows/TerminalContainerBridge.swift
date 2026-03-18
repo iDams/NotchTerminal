@@ -44,6 +44,14 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     private var selectionAutoScrollDelta = 0
     private var lastSelectionDragEvent: NSEvent?
 
+    func injectText(_ text: String, submit: Bool) {
+        var bytes = Array(text.utf8)
+        if submit {
+            bytes.append(0x0A)
+        }
+        sendTerminalInput(bytes)
+    }
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
 
@@ -566,7 +574,8 @@ struct SwiftTermContainerView: NSViewRepresentable {
 
         func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
         func setTerminalTitle(source: LocalProcessTerminalView, title: String) {
-            print("🔮 [TerminalTitle] Shell reported title: '\(title)'")
+            // Re-enable when debugging shell-driven title updates from SwiftTerm.
+            // print("🔮 [TerminalTitle] Shell reported title: '\(title)'")
         }
         func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {
             if let directory {

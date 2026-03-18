@@ -1,6 +1,8 @@
 import Foundation
 import CoreGraphics
 
+/// Centralizes persisted settings and converts raw `UserDefaults` values into
+/// typed configuration objects used by views and controllers.
 enum AppPreferences {
     struct NotchDisplayConfiguration: Equatable {
         let isEnabled: Bool
@@ -24,7 +26,6 @@ enum AppPreferences {
     struct ExperimentalFeatureConfiguration: Equatable {
         let dragToNotchEnabled: Bool
         let startupOrbEnabled: Bool
-        let hitTestDebugOverlayEnabled: Bool
         let notchDockingSensitivity: Double
         let projectStatusCardEnabled: Bool
         let projectStatusShowGit: Bool
@@ -40,8 +41,6 @@ enum AppPreferences {
         static let auroraDisplayEnabledMap = "auroraDisplayEnabledMap"
         static let auroraDisplayThemeMap = "auroraDisplayThemeMap"
         static let contentPadding = "contentPadding"
-        static let notchWidthOffset = "notchWidthOffset"
-        static let notchHeightOffset = "notchHeightOffset"
         static let fakeNotchGlowEnabled = "fakeNotchGlowEnabled"
         static let fakeNotchGlowTheme = "fakeNotchGlowTheme"
         static let auroraBackgroundEnabled = "auroraBackgroundEnabled"
@@ -49,15 +48,18 @@ enum AppPreferences {
         static let showExperimentalSettings = "showExperimentalSettings"
         static let hapticFeedback = "hapticFeedback"
         static let showDockIcon = "showDockIcon"
+        static let showMenuBarShortcuts = "showMenuBarShortcuts"
         static let autoOpenOnHover = "autoOpenOnHover"
         static let autoOpenOnHoverDelay = "autoOpenOnHoverDelay"
         static let lockWhileTyping = "lockWhileTyping"
         static let preventCloseOnMouseLeave = "preventCloseOnMouseLeave"
         static let showChipCloseButtonOnHover = "showChipCloseButtonOnHover"
+        static let showTerminalPreviewOnHover = "showTerminalPreviewOnHover"
         static let confirmBeforeCloseAll = "confirmBeforeCloseAll"
         static let closeActionMode = "closeActionMode"
         static let terminalDefaultWidth = "terminalDefaultWidth"
         static let terminalDefaultHeight = "terminalDefaultHeight"
+        static let showActivePortsInTerminal = "showActivePortsInTerminal"
         static let notchDockingSensitivity = "notchDockingSensitivity"
         static let experimentalDragToNotchEnabled = "experimentalDragToNotchEnabled"
         static let experimentalStartupOrbEnabled = "experimentalStartupOrbEnabled"
@@ -65,38 +67,31 @@ enum AppPreferences {
         static let startupOrbPillOffsetY = "startupOrbPillOffsetY"
         static let startupOrbNotchOffsetX = "startupOrbNotchOffsetX"
         static let startupOrbNotchOffsetY = "startupOrbNotchOffsetY"
-        static let hitTestDebugOverlayEnabled = "hitTestDebugOverlayEnabled"
         static let enableCRTFilter = "enableCRTFilter"
         static let experimentalProjectStatusCardEnabled = "experimentalProjectStatusCardEnabled"
         static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
         static let experimentalProjectStatusShowFolder = "experimentalProjectStatusShowFolder"
-        static let experimentalFloatingMsgEnabled = "experimentalFloatingMsgEnabled"
-        static let experimentalAIProvider = "experimentalAIProvider"
-        static let experimentalAICustomURL = "experimentalAICustomURL"
-        static let experimentalAIApiKey = "experimentalAIApiKey"
-        static let experimentalAIAgentWhitelist = "experimentalAIAgentWhitelist"
-        static let experimentalAIModel = "experimentalAIModel"
-        static let experimentalAICronjobsData = "experimentalAICronjobsData"
     }
 
     enum Defaults {
         static let contentPadding: Double = 30
-        static let notchWidthOffset: Double = -80
-        static let notchHeightOffset: Double = -8
         static let fakeNotchGlowEnabled = false
         static let auroraBackgroundEnabled = false
         static let showExperimentalSettings = false
         static let hapticFeedback = true
         static let showDockIcon = false
+        static let showMenuBarShortcuts = true
         static let autoOpenOnHover = true
         static let autoOpenOnHoverDelay: Double = 0.5
         static let lockWhileTyping = true
         static let preventCloseOnMouseLeave = false
         static let showChipCloseButtonOnHover = true
+        static let showTerminalPreviewOnHover = true
         static let confirmBeforeCloseAll = true
         static let closeActionMode = "terminateProcessAndClose"
         static let terminalDefaultWidth: Double = 740
         static let terminalDefaultHeight: Double = 480
+        static let showActivePortsInTerminal = true
         static let notchDockingSensitivity: Double = 80
         static let experimentalDragToNotchEnabled = false
         static let experimentalStartupOrbEnabled = false
@@ -104,20 +99,14 @@ enum AppPreferences {
         static let startupOrbPillOffsetY: Double = 0
         static let startupOrbNotchOffsetX: Double = 9
         static let startupOrbNotchOffsetY: Double = 4
-        static let hitTestDebugOverlayEnabled = false
         static let enableCRTFilter = false
         static let experimentalProjectStatusCardEnabled = false
         static let experimentalProjectStatusShowGit = true
         static let experimentalProjectStatusShowFolder = true
-        static let experimentalFloatingMsgEnabled = false
-        static let experimentalAIProvider = "openai"
-        static let experimentalAICustomURL = "https://api.openai.com/v1"
-        static let experimentalAIApiKey = ""
-        static let experimentalAIAgentWhitelist = "ls, cat, pwd, whoami, date, uptime, sysctl, system_profiler, docker, pmset, df, du, git, top, ps, netstat, lsof, ifconfig, ping, curl, vm_stat, memory_pressure"
-        static let experimentalAIModel = "gpt-3.5-turbo"
-        static let experimentalAICronjobsData: [AICronjob] = []
     }
 
+    /// Disabled displays are stored as a stable comma-separated list so the
+    /// value round-trips predictably across launches and tests.
     static func disabledNotchDisplayIDs(in defaults: UserDefaults = .standard) -> Set<CGDirectDisplayID> {
         guard let rawValue = defaults.string(forKey: Keys.disabledNotchDisplayIDs),
               !rawValue.isEmpty else {
@@ -193,6 +182,8 @@ enum AppPreferences {
         if isEnabled {
             overrideIDs.insert(displayID)
         } else {
+            // Clearing the override also drops per-display values so the screen
+            // cleanly falls back to the shared global appearance again.
             overrideIDs.remove(displayID)
             var enabledMap = perDisplayBoolMap(forKey: Keys.auroraDisplayEnabledMap, in: defaults)
             enabledMap.removeValue(forKey: String(displayID))
@@ -287,11 +278,6 @@ enum AppPreferences {
             startupOrbEnabled: bool(
                 forKey: Keys.experimentalStartupOrbEnabled,
                 default: Defaults.experimentalStartupOrbEnabled,
-                in: defaults
-            ),
-            hitTestDebugOverlayEnabled: bool(
-                forKey: Keys.hitTestDebugOverlayEnabled,
-                default: Defaults.hitTestDebugOverlayEnabled,
                 in: defaults
             ),
             notchDockingSensitivity: double(

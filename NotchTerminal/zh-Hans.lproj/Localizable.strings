@@ -1,0 +1,295 @@
+/* General */
+"app.name" = "NotchTerminal";
+"app.tagline" = "住在刘海里的终端模拟器。";
+
+/* Settings - General */
+"settings.general" = "通用";
+"settings.notch" = "刘海";
+"settings.appearance" = "外观";
+"settings.about" = "关于";
+"settings.experimental" = "实验性";
+
+/* Settings - Notch */
+"settings.notch.displays" = "活动刘海";
+"settings.notch.displays.subtitle" = "可为每个已连接显示器单独启用或禁用刘海。";
+"settings.notch.displays.help" = "按显示器配置刘海行为。每块屏幕都可以有自己的启用状态、位置调整、宽度微调以及可选背景覆盖。";
+"settings.notch.empty" = "未检测到活动显示器。";
+"settings.notch.enabled" = "启用此刘海";
+"settings.notch.enabled.subtitle" = "仅在此显示器上显示刘海。";
+"settings.notch.offsetX" = "水平位置";
+"settings.notch.offsetX.subtitle" = "在当前显示器上向左或向右移动此刘海。";
+"settings.notch.offsetY" = "垂直位置";
+"settings.notch.offsetY.subtitle" = "在当前显示器上向上或向下移动此刘海。";
+"settings.notch.width" = "宽度调整";
+"settings.notch.width.subtitle" = "缩小或加宽此刘海，而不影响其他显示器。";
+"settings.notch.customBackground" = "自定义背景";
+"settings.notch.customBackground.subtitle" = "仅为此显示器覆盖全局刘海背景。";
+"settings.notch.customBackground.enabled" = "启用极光背景";
+"settings.notch.customBackground.enabled.subtitle" = "仅将极光效果应用到这个刘海。";
+"settings.notch.customBackground.theme.subtitle" = "为这个刘海选择背景主题。";
+"settings.notch.display.physical" = "物理刘海";
+"settings.notch.display.pill" = "药丸刘海";
+"settings.notch.display.main" = "主显示器";
+
+/* Settings - System */
+"settings.system" = "系统";
+"settings.system.subtitle" = "核心行为与应用可见性选项。";
+"settings.system.help" = "控制整个应用的行为，例如触觉反馈、Dock 显示，以及是否在设置中显示不稳定功能。";
+"settings.hapticFeedback" = "启用触觉反馈";
+"settings.hapticFeedback.subtitle" = "当与刘海交互时使用触觉反馈。";
+"settings.showDockIcon" = "显示 Dock 图标";
+"settings.showDockIcon.subtitle" = "使用配置的 AppIcon 资源在 Dock 中显示应用图标。";
+"settings.system.menuBar.shortcuts" = "显示菜单栏图标";
+"settings.system.menuBar.shortcuts.subtitle" = "在 macOS 菜单栏中显示 NotchTerminal 图标。";
+"settings.showExperimentalSettings" = "显示实验性标签页";
+"settings.showExperimentalSettings.subtitle" = "在设置中显示实验性设置和不稳定功能。";
+"settings.quitApp" = "退出应用";
+"settings.quitApp.subtitle" = "完全关闭 NotchTerminal。";
+
+/* Settings - Automation */
+"settings.automation" = "自动化";
+"settings.automation.subtitle" = "控制刘海何时打开和关闭。";
+"settings.automation.help" = "调整刘海的自动行为，包括悬停展开延迟，以及输入时是否保持展开。";
+"settings.autoOpenOnHover" = "悬停时打开刘海";
+"settings.autoOpenOnHover.subtitle" = "当光标到达刘海区域时自动展开。";
+"settings.autoOpenOnHoverDelay" = "悬停打开延迟";
+"settings.autoOpenOnHoverDelay.subtitle" = "光标需在刘海附近停留多久后才会展开。";
+"settings.lockWhileTyping" = "输入时保持展开";
+"settings.lockWhileTyping.subtitle" = "在你持续输入时避免自动关闭。";
+
+/* Settings - Terminal Actions */
+"settings.terminalActions" = "关闭与安全";
+"settings.terminalActions.subtitle" = "终端会话的确认与关闭行为。";
+"settings.terminalActions.help" = "定义终端标签和批量操作的行为，包括安全确认，以及关闭时是只关闭窗口还是同时终止正在运行的进程。";
+"settings.showChipCloseButton" = "悬停标签时显示关闭按钮";
+"settings.showChipCloseButton.subtitle" = "悬停终端标签时显示一个小的关闭按钮。";
+"settings.showTerminalPreview" = "显示终端预览";
+"settings.showTerminalPreview.subtitle" = "悬停标签时显示实时终端预览。";
+"settings.confirmBeforeCloseAll" = "关闭全部前确认";
+"settings.confirmBeforeCloseAll.subtitle" = "执行“关闭全部”操作前请求确认。";
+"settings.closeActionMode" = "关闭时也停止正在运行的命令";
+"settings.closeActionMode.subtitle" = "关闭时若关闭此项，仅关闭窗口；若开启，还会终止正在运行的终端进程。";
+"settings.dangerZone" = "危险区域";
+"settings.dangerZone.subtitle" = "会影响整个应用的敏感操作。";
+"settings.dangerZone.help" = "包含会立即影响全局的操作，例如退出应用。当你想停止当前所有 NotchTerminal 活动时可使用这里。";
+
+/* Settings - Appearance */
+"settings.appearance.geometry" = "几何";
+"settings.appearance.geometry.subtitle" = "微调刘海布局和间距。";
+"settings.appearance.geometry.help" = "调整刘海内部的间距，让界面在不同屏幕尺寸和内容密度下都保持平衡。";
+"settings.contentPadding" = "内容内边距";
+"settings.contentPadding.subtitle" = "终端内容与刘海边缘之间的间距。";
+"settings.appearance.terminalChips" = "终端标签";
+"settings.appearance.terminalChips.subtitle" = "控制刘海内部显示的终端项目。";
+"settings.appearance.terminalChips.help" = "调整终端标签的行为，以及哪些控件会直接显示在刘海内部。";
+
+"settings.appearance.terminalDefaults" = "终端窗口默认值";
+"settings.appearance.terminalDefaults.subtitle" = "新终端会话的尺寸参数。";
+"settings.appearance.terminalDefaults.help" = "设置创建新的悬浮终端窗口时默认使用的宽度和高度。";
+"settings.terminalDefaultWidth" = "默认宽度";
+"settings.terminalDefaultWidth.subtitle" = "以点为单位的水平尺寸。";
+"settings.terminalDefaultHeight" = "默认高度";
+"settings.terminalDefaultHeight.subtitle" = "以点为单位的垂直尺寸。";
+"settings.showActivePorts" = "显示活动端口";
+"settings.showActivePorts.subtitle" = "在终端窗口中显示“活动端口”工具。";
+
+"settings.appearance.docking" = "停靠灵敏度";
+"settings.appearance.docking.subtitle" = "窗口需要多接近刘海才会吸附进去。";
+"settings.notchDockingSensitivity" = "检测半径";
+"settings.notchDockingSensitivity.subtitle" = "数值越大越早检测，数值越小则需要更靠近。";
+
+"settings.appearance.effects" = "效果";
+"settings.appearance.effects.subtitle" = "刘海表面的视觉效果。";
+"settings.appearance.effects.help" = "控制可选的视觉样式，例如在支持的显示器上用于刘海内容后方的极光背景主题。";
+"settings.appearance.projectStatus" = "项目状态卡片";
+"settings.appearance.projectStatus.subtitle" = "在展开的刘海中显示上下文化的项目信息。";
+"settings.appearance.projectStatus.help" = "在展开的刘海中显示轻量项目上下文，例如当前终端会话的文件夹名和 Git 状态。";
+"settings.appearance.projectStatus.enabled" = "启用项目状态卡片";
+"settings.appearance.projectStatus.enabled.subtitle" = "在刘海展开时显示该卡片。";
+"settings.appearance.projectStatus.showFolder" = "显示文件夹名称";
+"settings.appearance.projectStatus.showFolder.subtitle" = "显示当前终端的项目文件夹。";
+"settings.appearance.projectStatus.showGit" = "显示 Git 状态";
+"settings.appearance.projectStatus.showGit.subtitle" = "显示当前分支和待处理变更。";
+"settings.appearance.reset" = "重置外观设置";
+"settings.appearance.reset.subtitle" = "恢复此标签页的默认值。";
+
+/* Settings - Experimental */
+"settings.experimental.effects" = "实验性效果";
+"settings.experimental.effects.subtitle" = "可能因屏幕或 GPU 不同而表现不同的可选视觉效果。";
+"settings.experimental.effects.help" = "这些视觉效果会改变刘海或终端区域的外观。某些选项可能会消耗更多 GPU 与电量，并且在不同显示器类型上的表现可能不同。";
+"settings.experimental.notice.title" = "实验性功能可能会变化";
+"settings.experimental.notice.body" = "这些选项仍在测试中。随着产品演进，其中一些可能会变化、移动位置或被移除，也可能会持续加入新的实验功能。";
+"settings.experimental.startupOrb.section" = "通知球";
+"settings.experimental.startupOrb.section.subtitle" = "实验性的通知球外观与位置。";
+"settings.experimental.startupOrb.section.help" = "控制显示在刘海附近、用于启动或通知状态的小圆点。可使用偏移量微调它在假刘海和物理刘海显示器上的位置。";
+"settings.experimental.startupOrb" = "显示通知球";
+"settings.experimental.startupOrb.subtitle" = "在刘海旁显示通知球。";
+"settings.experimental.startupOrb.pillOffsetX" = "通知球药丸 X 偏移";
+"settings.experimental.startupOrb.pillOffsetX.subtitle" = "调整假刘海显示器上的通知球水平偏移。";
+"settings.experimental.startupOrb.pillOffsetY" = "通知球药丸 Y 偏移";
+"settings.experimental.startupOrb.pillOffsetY.subtitle" = "调整假刘海显示器上的通知球垂直偏移。";
+"settings.experimental.startupOrb.notchOffsetX" = "通知球刘海 X 偏移";
+"settings.experimental.startupOrb.notchOffsetX.subtitle" = "调整物理刘海显示器上的通知球水平偏移。";
+"settings.experimental.startupOrb.notchOffsetY" = "通知球刘海 Y 偏移";
+"settings.experimental.startupOrb.notchOffsetY.subtitle" = "调整物理刘海显示器上的通知球垂直偏移。";
+"settings.experimental.warning" = "这些视觉效果高度实验性，并会增加耗电。";
+"settings.experimental.geometry.help" = "针对物理刘海显示器的高级几何调整。仅在刘海遮罩与硬件无法正确对齐时使用。";
+"settings.experimental.docking.help" = "控制终端窗口在拖动到附近时如何吸附到刘海区域。灵敏度越高，越容易触发停靠。";
+"settings.experimental.dragToNotch" = "启用拖拽到刘海停靠";
+"settings.experimental.dragToNotch.subtitle" = "将终端窗口拖到附近时可吸附进刘海。该功能为实验性，目前仍不稳定。";
+"settings.fakeNotchGlow" = "药丸刘海发光";
+"settings.fakeNotchGlow.subtitle" = "为模拟刘海提供霓虹紫色发光效果。";
+"settings.fakeNotchGlowTheme" = "发光主题";
+"settings.auroraBackground" = "极光背景";
+"settings.auroraBackground.subtitle" = "显示在终端内容后方的动态 Metal 着色器。";
+"settings.crtFilter" = "CRT 显示器滤镜";
+"settings.crtFilter.subtitle" = "添加弯曲、扫描线和静态噪点，以模拟旧式硬件。";
+
+/* Settings - Language */
+"settings.language" = "语言";
+"settings.language.subtitle" = "选择你偏好的语言。";
+"settings.language.help" = "选择让 NotchTerminal 跟随系统语言，或为界面手动指定语言。";
+"settings.language.system" = "系统默认";
+"settings.language.system.subtitle" = "使用你的系统语言设置。";
+
+/* Persistence */
+"persistence.alert.title" = "会话持久化不可用";
+"persistence.alert.message" = "NotchTerminal 无法初始化本地数据存储。本次启动将禁用会话恢复和自动保存。\n\n详细信息：%@";
+"persistence.warning.title" = "会话持久化不可用";
+"persistence.warning.body" = "会话恢复和自动保存当前已被禁用。应用仍可运行，但重新启动后不会恢复已打开的终端会话。";
+"persistence.warning.details" = "详细信息：%@";
+
+/* Settings - About */
+"settings.about.versionFormat" = "版本 %@（%@）";
+"settings.about.checkUpdates" = "检查更新";
+"settings.about.checkUpdates.subtitle" = "查找更新版本";
+"settings.about.releaseNotes" = "发行说明";
+"settings.about.releaseNotes.subtitle" = "查看更新内容";
+"settings.about.website" = "项目网站";
+"settings.about.website.subtitle" = "仓库与文档";
+"settings.about.donate" = "请我喝咖啡";
+"settings.about.donate.subtitle" = "支持开发";
+"settings.about.thirdParty" = "查看第三方声明";
+"settings.about.thirdParty.subtitle" = "本应用使用的许可证与署名信息。";
+"settings.about.copyright" = "© 2026 Marco Astorga González。保留所有权利。以开源方式发布。";
+"settings.auroraTheme" = "极光主题";
+
+/* Actions */
+"action.restore" = "恢复";
+"action.minimize" = "最小化";
+"action.close" = "关闭";
+"action.closeAll" = "全部关闭";
+"action.restoreAll" = "全部恢复";
+"action.minimizeAll" = "全部最小化";
+"action.moveToThisDisplay" = "移动到此显示器";
+"action.alwaysOnTop" = "始终置顶";
+"action.disableAlwaysOnTop" = "取消始终置顶";
+"action.reorganize" = "重新整理终端";
+"action.settings" = "设置";
+"action.showAllWindows" = "显示所有窗口";
+"action.newTerminal" = "新建终端";
+"action.hide" = "隐藏";
+"action.cancel" = "取消";
+"action.quit" = "退出";
+"action.resetDefaults" = "恢复默认值";
+
+/* Misc */
+"menu.bulkActions" = "批量操作";
+"menu.closeAllOnThisDisplay" = "关闭此显示器上的全部";
+"menu.options" = "选项";
+"storage.menu.title" = "存储分析";
+"storage.menu.subtitle" = "检查常见占用大量磁盘空间的文件夹";
+"storage.menu.sidebarSubtitle" = "浏览分类并快速清理空间";
+"storage.menu.scanning" = "正在扫描常见清理位置...";
+"storage.menu.foundSoFar" = "当前已发现";
+"storage.menu.progress" = "正在扫描清理位置...（%d/%d）";
+"storage.menu.scanAgain" = "重新扫描";
+"storage.menu.empty" = "暂未发现较大的内容";
+"storage.category.nodeModules" = "node_modules";
+"storage.category.nodeModules.subtitle" = "通常可以重新安装的 JavaScript 依赖";
+"storage.category.derivedData" = "DerivedData";
+"storage.category.derivedData.subtitle" = "Xcode 构建产物和中间文件";
+"storage.category.pods" = "Pods";
+"storage.category.pods.subtitle" = "项目中的 CocoaPods 依赖";
+"storage.category.carthage" = "Carthage";
+"storage.category.carthage.subtitle" = "项目中的 Carthage 构建文件夹";
+"storage.category.caches" = "缓存";
+"storage.category.caches.subtitle" = "存储在 Library/Caches 中的应用和开发者缓存";
+"storage.category.logs" = "日志";
+"storage.category.logs.subtitle" = "存储在 Library/Logs 中的应用和系统日志";
+"storage.category.trash" = "废纸篓";
+"storage.category.trash.subtitle" = "当前位于 macOS 废纸篓中的项目";
+"storage.category.downloads" = "旧下载";
+"storage.category.downloads.subtitle" = "超过 30 天且可能已不再需要的下载内容";
+"storage.action.reveal" = "在 Finder 中显示";
+"storage.action.revealSelected" = "显示所选项";
+"storage.action.trash" = "移到废纸篓";
+"storage.action.trashSelected" = "将所选项移到废纸篓";
+"storage.action.trashAll" = "全部移到废纸篓";
+"storage.action.selectAll" = "全选";
+"storage.action.clearSelection" = "清除选择";
+"storage.action.selectedItemsTitle" = "已选项目";
+"storage.confirm.title" = "要将文件移到废纸篓吗？";
+"storage.confirm.message" = "将 %@（%d 个项目，%@）移到废纸篓？";
+"storage.detail.itemsCount" = "%d 个项目";
+"storage.detail.back" = "返回";
+"storage.filter.date" = "日期";
+"storage.filter.date.all" = "任意时间";
+"storage.filter.date.today" = "今天";
+"storage.filter.date.week" = "最近 7 天";
+"storage.filter.date.month" = "最近 30 天";
+"storage.filter.date.quarter" = "最近 90 天";
+"storage.filter.size" = "大小";
+"storage.filter.size.any" = "任意大小";
+"storage.filter.size.100mb" = "超过 100 MB";
+"storage.filter.size.500mb" = "超过 500 MB";
+"storage.filter.size.1gb" = "超过 1 GB";
+"storage.filter.sort" = "排序";
+"storage.filter.sort.largest" = "从大到小";
+"storage.filter.sort.smallest" = "从小到大";
+"storage.filter.sort.recent" = "最近修改";
+"storage.filter.sort.oldest" = "最旧优先";
+"storage.filter.sort.name" = "名称";
+"storage.filter.sort.path" = "路径";
+"storage.search.placeholder" = "按名称或路径筛选";
+"storage.detail.name" = "名称";
+"storage.detail.path" = "路径";
+"storage.detail.modified" = "修改时间";
+"storage.detail.size" = "大小";
+"storage.detail.filteredCount" = "%d / %d 个项目";
+"storage.detail.selectCategory" = "选择一个分类";
+"storage.detail.selectCategorySubtitle" = "从侧边栏选择一个分类以检查大型文件夹。";
+"storage.detail.noMatches" = "没有项目匹配这些筛选条件";
+"storage.detail.noMatchesSubtitle" = "尝试更宽松的日期、大小或搜索条件。";
+"storage.detail.unknownDate" = "未知";
+"storage.filter.clear" = "清除筛选";
+"storage.inUse.title" = "某些项目似乎正在使用中";
+"storage.inUse.message" = "这些文件夹可能仍被活跃进程使用。将它们移到废纸篓可能会导致在这些进程停止前无法彻底清理。";
+"storage.inUse.continue" = "仍然移动";
+"storage.inUse.timeout" = "诊断超时";
+"storage.inUse.more" = "还有 %d 个项目也被报告有活动。";
+"storage.inUse.partialCheck" = "继续前已检查 %d 个所选项目。";
+
+/* Active Ports */
+"openPorts.title" = "活动端口";
+"openPorts.subtitle" = "快速检查并停止本地正在监听的端口";
+"openPorts.theme" = "主题";
+"openPorts.theme.system" = "系统";
+"openPorts.theme.dark" = "深色";
+"openPorts.theme.light" = "浅色";
+"openPorts.scope.dev" = "开发";
+"openPorts.scope.all" = "全部";
+"openPorts.scope.picker" = "范围";
+"openPorts.scope.other" = "其他";
+"openPorts.search.placeholder" = "按端口、进程或 PID 筛选";
+"openPorts.scanning" = "正在扫描端口...";
+"openPorts.action.refresh" = "刷新";
+"openPorts.summary.count" = "%d 个开发端口";
+"openPorts.summary.other" = "%d 个其他端口";
+"openPorts.empty.all" = "没有打开的端口符合此筛选条件。";
+"openPorts.empty.dev" = "没有开发端口符合此筛选条件。";
+"openPorts.row.pidAndEndpoint" = "PID %@ • %@";
+"openPorts.kill" = "结束";
+"openPorts.message.noListening" = "未找到正在监听的 TCP 端口。";
+"openPorts.message.loadFailed" = "无法加载打开的端口。";
+"openPorts.message.terminateFailed" = "无法终止 PID %@。";

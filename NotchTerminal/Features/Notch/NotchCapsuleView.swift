@@ -3,6 +3,7 @@ import SwiftUI
 struct NotchCapsuleView: View {
     @EnvironmentObject private var model: NotchViewModel
     @Environment(\.openSettings) private var openSettingsNative
+    @AppStorage(AppPreferences.Keys.showTerminalPreviewOnHover) private var showTerminalPreviewOnHover = AppPreferences.Defaults.showTerminalPreviewOnHover
     let openBlackWindow: () -> Void
     let reorganizeBlackWindows: () -> Void
     let restoreBlackWindow: (UUID) -> Void
@@ -15,6 +16,7 @@ struct NotchCapsuleView: View {
     let closeAllWindows: () -> Void
     let closeAllWindowsOnDisplay: () -> Void
     let requestCloseAllConfirmation: (CGDirectDisplayID) -> Void
+    let requestCloseAllOnDisplayConfirmation: (CGDirectDisplayID) -> Void
     let openSettings: () -> Void
     @State private var hoveredMinimizedItemID: UUID?
     @State private var pendingHoverItemID: UUID?
@@ -25,15 +27,6 @@ struct NotchCapsuleView: View {
     @State private var isHoveringPlus = false
     @State private var showsStartupPreview = false
     @State private var startupPreviewDismissWorkItem: DispatchWorkItem?
-    @AppStorage(AppPreferences.Keys.experimentalFloatingMsgEnabled) private var experimentalFloatingMsgEnabled = AppPreferences.Defaults.experimentalFloatingMsgEnabled
-    @AppStorage(AppPreferences.Keys.experimentalAIProvider) private var experimentalAIProvider = AppPreferences.Defaults.experimentalAIProvider
-    @AppStorage(AppPreferences.Keys.experimentalAICustomURL) private var experimentalAICustomURL = AppPreferences.Defaults.experimentalAICustomURL
-    @AppStorage(AppPreferences.Keys.experimentalAIApiKey) private var experimentalAIApiKey = AppPreferences.Defaults.experimentalAIApiKey
-    @AppStorage(AppPreferences.Keys.experimentalAIModel) private var experimentalAIModel = AppPreferences.Defaults.experimentalAIModel
-    @AppStorage(AppPreferences.Keys.experimentalAICronjobsData) private var experimentalAICronjobsData = AppPreferences.Defaults.experimentalAICronjobsData
-
-    @State private var showingFloatingMessage = false
-    @State private var floatingMessageText = "Hello World 😉"
 
     private var expandedWidth: CGFloat {
         let minWidth: CGFloat = 680
@@ -93,6 +86,7 @@ struct NotchCapsuleView: View {
         closeAllWindows: @escaping () -> Void = {},
         closeAllWindowsOnDisplay: @escaping () -> Void = {},
         requestCloseAllConfirmation: @escaping (CGDirectDisplayID) -> Void = { _ in },
+        requestCloseAllOnDisplayConfirmation: @escaping (CGDirectDisplayID) -> Void = { _ in },
         openSettings: @escaping () -> Void = {}
     ) {
         self.openBlackWindow = openBlackWindow
@@ -107,6 +101,7 @@ struct NotchCapsuleView: View {
         self.closeAllWindows = closeAllWindows
         self.closeAllWindowsOnDisplay = closeAllWindowsOnDisplay
         self.requestCloseAllConfirmation = requestCloseAllConfirmation
+        self.requestCloseAllOnDisplayConfirmation = requestCloseAllOnDisplayConfirmation
         self.openSettings = openSettings
     }
 
@@ -192,50 +187,7 @@ struct NotchCapsuleView: View {
         .padding(shadowPadding)
         // Ensure the entire Notch expanding structure is anchored to the top of the NSPanel
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .overlay(alignment: .top) {
-            if !model.isExpanded && showingFloatingMessage {
-                Text(floatingMessageText)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.black.opacity(0.85))
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
-                    }
-                    .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
-                    .padding(.top, shadowPadding + (model.hasPhysicalNotch ? 38 : 28) + 12)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
-                    .zIndex(100)
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: AICronjobManager.newMessageNotification)) { notification in
-            if let text = notification.userInfo?["text"] as? String {
-                showFloatingMessage(text)
-            }
-        }
         // Removed implicit animation modifier here to avoid repeated implicit animations during state changes
-    }
-
-
-    private func showFloatingMessage(_ text: String) {
-        Task { @MainActor in
-            self.floatingMessageText = text
-            guard !self.model.isExpanded else { return }
-            
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                self.showingFloatingMessage = true
-            }
-            
-            // Auto hide after 5 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                withAnimation(.easeIn(duration: 0.2)) {
-                    self.showingFloatingMessage = false
-                }
-            }
-        }
     }
 
     // MARK: - Subviews
@@ -438,8 +390,6 @@ struct NotchCapsuleView: View {
         }
         .overlay(alignment: .topLeading) { topLeadingControls }
         .overlay(alignment: .topTrailing) { topTrailingControls }
-        .overlay { panelFrameDebugOverlay }
-        .overlay(alignment: .top) { hitTestDebugOverlay }
     }
 
     @ViewBuilder
@@ -459,14 +409,14 @@ struct NotchCapsuleView: View {
                     .font(.system(size: 12, weight: .semibold))
             }
 
-            if let preview = item.preview {
+            if showTerminalPreviewOnHover, let preview = item.preview {
                 Image(nsImage: preview)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
                     .frame(maxWidth: 360)
                     .clipShape(.rect(cornerRadius: 8))
-            } else {
+            } else if showTerminalPreviewOnHover {
                 Text("No preview")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
@@ -484,6 +434,18 @@ struct NotchCapsuleView: View {
             requestCloseAllConfirmation(displayID)
         case .closeImmediately:
             closeAllWindows()
+        }
+    }
+
+    private func requestCloseAllOnDisplay() {
+        switch NotchCapsuleActionLogic.resolveCloseAllAction(
+            confirmBeforeCloseAll: terminalActionConfiguration.confirmBeforeCloseAll,
+            ownDisplayID: model.ownDisplayID
+        ) {
+        case .requestConfirmation(let displayID):
+            requestCloseAllOnDisplayConfirmation(displayID)
+        case .closeImmediately:
+            closeAllWindowsOnDisplay()
         }
     }
 
@@ -615,7 +577,7 @@ struct NotchCapsuleView: View {
                         }
                         Divider()
                         Button("Close All on This Display", systemImage: "xmark.square") {
-                            closeAllWindowsOnDisplay()
+                            requestCloseAllOnDisplay()
                         }
                         Button("Close All", systemImage: "xmark.circle", role: .destructive) {
                             requestCloseAll()
@@ -643,14 +605,17 @@ struct NotchCapsuleView: View {
     @ViewBuilder
     private var topTrailingControls: some View {
         if model.isExpanded && showExpandedControls {
-            Button(action: openSettingsWindow) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.8))
-                    .padding(8)
-                    .contentShape(Circle())
+            HStack(spacing: 6) {
+                Button(action: openSettingsWindow) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .padding(8)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Open Settings")
             }
-            .buttonStyle(.plain)
             .padding(.trailing, 16)
             .padding(.top, topControlsPaddingTop + 4)
             .transition(.opacity)
@@ -757,53 +722,6 @@ struct NotchCapsuleView: View {
         }
     }
 
-    @ViewBuilder
-    private var panelFrameDebugOverlay: some View {
-        if experimentalFeatures.hitTestDebugOverlayEnabled && !model.hasPhysicalNotch {
-            GeometryReader { proxy in
-                Rectangle()
-                    .fill(Color.orange.opacity(0.06))
-                    .overlay {
-                        Rectangle()
-                            .stroke(Color.orange.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [10, 6]))
-                    }
-                    .frame(width: proxy.size.width, height: proxy.size.height)
-                    .allowsHitTesting(false)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var hitTestDebugOverlay: some View {
-        if experimentalFeatures.hitTestDebugOverlayEnabled && !model.hasPhysicalNotch && !model.isExpanded {
-            ZStack {
-                RoundedRectangle(cornerRadius: notchCornerRadius + 20, style: .continuous)
-                    .fill(Color.red.opacity(0.16))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: notchCornerRadius + 20, style: .continuous)
-                            .stroke(Color.red.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
-                    }
-                    .frame(width: capsuleWidth + 40, height: model.closedSize.height + 40)
-                    .offset(y: -20)
-
-                Circle()
-                    .fill(Color.cyan.opacity(0.22))
-                    .overlay {
-                        Circle()
-                            .stroke(Color.cyan.opacity(0.95), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
-                    }
-                    .frame(
-                        width: StartupOrbGeometry.bubbleSize(for: .pill) + 16,
-                        height: StartupOrbGeometry.bubbleSize(for: .pill) + 16
-                    )
-                    .offset(
-                        x: StartupOrbGeometry.detachedOffsetX(for: .pill, hostWidth: capsuleWidth),
-                        y: StartupOrbGeometry.offsetY(for: .pill) - 8
-                    )
-            }
-            .allowsHitTesting(false)
-        }
-    }
 }
 
 // MARK: - Preference Key

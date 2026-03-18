@@ -26,9 +26,10 @@ Requirements:
 
 ## Main Architecture
 - `NotchTerminal/App`: app lifecycle and preferences bootstrapping.
-- `NotchTerminal/Features/Notch`: notch overlay UI + interaction model.
+- `NotchTerminal/Features/Notch`: notch overlay UI, interaction model, and entry points for overlay actions.
+- `NotchTerminal/Features/Storage`: storage analysis, cleanup actions, and overview UI.
 - `NotchTerminal/Features/Windows`: floating terminal windows and actions.
-- `NotchTerminal/Features/Persistence`: SwiftData models.
+- `NotchTerminal/Features/Persistence`: SwiftData models and session restore helpers.
 - `NotchTerminal/Rendering/Metal`: Metal shaders/rendering pipeline (Aurora, Fake Glow, CRT).
 - `NotchTerminal/Settings`: settings screens and custom NotchTerminal UI components.
 - `NotchTerminal/Services`: shared services/utilities.
@@ -42,7 +43,7 @@ Requirements:
 
 ## Localization
 - Primary strings: `NotchTerminal/*/*.strings` and `*.lproj/Localizable.strings`.
-- Existing languages include `en`, `es`, `fr`, `ja`.
+- Existing languages include `en`, `es`, `fr`, `ja`, `zh-Hans`.
 - See `docs/localization/LOCALIZATION.md` for language system details.
 
 ## Safe Change Guidelines
@@ -64,4 +65,6 @@ Requirements:
 
 ## Useful References
 - Product overview: `README.md`
+- Testing guidance: `docs/quality/TESTING.md`
+- Localization details: `docs/localization/LOCALIZATION.md`
 - Third-party attributions: `NotchTerminal/Resources/THIRD_PARTY_NOTICES.md`

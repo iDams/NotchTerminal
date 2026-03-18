@@ -121,6 +121,7 @@
 				A97FDD032F452B9A000CB036 /* Frameworks */,
 				A97FDE112F452B9A000CB036 /* Resources */,
 				A97FDC9D2F452B9A000CB036 /* Sources */,
+				D2A100012F90000100C0DE01 /* Install Debug App */,
 			);
 			buildRules = (
 			);
@@ -213,6 +214,12 @@
 				es,
 				fr,
 				ja,
+				"zh-Hans",
+				de,
+				"pt-BR",
+				ko,
+				it,
+				ru,
 			);
 			mainGroup = A97FDC982F452B9A000CB036;
 			minimizedProjectReferenceProxies = 1;
@@ -247,6 +254,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D2A100012F90000100C0DE01 /* Install Debug App */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Install Debug App";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$PROJECT_DIR/scripts/install-dev-app.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A97FDC9D2F452B9A000CB036 /* Sources */ = {
@@ -312,7 +341,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -375,11 +404,15 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B14A9A3A2F90000100C0DE01 /* Signing.xcconfig */;
 			buildSettings = {
+				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = NotchTerminal;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -402,11 +435,15 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B14A9A3A2F90000100C0DE01 /* Signing.xcconfig */;
 			buildSettings = {
+				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = TGU3UHC7C7;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = NotchTerminal;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";

@@ -1,6 +1,9 @@
 import CoreGraphics
 import Foundation
 
+/// Pure geometry helpers for the notch overlay.
+/// Keeping these calculations side-effect free makes hover and hit-test rules
+/// easy to reason about and verify in unit tests.
 enum NotchOverlayGeometryLogic {
     struct DisplayConfiguration {
         let offsetX: CGFloat
@@ -12,6 +15,8 @@ enum NotchOverlayGeometryLogic {
         let collapsedNoNotchSize: CGSize
         let notchClosedWidthScale: CGFloat
         let notchClosedHeightScale: CGFloat
+        let physicalNotchBaseWidthAdjustment: CGFloat
+        let physicalNotchBaseHeightAdjustment: CGFloat
         let shadowPadding: CGFloat
         let noNotchTopInset: CGFloat
         let notchTopInset: CGFloat
@@ -21,8 +26,6 @@ enum NotchOverlayGeometryLogic {
         screenNotchSize: CGSize,
         fallbackNotchSize: CGSize,
         hasPhysicalNotch: Bool,
-        widthOffset: CGFloat,
-        heightOffset: CGFloat,
         configuration: DisplayConfiguration,
         constants: Constants
     ) -> CGSize {
@@ -35,8 +38,13 @@ enum NotchOverlayGeometryLogic {
 
         let raw = screenNotchSize == .zero ? fallbackNotchSize : screenNotchSize
         return CGSize(
-            width: max(92, raw.width * constants.notchClosedWidthScale + widthOffset + configuration.widthAdjustment),
-            height: max(22, raw.height * constants.notchClosedHeightScale + heightOffset)
+            width: max(
+                92,
+                raw.width * constants.notchClosedWidthScale
+                    + constants.physicalNotchBaseWidthAdjustment
+                    + configuration.widthAdjustment
+            ),
+            height: max(22, raw.height * constants.notchClosedHeightScale + constants.physicalNotchBaseHeightAdjustment)
         )
     }
 
@@ -46,6 +54,8 @@ enum NotchOverlayGeometryLogic {
         configuration: DisplayConfiguration,
         constants: Constants
     ) -> CGRect {
+        // The backing panel is intentionally larger than the visible notch so
+        // SwiftUI can animate within a stable container without frame churn.
         let visualSize = CGSize(width: 1100, height: 160)
         let shoulderExtra: CGFloat = hasPhysicalNotch ? 64 : 0
         let topOvershoot: CGFloat = hasPhysicalNotch ? 6 : 0
@@ -94,7 +104,20 @@ enum NotchOverlayGeometryLogic {
         constants: Constants
     ) -> CGRect {
         if isExpanded {
-            return panelFrame.insetBy(dx: -54, dy: -76)
+            // Expanded hover should follow the visible notch surface, not the
+            // oversized panel used for shadows and animation.
+            let visualWidth = CGFloat(1100)
+            let visualHeight = CGFloat(160)
+            let topInset = hasPhysicalNotch ? constants.notchTopInset : constants.noNotchTopInset
+            let visualRect = CGRect(
+                x: screenFrame.midX - visualWidth / 2 + configuration.offsetX,
+                y: screenFrame.maxY - visualHeight - topInset - configuration.offsetY,
+                width: visualWidth,
+                height: visualHeight
+            )
+            // Keep the target forgiving without letting the invisible panel
+            // claim input far away from the notch itself.
+            return visualRect.insetBy(dx: -20, dy: -30)
         }
 
         if hasPhysicalNotch && hardwareNotchRect != .zero {
@@ -126,7 +149,18 @@ enum NotchOverlayGeometryLogic {
         constants: Constants
     ) -> Bool {
         if isExpanded {
-            return true
+            // Mouse ownership stays close to the visible notch even though the
+            // backing panel is larger than the rendered surface.
+            let visualWidth = CGFloat(1100)
+            let visualHeight = CGFloat(160)
+            let topInset = hasPhysicalNotch ? constants.notchTopInset : constants.noNotchTopInset
+            let visualRect = CGRect(
+                x: screenFrame.midX - visualWidth / 2,
+                y: screenFrame.maxY - visualHeight - topInset,
+                width: visualWidth,
+                height: visualHeight
+            )
+            return visualRect.insetBy(dx: -30, dy: -30).contains(cursor)
         }
 
         guard !hasPhysicalNotch else { return false }

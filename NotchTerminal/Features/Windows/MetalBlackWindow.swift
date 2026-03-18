@@ -251,6 +251,26 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
     }
 
+    func openWindowAndWrite(text: String, submit: Bool, displayID: CGDirectDisplayID? = nil) {
+        if let targetID = preferredWritableWindowID() {
+            restoreWindow(id: targetID)
+            writeToWindow(id: targetID, text: text, submit: submit)
+            return
+        }
+
+        let resolvedDisplayID = displayID ?? CGMainDisplayID()
+        createWindow(
+            displayID: resolvedDisplayID,
+            anchorScreen: screen(for: resolvedDisplayID),
+            notchTargetsProvider: { [] }
+        )
+
+        guard let targetID = preferredWritableWindowID() else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            self?.writeToWindow(id: targetID, text: text, submit: submit)
+        }
+    }
+
     func minimizeAllWindows() {
         for id in orderedWindowIDs(where: { !$0.isMinimized }) {
             minimizeWindowInternal(id: id)
@@ -1086,6 +1106,47 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         for subview in view.subviews {
             terminateTerminalViews(in: subview)
         }
+    }
+
+    private func writeToWindow(id: UUID, text: String, submit: Bool) {
+        guard let panel = windows[id]?.panel,
+              let contentView = panel.contentView,
+              let terminalView = firstTerminalView(in: contentView) else {
+            return
+        }
+
+        terminalView.injectText(text, submit: submit)
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        activeWindowID = id
+        publishTerminalItems()
+    }
+
+    private func firstTerminalView(in view: NSView) -> DetectingLocalProcessTerminalView? {
+        if let terminalView = view as? DetectingLocalProcessTerminalView {
+            return terminalView
+        }
+
+        for subview in view.subviews {
+            if let nested = firstTerminalView(in: subview) {
+                return nested
+            }
+        }
+
+        return nil
+    }
+
+    private func preferredWritableWindowID() -> UUID? {
+        if let activeWindowID,
+           let instance = windows[activeWindowID],
+           !instance.isMinimized {
+            return activeWindowID
+        }
+
+        return windows.values
+            .filter { !$0.isMinimized }
+            .sorted { $0.number > $1.number }
+            .first?.id
     }
 
     private func capturePreview(from panel: NSPanel) -> NSImage? {

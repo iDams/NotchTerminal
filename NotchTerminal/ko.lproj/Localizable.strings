@@ -1,0 +1,295 @@
+/* General */
+"app.name" = "NotchTerminal";
+"app.tagline" = "노치에 사는 터미널 에뮬레이터.";
+
+/* Settings - General */
+"settings.general" = "일반";
+"settings.notch" = "노치";
+"settings.appearance" = "외관";
+"settings.about" = "정보";
+"settings.experimental" = "실험적";
+
+/* Settings - Notch */
+"settings.notch.displays" = "활성 노치";
+"settings.notch.displays.subtitle" = "연결된 각 디스플레이에서 노치를 독립적으로 활성화 또는 비활성화합니다.";
+"settings.notch.displays.help" = "디스플레이별 노치 동작을 구성합니다. 각 화면은 자체 활성화 상태, 위치 조정, 너비 조정 및 선택적 배경 오버라이드를 가질 수 있습니다.";
+"settings.notch.empty" = "활성 디스플레이가 감지되지 않았습니다.";
+"settings.notch.enabled" = "이 노치 활성화";
+"settings.notch.enabled.subtitle" = "이 디스플레이에서만 노치를 표시합니다.";
+"settings.notch.offsetX" = "수평 위치";
+"settings.notch.offsetX.subtitle" = "이 노치를 디스플레이에서 좌우로 이동합니다.";
+"settings.notch.offsetY" = "수직 위치";
+"settings.notch.offsetY.subtitle" = "이 노치를 디스플레이에서 상하로 이동합니다.";
+"settings.notch.width" = "너비 조정";
+"settings.notch.width.subtitle" = "다른 노치에 영향을 주지 않고 이 노치만 좁히거나 넓힙니다.";
+"settings.notch.customBackground" = "사용자 정의 배경";
+"settings.notch.customBackground.subtitle" = "이 디스플레이에만 전역 노치 배경을 오버라이드합니다.";
+"settings.notch.customBackground.enabled" = "오로라 배경 활성화";
+"settings.notch.customBackground.enabled.subtitle" = "오로라 효과를 이 노치에만 적용합니다.";
+"settings.notch.customBackground.theme.subtitle" = "이 노치에 대한 배경 테마를 선택합니다.";
+"settings.notch.display.physical" = "물리적 노치";
+"settings.notch.display.pill" = "필 노치";
+"settings.notch.display.main" = "주 디스플레이";
+
+/* Settings - System */
+"settings.system" = "시스템";
+"settings.system.subtitle" = "핵심 동작 및 앱 표시 옵션.";
+"settings.system.help" = "햅틱, Dock 표시 여부, 설정에서 불안정한 기능 표시 여부 등 앱 전체 동작을 제어합니다.";
+"settings.hapticFeedback" = "햅틱 피드백 활성화";
+"settings.hapticFeedback.subtitle" = "노치에서 상호작용이 있을 때 햅틱을 사용합니다.";
+"settings.showDockIcon" = "Dock 아이콘 표시";
+"settings.showDockIcon.subtitle" = "구성된 AppIcon 자산을 사용하여 Dock 에 앱 아이콘을 표시합니다.";
+"settings.system.menuBar.shortcuts" = "메뉴바 아이콘 표시";
+"settings.system.menuBar.shortcuts.subtitle" = "macOS 메뉴바에 NotchTerminal 아이콘을 표시합니다.";
+"settings.showExperimentalSettings" = "실험 탭 표시";
+"settings.showExperimentalSettings.subtitle" = "설정 내에서 실험적 설정과 불안정한 기능을 표시합니다.";
+"settings.quitApp" = "앱 종료";
+"settings.quitApp.subtitle" = "NotchTerminal 을 완전히 종료합니다.";
+
+/* Settings - Automation */
+"settings.automation" = "자동화";
+"settings.automation.subtitle" = "노치가 언제 어떻게 열고 닫히는지 제어합니다.";
+"settings.automation.help" = "호버하여 열기 타이밍과 입력하는 동안 노치를 열어둘지 여부 등 자동 노치 동작을 조정합니다.";
+"settings.autoOpenOnHover" = "호버 시 노치 열기";
+"settings.autoOpenOnHover.subtitle" = "커서가 노치에 도달하면 자동으로 노치를 엽니다.";
+"settings.autoOpenOnHoverDelay" = "호버 개방 지연";
+"settings.autoOpenOnHoverDelay.subtitle" = "노치가 열리기 전에 커서가 근처에 머무르는 시간.";
+"settings.lockWhileTyping" = "입력하는 동안 열어두기";
+"settings.lockWhileTyping.subtitle" = "입력하는 동안 자동 종료를 방지합니다.";
+
+/* Settings - Terminal Actions */
+"settings.terminalActions" = "종료 및 안전";
+"settings.terminalActions.subtitle" = "터미널 세션에 대한 확인 및 종료 동작.";
+"settings.terminalActions.help" = "터미널 칩과 일괄 작업이 어떻게 동작하는지 정의하며, 안전 확인 여부 및 세션 종료가 창만 닫는지 아니면 실행 중인 프로세스도 종료하는지를 설정합니다.";
+"settings.showChipCloseButton" = "칩 호버 시 닫기 버튼 표시";
+"settings.showChipCloseButton.subtitle" = "터미널 칩을 호버할 때 작은 닫기 버튼을 표시합니다.";
+"settings.showTerminalPreview" = "터미널 미리보기 표시";
+"settings.showTerminalPreview.subtitle" = "칩을 호버할 때 실시간 터미널 미리보기를 표시합니다.";
+"settings.confirmBeforeCloseAll" = "전체 종료 전 확인";
+"settings.confirmBeforeCloseAll.subtitle" = "전체 종료 작업 전 확인을 요청합니다.";
+"settings.closeActionMode" = "종료 시 실행 중인 명령도 중지";
+"settings.closeActionMode.subtitle" = "끄면 창만 닫습니다. 켜면 실행 중인 터미널 프로세스도 종료합니다.";
+"settings.dangerZone" = "위험 구역";
+"settings.dangerZone.subtitle" = "앱 전체에 영향을 미치는 민감한 작업.";
+"settings.dangerZone.help" = "앱 종료와 같이 즉각적인 전역 영향을 미치는 작업이 포함되어 있습니다. 현재 모든 NotchTerminal 작업을 중지할 때 사용합니다.";
+
+/* Settings - Appearance */
+"settings.appearance.geometry" = "지오메트리";
+"settings.appearance.geometry.subtitle" = "노치 레이아웃 및 간격을 미세 조정합니다.";
+"settings.appearance.geometry.help" = "노치 내부 간격을 조정하여 다양한 화면 크기와 콘텐츠 밀도에서 UI 가 균형을 이루도록 합니다.";
+"settings.contentPadding" = "콘텐츠 패딩";
+"settings.contentPadding.subtitle" = "터미널 콘텐츠와 노치 가장자리 사이의 간격.";
+"settings.appearance.terminalChips" = "터미널 칩";
+"settings.appearance.terminalChips.subtitle" = "노치 내에 표시되는 터미널 항목에 대한 제어.";
+"settings.appearance.terminalChips.help" = "터미널 칩이 어떻게 동작하고 노치 내에 직접 어떤 컨트롤이 표시되는지 조정합니다.";
+
+"settings.appearance.terminalDefaults" = "터미널 윈도우 기본값";
+"settings.appearance.terminalDefaults.subtitle" = "새 터미널 세션에 대한 크기 매개변수.";
+"settings.appearance.terminalDefaults.help" = "새 플로팅 터미널 윈도우를 생성할 때 사용되는 기본 너비와 높이를 설정합니다.";
+"settings.terminalDefaultWidth" = "기본 너비";
+"settings.terminalDefaultWidth.subtitle" = "포인트 단위의 가로 크기.";
+"settings.terminalDefaultHeight" = "기본 높이";
+"settings.terminalDefaultHeight.subtitle" = "포인트 단위의 세로 크기.";
+"settings.showActivePorts" = "활성 포트 표시";
+"settings.showActivePorts.subtitle" = "터미널 윈도우에서 활성 포트 도구를 표시합니다.";
+
+"settings.appearance.docking" = "도킹 감도";
+"settings.appearance.docking.subtitle" = "윈도우가 노치에 스냅되기 위해 필요한 거리.";
+"settings.notchDockingSensitivity" = "감지 반경";
+"settings.notchDockingSensitivity.subtitle" = "클수록 일찍 감지하고, 작을수록 더 가까워야 합니다.";
+
+"settings.appearance.effects" = "효과";
+"settings.appearance.effects.subtitle" = "노치 표면을 위한 시각 효과.";
+"settings.appearance.effects.help" = "지원되는 디스플레이에서 노치 콘텐츠 뒤에서 사용되는 오로라 배경 테마 등 선택적 시각 스타일을 제어합니다.";
+"settings.appearance.projectStatus" = "프로젝트 상태 카드";
+"settings.appearance.projectStatus.subtitle" = "확장된 노치에서 컨텍스트별 프로젝트 세부정보를 표시합니다.";
+"settings.appearance.projectStatus.help" = "확장된 노치에서 활성 터미널 세션의 현재 폴더 이름 및 git 상태와 같은 경량 프로젝트 컨텍스트를 표시합니다.";
+"settings.appearance.projectStatus.enabled" = "프로젝트 상태 카드 활성화";
+"settings.appearance.projectStatus.enabled.subtitle" = "노치가 확장되었을 때 카드를 표시합니다.";
+"settings.appearance.projectStatus.showFolder" = "폴더 이름 표시";
+"settings.appearance.projectStatus.showFolder.subtitle" = "활성 터미널의 프로젝트 폴더를 표시합니다.";
+"settings.appearance.projectStatus.showGit" = "Git 상태 표시";
+"settings.appearance.projectStatus.showGit.subtitle" = "현재 브랜치 및 대기 중인 변경사항을 표시합니다.";
+"settings.appearance.reset" = "외관 설정 재설정";
+"settings.appearance.reset.subtitle" = "이 탭의 기본값을 복원합니다.";
+
+/* Settings - Experimental */
+"settings.experimental.effects" = "실험적 효과";
+"settings.experimental.effects.subtitle" = "화면/GPU 에 따라 달라질 수 있는 선택적 시각 효과.";
+"settings.experimental.effects.help" = "노치 또는 터미널 영역의 모양을 변경하는 시각 효과. 일부 옵션은 GPU 와 배터리를 더 많이 사용할 수 있으며 디스플레이 유형에 따라 동작이 달라질 수 있습니다.";
+"settings.experimental.notice.title" = "실험적 기능은 변경될 수 있습니다";
+"settings.experimental.notice.body" = "이 옵션들은 아직 테스트 중입니다. 제품이 발전함에 따라 변경, 이동 또는 제거될 수 있으며 시간이 지남에 따라 새로운 실험이 추가될 수 있습니다.";
+"settings.experimental.startupOrb.section" = "알림 오브";
+"settings.experimental.startupOrb.section.subtitle" = "실험적 알림 오브 모양 및 위치.";
+"settings.experimental.startupOrb.section.help" = "시작 또는 알림 상태를 위해 노치 근처에 표시되는 작은 오브를 제어합니다. 페이크 노치 및 물리적 노치 디스플레이에서 위치를 미세 조정하려면 오프셋을 사용하세요.";
+"settings.experimental.startupOrb" = "알림 오브 표시";
+"settings.experimental.startupOrb.subtitle" = "노치 옆에 알림 오브를 표시합니다.";
+"settings.experimental.startupOrb.pillOffsetX" = "알림 오브 필 X 오프셋";
+"settings.experimental.startupOrb.pillOffsetX.subtitle" = "페이크 노치 디스플레이에서 오브의 수평 오프셋을 조정합니다.";
+"settings.experimental.startupOrb.pillOffsetY" = "알림 오브 필 Y 오프셋";
+"settings.experimental.startupOrb.pillOffsetY.subtitle" = "페이크 노치 디스플레이에서 오브의 수직 오프셋을 조정합니다.";
+"settings.experimental.startupOrb.notchOffsetX" = "알림 오브 노치 X 오프셋";
+"settings.experimental.startupOrb.notchOffsetX.subtitle" = "물리적 노치 디스플레이에서 오브의 수평 오프셋을 조정합니다.";
+"settings.experimental.startupOrb.notchOffsetY" = "알림 오브 노치 Y 오프셋";
+"settings.experimental.startupOrb.notchOffsetY.subtitle" = "물리적 노치 디스플레이에서 오브의 수직 오프셋을 조정합니다.";
+"settings.experimental.warning" = "이 시각 효과는 매우 실험적이며 배터리를 소모합니다.";
+"settings.experimental.geometry.help" = "물리적 노치 디스플레이를 위한 고급 지오메트리 조정. 노치 마스크가 하드웨어와 올바르게 정렬되지 않을 때만 사용하세요.";
+"settings.experimental.docking.help" = "터미널 윈도우를 근처로 드래그했을 때 노치 영역에 어떻게 스냅되는지 제어합니다. 감도가 높을수록 도킹이 더 쉽게 트리거됩니다.";
+"settings.experimental.dragToNotch" = "드래그하여 노치 도킹 활성화";
+"settings.experimental.dragToNotch.subtitle" = "터미널 윈도우를 근처로 드래그하면 노치에 스냅됩니다. 실험적이며 현재 불안정합니다.";
+"settings.fakeNotchGlow" = "필 노치 글로우";
+"settings.fakeNotchGlow.subtitle" = "시뮬레이션된 노치를 위한 네온 보라색 글로우 효과.";
+"settings.fakeNotchGlowTheme" = "글로우 테마";
+"settings.auroraBackground" = "오로라 배경";
+"settings.auroraBackground.subtitle" = "터미널 콘텐츠 뒤에 애니메이션 Metal 쉐이더.";
+"settings.crtFilter" = "CRT 모니터 필터";
+"settings.crtFilter.subtitle" = "곡선, 스캔라인 및 정적 노이즈를 추가하여 옛날 하드웨어를 에뮬레이션합니다.";
+
+/* Settings - Language */
+"settings.language" = "언어";
+"settings.language.subtitle" = "선호하는 언어를 선택하세요.";
+"settings.language.help" = "NotchTerminal 이 시스템 언어를 따를지 또는 수동으로 언어를 선택할지 설정합니다.";
+"settings.language.system" = "시스템 기본값";
+"settings.language.system.subtitle" = "시스템 언어 설정을 사용합니다.";
+
+/* Persistence */
+"persistence.alert.title" = "세션 지속성을 사용할 수 없음";
+"persistence.alert.message" = "NotchTerminal 이 로컬 데이터 저장소를 초기화할 수 없습니다. 이 실행에서는 세션 복원 및 자동 저장이 비활성화됩니다.\n\n세부정보: %@";
+"persistence.warning.title" = "세션 지속성을 사용할 수 없음";
+"persistence.warning.body" = "세션 복원 및 자동 저장이 현재 비활성화되어 있습니다. 앱은 계속 실행될 수 있지만 열린 터미널 세션은 재시작 후 복원되지 않습니다.";
+"persistence.warning.details" = "세부정보: %@";
+
+/* Settings - About */
+"settings.about.versionFormat" = "버전 %@ (%@)";
+"settings.about.checkUpdates" = "업데이트 확인";
+"settings.about.checkUpdates.subtitle" = "새로운 버전을 찾습니다";
+"settings.about.releaseNotes" = "릴리스 노트";
+"settings.about.releaseNotes.subtitle" = "변경사항 보기";
+"settings.about.website" = "프로젝트 웹사이트";
+"settings.about.website.subtitle" = "저장소 및 문서";
+"settings.about.donate" = "커피 사주기";
+"settings.about.donate.subtitle" = "개발 지원";
+"settings.about.thirdParty" = "타사 알림 보기";
+"settings.about.thirdParty.subtitle" = "이 앱에서 사용되는 라이선스 및 귀속 정보.";
+"settings.about.copyright" = "© 2026 Marco Astorga González. All rights reserved. 오픈소스로 공개됨.";
+"settings.auroraTheme" = "오로라 테마";
+
+/* Actions */
+"action.restore" = "복원";
+"action.minimize" = "최소화";
+"action.close" = "닫기";
+"action.closeAll" = "모두 닫기";
+"action.restoreAll" = "모두 복원";
+"action.minimizeAll" = "모두 최소화";
+"action.moveToThisDisplay" = "이 디스플레이로 이동";
+"action.alwaysOnTop" = "항상 맨 위";
+"action.disableAlwaysOnTop" = "항상 맨 위 비활성화";
+"action.reorganize" = "터미널 재정리";
+"action.settings" = "설정";
+"action.showAllWindows" = "모든 윈도우 표시";
+"action.newTerminal" = "새 터미널";
+"action.hide" = "숨기기";
+"action.cancel" = "취소";
+"action.quit" = "종료";
+"action.resetDefaults" = "기본값 재설정";
+
+/* Misc */
+"menu.bulkActions" = "일괄 작업";
+"menu.closeAllOnThisDisplay" = "이 디스플레이에서 모두 닫기";
+"menu.options" = "옵션";
+"storage.menu.title" = "저장소 분석";
+"storage.menu.subtitle" = "일반적인 대용량 폴더 검사";
+"storage.menu.sidebarSubtitle" = "카테고리를 탐색하고 빠르게 공간 정리";
+"storage.menu.scanning" = "일반적인 정리 위치 스캔 중...";
+"storage.menu.foundSoFar" = "현재까지 찾음";
+"storage.menu.progress" = "정리 위치 스캔 중... (%d/%d)";
+"storage.menu.scanAgain" = "다시 스캔";
+"storage.menu.empty" = "아직 큰 항목을 찾지 못함";
+"storage.category.nodeModules" = "node_modules";
+"storage.category.nodeModules.subtitle" = "다시 설치할 수 있는 JavaScript 종속성";
+"storage.category.derivedData" = "DerivedData";
+"storage.category.derivedData.subtitle" = "Xcode 빌드 산출물 및 중간 파일";
+"storage.category.pods" = "Pods";
+"storage.category.pods.subtitle" = "프로젝트 내 CocoaPods 종속성";
+"storage.category.carthage" = "Carthage";
+"storage.category.carthage.subtitle" = "프로젝트 내 Carthage 빌드 폴더";
+"storage.category.caches" = "캐시";
+"storage.category.caches.subtitle" = "Library/Caches 에 저장된 앱 및 개발자 캐시";
+"storage.category.logs" = "로그";
+"storage.category.logs.subtitle" = "Library/Logs 에 저장된 애플리케이션 및 시스템 로그";
+"storage.category.trash" = "휴지통";
+"storage.category.trash.subtitle" = "현재 macOS 휴지통에 있는 항목";
+"storage.category.downloads" = "오래된 다운로드";
+"storage.category.downloads.subtitle" = "30 일이 넘었고 더 이상 필요하지 않을 수 있는 다운로드";
+"storage.action.reveal" = "Finder 에서 표시";
+"storage.action.revealSelected" = "선택 항목 표시";
+"storage.action.trash" = "휴지통으로 이동";
+"storage.action.trashSelected" = "선택 항목을 휴지통으로 이동";
+"storage.action.trashAll" = "모두 휴지통으로 이동";
+"storage.action.selectAll" = "모두 선택";
+"storage.action.clearSelection" = "선택 지우기";
+"storage.action.selectedItemsTitle" = "선택한 항목";
+"storage.confirm.title" = "파일을 휴지통으로 이동하시겠습니까?";
+"storage.confirm.message" = "%@ (항목 %d 개, %@) 을 (를) 휴지통으로 이동하시겠습니까?";
+"storage.detail.itemsCount" = "%d 항목";
+"storage.detail.back" = "뒤로";
+"storage.filter.date" = "날짜";
+"storage.filter.date.all" = "언제나";
+"storage.filter.date.today" = "오늘";
+"storage.filter.date.week" = "지난 7 일";
+"storage.filter.date.month" = "지난 30 일";
+"storage.filter.date.quarter" = "지난 90 일";
+"storage.filter.size" = "크기";
+"storage.filter.size.any" = "모든 크기";
+"storage.filter.size.100mb" = "100 MB 초과";
+"storage.filter.size.500mb" = "500 MB 초과";
+"storage.filter.size.1gb" = "1 GB 초과";
+"storage.filter.sort" = "정렬";
+"storage.filter.sort.largest" = "큰 순";
+"storage.filter.sort.smallest" = "작은 순";
+"storage.filter.sort.recent" = "최신 순";
+"storage.filter.sort.oldest" = "오래된 순";
+"storage.filter.sort.name" = "이름";
+"storage.filter.sort.path" = "경로";
+"storage.search.placeholder" = "이름 또는 경로로 필터링";
+"storage.detail.name" = "이름";
+"storage.detail.path" = "경로";
+"storage.detail.modified" = "수정됨";
+"storage.detail.size" = "크기";
+"storage.detail.filteredCount" = "%d / %d 항목";
+"storage.detail.selectCategory" = "카테고리 선택";
+"storage.detail.selectCategorySubtitle" = "사이드바에서 카테고리를 선택하여 대용량 폴더를 검사합니다.";
+"storage.detail.noMatches" = "이 필터와 일치하는 항목 없음";
+"storage.detail.noMatchesSubtitle" = "더 넓은 날짜, 크기 또는 검색 필터를 사용해보세요.";
+"storage.detail.unknownDate" = "알 수 없음";
+"storage.filter.clear" = "필터 지우기";
+"storage.inUse.title" = "일부 항목이 사용 중인 것으로 보입니다";
+"storage.inUse.message" = "이 폴더들은 활성 프로세스에서 여전히 사용 중일 수 있습니다. 휴지통으로 이동하면 해당 프로세스가 중지될 때까지 남을 수 있습니다.";
+"storage.inUse.continue" = "그래도 이동";
+"storage.inUse.timeout" = "진단 시간 초과";
+"storage.inUse.more" = "%d 개의 항목에서도 활동이 보고되었습니다.";
+"storage.inUse.partialCheck" = "계속하기 전 선택된 %d 개 항목을 확인했습니다.";
+
+/* Active Ports */
+"openPorts.title" = "활성 포트";
+"openPorts.subtitle" = "리스닝 중인 로컬 포트를 빠르게 검사하고 중지합니다";
+"openPorts.theme" = "테마";
+"openPorts.theme.system" = "시스템";
+"openPorts.theme.dark" = "다크";
+"openPorts.theme.light" = "라이트";
+"openPorts.scope.dev" = "개발";
+"openPorts.scope.all" = "모두";
+"openPorts.scope.picker" = "범위";
+"openPorts.scope.other" = "기타";
+"openPorts.search.placeholder" = "포트, 프로세스 또는 PID 로 필터링";
+"openPorts.scanning" = "포트 스캔 중...";
+"openPorts.action.refresh" = "새로고침";
+"openPorts.summary.count" = "개발 %d 개";
+"openPorts.summary.other" = "기타 %d 개";
+"openPorts.empty.all" = "이 필터와 일치하는 열린 포트가 없습니다.";
+"openPorts.empty.dev" = "이 필터와 일치하는 개발 포트가 없습니다.";
+"openPorts.row.pidAndEndpoint" = "PID %@ • %@";
+"openPorts.kill" = "종료";
+"openPorts.message.noListening" = "리스닝 중인 TCP 포트가 없습니다.";
+"openPorts.message.loadFailed" = "열린 포트를 로드할 수 없습니다.";
+"openPorts.message.terminateFailed" = "PID %@ 를 종료할 수 없습니다.";

@@ -1,0 +1,295 @@
+/* General */
+"app.name" = "NotchTerminal";
+"app.tagline" = "Un emulatore di terminale che vive nella tua notch.";
+
+/* Settings - General */
+"settings.general" = "Generali";
+"settings.notch" = "Notch";
+"settings.appearance" = "Aspetto";
+"settings.about" = "Informazioni";
+"settings.experimental" = "Sperimentale";
+
+/* Settings - Notch */
+"settings.notch.displays" = "Notch Attivi";
+"settings.notch.displays.subtitle" = "Attiva o disattiva la notch indipendentemente su ogni display collegato.";
+"settings.notch.displays.help" = "Configura il comportamento della notch per display. Ogni schermo può avere il proprio stato attivo, regolazioni di posizione, regolazione larghezza e sovrascrittura sfondo opzionale.";
+"settings.notch.empty" = "Nessun display attivo rilevato.";
+"settings.notch.enabled" = "Abilita questo notch";
+"settings.notch.enabled.subtitle" = "Mostra la notch solo su questo display.";
+"settings.notch.offsetX" = "Posizione orizzontale";
+"settings.notch.offsetX.subtitle" = "Sposta questo notch a sinistra o destra sul suo display.";
+"settings.notch.offsetY" = "Posizione verticale";
+"settings.notch.offsetY.subtitle" = "Sposta questo notch su o giù sul suo display.";
+"settings.notch.width" = "Regolazione larghezza";
+"settings.notch.width.subtitle" = "Restringi o allarga questo notch senza influenzare gli altri.";
+"settings.notch.customBackground" = "Sfondo personalizzato";
+"settings.notch.customBackground.subtitle" = "Sovrascrivi lo sfondo globale della notch solo per questo display.";
+"settings.notch.customBackground.enabled" = "Abilita sfondo aurora";
+"settings.notch.customBackground.enabled.subtitle" = "Applica l'effetto aurora solo a questo notch.";
+"settings.notch.customBackground.theme.subtitle" = "Scegli un tema sfondo per questo notch.";
+"settings.notch.display.physical" = "Notch fisico";
+"settings.notch.display.pill" = "Notch pillola";
+"settings.notch.display.main" = "Display principale";
+
+/* Settings - System */
+"settings.system" = "Sistema";
+"settings.system.subtitle" = "Comportamento principale e opzioni visibilità app.";
+"settings.system.help" = "Controlla il comportamento generale dell'app come aptica, visibilità Dock e se le funzionalità instabili sono esposte nelle Impostazioni.";
+"settings.hapticFeedback" = "Abilita feedback aptico";
+"settings.hapticFeedback.subtitle" = "Usa aptica quando avvengono interazioni nella notch.";
+"settings.showDockIcon" = "Mostra icona nel Dock";
+"settings.showDockIcon.subtitle" = "Mostra l'icona dell'app nel Dock usando la risorsa AppIcon configurata.";
+"settings.system.menuBar.shortcuts" = "Mostra icona nella barra dei menu";
+"settings.system.menuBar.shortcuts.subtitle" = "Mostra l'icona NotchTerminal nella barra dei menu di macOS.";
+"settings.showExperimentalSettings" = "Mostra scheda Sperimentale";
+"settings.showExperimentalSettings.subtitle" = "Rivela impostazioni sperimentali e funzionalità instabili nelle Impostazioni.";
+"settings.quitApp" = "Esci dall'applicazione";
+"settings.quitApp.subtitle" = "Chiudi NotchTerminal completamente.";
+
+/* Settings - Automation */
+"settings.automation" = "Automazione";
+"settings.automation.subtitle" = "Controlla come e quando la notch si apre e si chiude.";
+"settings.automation.help" = "Regola il comportamento automatico della notch, incluso il timing di apertura al passaggio del cursore e se la notch rimane aperta mentre digiti attivamente.";
+"settings.autoOpenOnHover" = "Apri notch al passaggio del cursore";
+"settings.autoOpenOnHover.subtitle" = "Espande automaticamente la notch quando il cursore la raggiunge.";
+"settings.autoOpenOnHoverDelay" = "Ritardo apertura al passaggio";
+"settings.autoOpenOnHoverDelay.subtitle" = "Quanto tempo il cursore deve rimanere vicino alla notch prima dell'apertura.";
+"settings.lockWhileTyping" = "Tieni aperto mentre digiti";
+"settings.lockWhileTyping.subtitle" = "Evita la chiusura automatica mentre stai digitando attivamente.";
+
+/* Settings - Terminal Actions */
+"settings.terminalActions" = "Chiusura e Sicurezza";
+"settings.terminalActions.subtitle" = "Conferma e comportamento di chiusura per le sessioni di terminale.";
+"settings.terminalActions.help" = "Definisce come si comportano i chip del terminale e le azioni di gruppo, incluse conferme di sicurezza e se chiudere una sessione chiude solo la finestra o termina anche il processo in esecuzione.";
+"settings.showChipCloseButton" = "Mostra pulsante chiudi al passaggio sul chip";
+"settings.showChipCloseButton.subtitle" = "Mostra un piccolo pulsante di chiusura quando passi il cursore su un chip del terminale.";
+"settings.showTerminalPreview" = "Mostra anteprima terminale";
+"settings.showTerminalPreview.subtitle" = "Mostra l'anteprima in tempo reale del terminale quando passi il cursore su un chip.";
+"settings.confirmBeforeCloseAll" = "Conferma prima di Chiudi Tutto";
+"settings.confirmBeforeCloseAll.subtitle" = "Chiedi conferma prima delle azioni Chiudi Tutto.";
+"settings.closeActionMode" = "Ferma anche il comando in esecuzione alla chiusura";
+"settings.closeActionMode.subtitle" = "Se spento, chiude solo la finestra. Se acceso, termina anche il processo del terminale in esecuzione.";
+"settings.dangerZone" = "Zona Pericolosa";
+"settings.dangerZone.subtitle" = "Azioni sensibili che influenzano l'intera app.";
+"settings.dangerZone.help" = "Contiene azioni con impatto globale immediato, come uscire dall'app. Usale quando vuoi fermare tutta l'attività corrente di NotchTerminal.";
+
+/* Settings - Appearance */
+"settings.appearance.geometry" = "Geometria";
+"settings.appearance.geometry.subtitle" = "Regola finemente layout e spaziatura della notch.";
+"settings.appearance.geometry.help" = "Regola la spaziatura all'interno della notch in modo che l'interfaccia sia equilibrata su diverse dimensioni dello schermo e densità di contenuto.";
+"settings.contentPadding" = "Padding contenuto";
+"settings.contentPadding.subtitle" = "Spaziatura tra il contenuto del terminale e i bordi della notch.";
+"settings.appearance.terminalChips" = "Chip Terminal";
+"settings.appearance.terminalChips.subtitle" = "Controlli per gli elementi del terminale mostrati dentro la notch.";
+"settings.appearance.terminalChips.help" = "Regola come si comportano i chip del terminale e quali controlli appaiono direttamente dentro la notch.";
+
+"settings.appearance.terminalDefaults" = "Predefiniti Finestra Terminale";
+"settings.appearance.terminalDefaults.subtitle" = "Parametri dimensione per nuove sessioni di terminale.";
+"settings.appearance.terminalDefaults.help" = "Imposta la larghezza e altezza predefinite usate quando crei nuove finestre fluttuanti di terminale.";
+"settings.terminalDefaultWidth" = "Larghezza predefinita";
+"settings.terminalDefaultWidth.subtitle" = "Dimensione orizzontale in punti.";
+"settings.terminalDefaultHeight" = "Altezza predefinita";
+"settings.terminalDefaultHeight.subtitle" = "Dimensione verticale in punti.";
+"settings.showActivePorts" = "Mostra Porte Attive";
+"settings.showActivePorts.subtitle" = "Mostra lo strumento Porte Attive nelle finestre del terminale.";
+
+"settings.appearance.docking" = "Sensibilità Aggancio";
+"settings.appearance.docking.subtitle" = "Quanto vicino deve essere una finestra per agganciarsi alla notch.";
+"settings.notchDockingSensitivity" = "Raggio di rilevamento";
+"settings.notchDockingSensitivity.subtitle" = "Più grande significa rilevamento precoce, più piccolo richiede avvicinamento.";
+
+"settings.appearance.effects" = "Effetti";
+"settings.appearance.effects.subtitle" = "Effetti visivi per la superficie della notch.";
+"settings.appearance.effects.help" = "Controlla stili visivi opzionali come il tema sfondo Aurora usato dietro il contenuto della notch su display supportati.";
+"settings.appearance.projectStatus" = "Scheda Stato Progetto";
+"settings.appearance.projectStatus.subtitle" = "Mostra dettagli contestuali del progetto nella notch espansa.";
+"settings.appearance.projectStatus.help" = "Mostra contesto leggero del progetto nella notch espansa, come nome cartella corrente e stato git della sessione terminale attiva.";
+"settings.appearance.projectStatus.enabled" = "Abilita Scheda Stato Progetto";
+"settings.appearance.projectStatus.enabled.subtitle" = "Mostra la scheda quando la notch è espansa.";
+"settings.appearance.projectStatus.showFolder" = "Mostra Nome Cartella";
+"settings.appearance.projectStatus.showFolder.subtitle" = "Mostra la cartella del progetto del terminale attivo.";
+"settings.appearance.projectStatus.showGit" = "Mostra Stato Git";
+"settings.appearance.projectStatus.showGit.subtitle" = "Mostra il branch corrente e modifiche in sospeso.";
+"settings.appearance.reset" = "Reimposta impostazioni aspetto";
+"settings.appearance.reset.subtitle" = "Ripristina i valori predefiniti per questa scheda.";
+
+/* Settings - Experimental */
+"settings.experimental.effects" = "Effetti Sperimentali";
+"settings.experimental.effects.subtitle" = "Visivi opzionali che possono variare per schermo/GPU.";
+"settings.experimental.effects.help" = "Effetti visivi che cambiano come appare la notch o l'area del terminale. Alcune opzioni possono usare più GPU e batteria, e il comportamento può variare per tipo di display.";
+"settings.experimental.notice.title" = "Le funzioni sperimentali possono cambiare";
+"settings.experimental.notice.body" = "Queste opzioni sono ancora in test. Alcune possono cambiare, spostarsi o essere rimosse mentre il prodotto evolve, e nuovi esperimenti possono apparire nel tempo.";
+"settings.experimental.startupOrb.section" = "Orba Notifica";
+"settings.experimental.startupOrb.section.subtitle" = "Aspetto e posizionamento sperimentali dell'orba notifica.";
+"settings.experimental.startupOrb.section.help" = "Controlla la piccola orba mostrata vicino alla notch per stati di avvio o notifica. Usa gli offset per regolare finemente la sua posizione su display fake-notch e physical-notch.";
+"settings.experimental.startupOrb" = "Mostra orba notifica";
+"settings.experimental.startupOrb.subtitle" = "Mostra l'orba notifica accanto alla notch.";
+"settings.experimental.startupOrb.pillOffsetX" = "Offset X orba notifica pillola";
+"settings.experimental.startupOrb.pillOffsetX.subtitle" = "Regola l'offset orizzontale dell'orba per display fake-notch.";
+"settings.experimental.startupOrb.pillOffsetY" = "Offset Y orba notifica pillola";
+"settings.experimental.startupOrb.pillOffsetY.subtitle" = "Regola l'offset verticale dell'orba per display fake-notch.";
+"settings.experimental.startupOrb.notchOffsetX" = "Offset X orba notifica notch";
+"settings.experimental.startupOrb.notchOffsetX.subtitle" = "Regola l'offset orizzontale dell'orba per display physical-notch.";
+"settings.experimental.startupOrb.notchOffsetY" = "Offset Y orba notifica notch";
+"settings.experimental.startupOrb.notchOffsetY.subtitle" = "Regola l'offset verticale dell'orba per display physical-notch.";
+"settings.experimental.warning" = "Questi effetti visivi sono altamente sperimentali e consumano batteria.";
+"settings.experimental.geometry.help" = "Regolazioni geometria avanzate per display physical-notch. Usale solo quando la maschera della notch non si allinea correttamente con il tuo hardware.";
+"settings.experimental.docking.help" = "Controlla come le finestre del terminale si agganciano all'area della notch quando trascinate vicino. Sensibilità più alta rende l'aggancio più facile.";
+"settings.experimental.dragToNotch" = "Abilita aggancio trascina-alla-notch";
+"settings.experimental.dragToNotch.subtitle" = "Permette alle finestre del terminale di agganciarsi alla notch quando trascinate vicino. Sperimentale e attualmente instabile.";
+"settings.fakeNotchGlow" = "Pill Notch Glow";
+"settings.fakeNotchGlow.subtitle" = "Effetto bagliore neon viola per notch simulate.";
+"settings.fakeNotchGlowTheme" = "Tema Bagliore";
+"settings.auroraBackground" = "Sfondo Aurora";
+"settings.auroraBackground.subtitle" = "Shader Metal animato dietro i contenuti del terminale.";
+"settings.crtFilter" = "Filtro Monitor CRT";
+"settings.crtFilter.subtitle" = "Aggiunge curvatura, scanline e rumore statico per emulare hardware vecchio.";
+
+/* Settings - Language */
+"settings.language" = "Lingua";
+"settings.language.subtitle" = "Scegli la tua lingua preferita.";
+"settings.language.help" = "Scegli se NotchTerminal segue la lingua di sistema o usa un'override manuale per l'interfaccia.";
+"settings.language.system" = "Predefinito di Sistema";
+"settings.language.system.subtitle" = "Usa l'impostazione lingua di sistema.";
+
+/* Persistence */
+"persistence.alert.title" = "Persistenza sessione non disponibile";
+"persistence.alert.message" = "NotchTerminal non ha potuto inizializzare il suo archivio dati locale. Ripristino sessione e salvataggio automatico sono disabilitati per questo avvio.\n\nDettagli: %@";
+"persistence.warning.title" = "Persistenza sessione non disponibile";
+"persistence.warning.body" = "Ripristino sessione e salvataggio automatico sono attualmente disabilitati. L'app può ancora funzionare, ma le sessioni di terminale aperte non saranno ripristinate dopo il riavvio.";
+"persistence.warning.details" = "Dettagli: %@";
+
+/* Settings - About */
+"settings.about.versionFormat" = "Versione %@ (%@)";
+"settings.about.checkUpdates" = "Controlla Aggiornamenti";
+"settings.about.checkUpdates.subtitle" = "Cerca versioni più recenti";
+"settings.about.releaseNotes" = "Note di Rilascio";
+"settings.about.releaseNotes.subtitle" = "Vedi cosa è cambiato";
+"settings.about.website" = "Sito Web Progetto";
+"settings.about.website.subtitle" = "Repository e documentazione";
+"settings.about.donate" = "Offrimi un Caffè";
+"settings.about.donate.subtitle" = "Supporta lo sviluppo";
+"settings.about.thirdParty" = "Visualizza Avvisi Terze Parti";
+"settings.about.thirdParty.subtitle" = "Licenze e attribuzioni usate da questa app.";
+"settings.about.copyright" = "© 2026 Marco Astorga González. Tutti i diritti riservati. Rilasciato come open source.";
+"settings.auroraTheme" = "Tema Aurora";
+
+/* Actions */
+"action.restore" = "Ripristina";
+"action.minimize" = "Minimizza";
+"action.close" = "Chiudi";
+"action.closeAll" = "Chiudi Tutto";
+"action.restoreAll" = "Ripristina Tutto";
+"action.minimizeAll" = "Minimizza Tutto";
+"action.moveToThisDisplay" = "Sposta su questo Display";
+"action.alwaysOnTop" = "Sempre in Primo Piano";
+"action.disableAlwaysOnTop" = "Disabilita Sempre in Primo Piano";
+"action.reorganize" = "Riorganizza Terminal";
+"action.settings" = "Impostazioni";
+"action.showAllWindows" = "Mostra Tutte le Finestre";
+"action.newTerminal" = "Nuovo Terminale";
+"action.hide" = "Nascondi";
+"action.cancel" = "Annulla";
+"action.quit" = "Esci";
+"action.resetDefaults" = "Reimposta Predefiniti";
+
+/* Misc */
+"menu.bulkActions" = "Azioni di gruppo";
+"menu.closeAllOnThisDisplay" = "Chiudi Tutto su questo Display";
+"menu.options" = "Opzioni";
+"storage.menu.title" = "Analisi Archiviazione";
+"storage.menu.subtitle" = "Ispeziona cartelle comuni che occupano molto disco";
+"storage.menu.sidebarSubtitle" = "Naviga categorie e libera spazio rapidamente";
+"storage.menu.scanning" = "Scansione posizioni comuni di pulizia...";
+"storage.menu.foundSoFar" = "Trovato finora";
+"storage.menu.progress" = "Scansione posizioni di pulizia... (%d/%d)";
+"storage.menu.scanAgain" = "Scansiona di Nuovo";
+"storage.menu.empty" = "Nessun elemento grande trovato";
+"storage.category.nodeModules" = "node_modules";
+"storage.category.nodeModules.subtitle" = "Dipendenze JavaScript che spesso possono essere reinstallate";
+"storage.category.derivedData" = "DerivedData";
+"storage.category.derivedData.subtitle" = "Artefatti di build e file intermedi Xcode";
+"storage.category.pods" = "Pods";
+"storage.category.pods.subtitle" = "Dipendenze CocoaPods dentro i tuoi progetti";
+"storage.category.carthage" = "Carthage";
+"storage.category.carthage.subtitle" = "Cartelle di build Carthage dentro i tuoi progetti";
+"storage.category.caches" = "Cache";
+"storage.category.caches.subtitle" = "Cache app e sviluppatore archiviate in Library/Caches";
+"storage.category.logs" = "Log";
+"storage.category.logs.subtitle" = "Log applicazione e sistema archiviati in Library/Logs";
+"storage.category.trash" = "Cestino";
+"storage.category.trash.subtitle" = "Elementi attualmente nel Cestino di macOS";
+"storage.category.downloads" = "Download Vecchi";
+"storage.category.downloads.subtitle" = "Download più vecchi di 30 giorni che potrebbero non servire più";
+"storage.action.reveal" = "Mostra nel Finder";
+"storage.action.revealSelected" = "Mostra Selezionati";
+"storage.action.trash" = "Sposta nel Cestino";
+"storage.action.trashSelected" = "Sposta Selezionati nel Cestino";
+"storage.action.trashAll" = "Sposta Tutto nel Cestino";
+"storage.action.selectAll" = "Seleziona Tutto";
+"storage.action.clearSelection" = "Pulisci Selezione";
+"storage.action.selectedItemsTitle" = "Elementi Selezionati";
+"storage.confirm.title" = "Spostare file nel Cestino?";
+"storage.confirm.message" = "Spostare %@ (%d elemento(i), %@) nel Cestino?";
+"storage.detail.itemsCount" = "%d elemento(i)";
+"storage.detail.back" = "Indietro";
+"storage.filter.date" = "Data";
+"storage.filter.date.all" = "Qualsiasi Data";
+"storage.filter.date.today" = "Oggi";
+"storage.filter.date.week" = "Ultimi 7 Giorni";
+"storage.filter.date.month" = "Ultimi 30 Giorni";
+"storage.filter.date.quarter" = "Ultimi 90 Giorni";
+"storage.filter.size" = "Dimensione";
+"storage.filter.size.any" = "Qualsiasi Dimensione";
+"storage.filter.size.100mb" = "Oltre 100 MB";
+"storage.filter.size.500mb" = "Oltre 500 MB";
+"storage.filter.size.1gb" = "Oltre 1 GB";
+"storage.filter.sort" = "Ordina";
+"storage.filter.sort.largest" = "Più Grandi Prima";
+"storage.filter.sort.smallest" = "Più Piccoli Prima";
+"storage.filter.sort.recent" = "Più Recenti";
+"storage.filter.sort.oldest" = "Più Vecchi Prima";
+"storage.filter.sort.name" = "Nome";
+"storage.filter.sort.path" = "Percorso";
+"storage.search.placeholder" = "Filtra per nome o percorso";
+"storage.detail.name" = "Nome";
+"storage.detail.path" = "Percorso";
+"storage.detail.modified" = "Modificato";
+"storage.detail.size" = "Dimensione";
+"storage.detail.filteredCount" = "%d di %d elemento(i)";
+"storage.detail.selectCategory" = "Seleziona una Categoria";
+"storage.detail.selectCategorySubtitle" = "Scegli una categoria dalla barra laterale per ispezionare cartelle grandi.";
+"storage.detail.noMatches" = "Nessun Elemento Corrisponde a Questi Filtri";
+"storage.detail.noMatchesSubtitle" = "Prova un filtro data, dimensione o ricerca più ampio.";
+"storage.detail.unknownDate" = "Sconosciuto";
+"storage.filter.clear" = "Pulisci Filtri";
+"storage.inUse.title" = "Alcuni Elementi Sembrano in Uso";
+"storage.inUse.message" = "Queste cartelle potrebbero essere ancora usate da processi attivi. Spostarle nel Cestino potrebbe lasciarle bloccate finché quei processi non si fermano.";
+"storage.inUse.continue" = "Sposta Comunque";
+"storage.inUse.timeout" = "diagnostica scaduta";
+"storage.inUse.more" = "%d altro(i) elemento(i) ha(nno) anche riportato attività.";
+"storage.inUse.partialCheck" = "Controllato(i) %d elemento(i) selezionato(i) prima di continuare.";
+
+/* Active Ports */
+"openPorts.title" = "Porte Attive";
+"openPorts.subtitle" = "Ispeziona e ferma rapidamente le porte locali in ascolto";
+"openPorts.theme" = "Tema";
+"openPorts.theme.system" = "Sistema";
+"openPorts.theme.dark" = "Scuro";
+"openPorts.theme.light" = "Chiaro";
+"openPorts.scope.dev" = "Dev";
+"openPorts.scope.all" = "Tutte";
+"openPorts.scope.picker" = "Ambito";
+"openPorts.scope.other" = "Altre";
+"openPorts.search.placeholder" = "Filtra per porta, processo o PID";
+"openPorts.scanning" = "Scansione porte...";
+"openPorts.action.refresh" = "Aggiorna";
+"openPorts.summary.count" = "%d dev";
+"openPorts.summary.other" = "%d altre";
+"openPorts.empty.all" = "Nessuna porta aperta corrisponde a questo filtro.";
+"openPorts.empty.dev" = "Nessuna porta dev corrisponde a questo filtro.";
+"openPorts.row.pidAndEndpoint" = "PID %@ • %@";
+"openPorts.kill" = "Termina";
+"openPorts.message.noListening" = "Nessuna porta TCP in ascolto trovata.";
+"openPorts.message.loadFailed" = "Impossibile caricare le porte aperte.";
+"openPorts.message.terminateFailed" = "Impossibile terminare PID %@.";

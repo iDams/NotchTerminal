@@ -39,6 +39,8 @@
 "settings.hapticFeedback.subtitle" = "ノッチでのインタラクション時に触覚を使用します。";
 "settings.showDockIcon" = "Dockアイコンを表示";
 "settings.showDockIcon.subtitle" = "AppIconアセットを使用してDockにアプリアイコンを表示します。";
+"settings.system.menuBar.shortcuts" = "メニューバーにアイコンを表示";
+"settings.system.menuBar.shortcuts.subtitle" = "macOS のメニューバーに NotchTerminal アイコンを表示します。";
 "settings.showExperimentalSettings" = "実験タブを表示";
 "settings.showExperimentalSettings.subtitle" = "設定内で実験的な設定と不安定な機能を表示します。";
 "settings.quitApp" = "アプリを終了";
@@ -56,17 +58,17 @@
 "settings.lockWhileTyping.subtitle" = "入力中に自動的に閉じることを防ぎます。";
 
 /* Settings - Terminal Actions */
-"settings.terminalActions" = "ターミナルアクション";
-"settings.terminalActions.subtitle" = "一括アクション、安全チェック、チップごとの動作。";
+"settings.terminalActions" = "終了と安全性";
+"settings.terminalActions.subtitle" = "ターミナルセッションの確認と終了時の動作。";
 "settings.terminalActions.help" = "ターミナルチップや一括アクションの動作を定義します。安全確認の有無や、セッションを閉じるときにウィンドウだけ閉じるか、実行中のプロセスも終了するかを設定できます。";
 "settings.showChipCloseButton" = "チップホバー時に閉じるボタンを表示";
 "settings.showChipCloseButton.subtitle" = "ターミナルチップをホバーときに小さい閉じるボタンを表示します。";
+"settings.showTerminalPreview" = "ターミナルプレビューを表示";
+"settings.showTerminalPreview.subtitle" = "チップをホバーしたときにターミナルのプレビューを表示します。";
 "settings.confirmBeforeCloseAll" = "すべて閉じる前に確認";
-"settings.confirmBeforeCloseAll.subtitle" = "すべてのターミナルウィンドウを閉じる前に確認を求めます。";
-"settings.closeActionMode" = "閉じるアクションのモード";
-"settings.closeActionMode.subtitle" = "チップ/コンテキスト/一括アクションで閉じるを実行した時の動作を定義します。";
-"settings.closeActionMode.closeWindow" = "ウィンドウのみ閉じる";
-"settings.closeActionMode.terminateProcess" = "プロセスを終了して閉じる";
+"settings.confirmBeforeCloseAll.subtitle" = "すべて閉じる系の操作の前に確認を求めます。";
+"settings.closeActionMode" = "閉じる時に実行中のコマンドも停止";
+"settings.closeActionMode.subtitle" = "オフではウィンドウだけ閉じます。オンでは実行中のターミナルプロセスも終了します。";
 "settings.dangerZone" = "危険ゾーン";
 "settings.dangerZone.subtitle" = "アプリ全体に影響する慎重な操作です。";
 "settings.dangerZone.help" = "アプリ終了のように、即座に全体へ影響する操作をまとめています。現在のNotchTerminalの動作を止めたいときに使用します。";
@@ -77,10 +79,9 @@
 "settings.appearance.geometry.help" = "ノッチ内部の余白を調整し、画面サイズやコンテンツ密度が異なってもバランスよく見えるようにします。";
 "settings.contentPadding" = "コンテンツパディング";
 "settings.contentPadding.subtitle" = "ターミナルコンテンツとノッチ端の間の間隔。";
-"settings.notchWidthOffset" = "ノッチ幅の微調整";
-"settings.notchWidthOffset.subtitle" = "ノッチサイズの水平オフセットを調整します。";
-"settings.notchHeightOffset" = "ノッチ高さの微調整";
-"settings.notchHeightOffset.subtitle" = "ノッチサイズの垂直オフセットを調整します。";
+"settings.appearance.terminalChips" = "ターミナルチップ";
+"settings.appearance.terminalChips.subtitle" = "ノッチ内に表示されるターミナル項目の操作を調整します。";
+"settings.appearance.terminalChips.help" = "ターミナルチップの振る舞いと、ノッチ内に直接表示する操作を調整します。";
 
 "settings.appearance.terminalDefaults" = "ターミナルウィンドウのデフォルト";
 "settings.appearance.terminalDefaults.subtitle" = "新しいターミナルセッションのサイズパラメータ。";
@@ -89,33 +90,35 @@
 "settings.terminalDefaultWidth.subtitle" = "水平サイズ（ポイント）。";
 "settings.terminalDefaultHeight" = "デフォルト高さ";
 "settings.terminalDefaultHeight.subtitle" = "垂直サイズ（ポイント）。";
+"settings.showActivePorts" = "アクティブポートを表示";
+"settings.showActivePorts.subtitle" = "ターミナルウィンドウ内にアクティブポートツールを表示します。";
 
 "settings.appearance.docking" = "停泊感度";
 "settings.appearance.docking.subtitle" = "ウィンドウがノッチにスナップするために必要な近さ。";
 "settings.notchDockingSensitivity" = "検出半径";
 "settings.notchDockingSensitivity.subtitle" = "大きいほど早期検出、小さいほど近づく必要があります。";
 
-"settings.appearance.compactTicker" = "コンパクトティッカー";
-"settings.appearance.compactTicker.subtitle" = "ノッチ閉じた状態でのプロバイダー状態。";
 "settings.appearance.effects" = "エフェクト";
 "settings.appearance.effects.subtitle" = "ノッチ表面のビジュアルエフェクト。";
 "settings.appearance.effects.help" = "対応ディスプレイでノッチ内容の背後に使われるAurora背景など、任意の視覚スタイルを制御します。";
+"settings.appearance.projectStatus" = "プロジェクトステータスカード";
+"settings.appearance.projectStatus.subtitle" = "展開したノッチにプロジェクトの状況を表示します。";
+"settings.appearance.projectStatus.help" = "展開したノッチ内に、現在のフォルダ名やアクティブなターミナルセッションのgit状態など、軽量なプロジェクト情報を表示します。";
+"settings.appearance.projectStatus.enabled" = "プロジェクトステータスカードを有効化";
+"settings.appearance.projectStatus.enabled.subtitle" = "ノッチ展開時にカードを表示します。";
+"settings.appearance.projectStatus.showFolder" = "フォルダ名を表示";
+"settings.appearance.projectStatus.showFolder.subtitle" = "アクティブなターミナルのプロジェクトフォルダを表示します。";
+"settings.appearance.projectStatus.showGit" = "Git状態を表示";
+"settings.appearance.projectStatus.showGit.subtitle" = "現在のブランチと未反映の変更を表示します。";
 "settings.appearance.reset" = "外観設定をリセット";
 "settings.appearance.reset.subtitle" = "このタブのデフォルト値に戻します。";
-"settings.compactTickerEnabled" = "コンパクトプロバイダーティッカーを表示";
-"settings.compactTickerEnabled.subtitle" = "ノッチが閉じているとき、プロバイダー状態コンパクトな行でローテーションします。";
-"settings.compactTickerInterval" = "ローテーション間隔";
-"settings.compactTickerInterval.subtitle" = "プロバイダープレビューが変化する頻度。";
-"settings.compactTickerClosedExtraWidth" = "閉じたノッチの追加幅";
-"settings.compactTickerClosedExtraWidth.subtitle" = "コンパクトモードで利用可能な追加幅。";
 
 /* Settings - Experimental */
 "settings.experimental.effects" = "実験的エフェクト";
 "settings.experimental.effects.subtitle" = "画面/GPUによって異なる場合があります。";
 "settings.experimental.effects.help" = "ノッチやターミナル領域の見た目を変える視覚効果です。設定によってはGPUやバッテリー消費が増え、表示はディスプレイごとに異なる場合があります。";
-"settings.experimental.debug" = "デバッグ";
-"settings.experimental.debug.subtitle" = "開発用のツールと視覚ガイドです。";
-"settings.experimental.debug.help" = "ヒットテスト領域やドッキング領域を確認するための一時的な診断機能です。ノッチ挙動の調整や調査をしない限り、通常はオフのままで問題ありません。";
+"settings.experimental.notice.title" = "実験的な機能は今後変わることがあります";
+"settings.experimental.notice.body" = "これらの項目はまだ検証中です。製品の進化にあわせて変更、移動、削除される場合があり、今後新しい実験項目が追加されることもあります。";
 "settings.experimental.startupOrb.section" = "通知オーブ";
 "settings.experimental.startupOrb.section.subtitle" = "通知オーブの外観と位置に関する実験的設定です。";
 "settings.experimental.startupOrb.section.help" = "起動時や通知時にノッチ付近へ表示される小さなオーブを制御します。擬似ノッチ画面と物理ノッチ画面の両方で、オフセットを使って位置を微調整できます。";
@@ -130,14 +133,10 @@
 "settings.experimental.startupOrb.notchOffsetY" = "通知オーブ実ノッチ Y オフセット";
 "settings.experimental.startupOrb.notchOffsetY.subtitle" = "物理ノッチ画面でのオーブの縦位置を調整します。";
 "settings.experimental.warning" = "これらの視覚エフェクトはバッテリーを消費します。";
-"settings.experimental.notchOffsets.note" = "物理ノッチ付きディスプレイで、閉じたノッチにのみ影響します。";
 "settings.experimental.geometry.help" = "物理ノッチ付きディスプレイ向けの高度なジオメトリ補正です。ノッチマスクが実機と正しく揃わない場合にのみ使用してください。";
 "settings.experimental.docking.help" = "ターミナルウィンドウを近くまでドラッグしたときに、ノッチ領域へどのように吸着するかを制御します。感度を高くすると、より簡単にドッキングします。";
 "settings.experimental.dragToNotch" = "ドラッグでノッチにドッキングを有効化";
 "settings.experimental.dragToNotch.subtitle" = "近くまでドラッグしたターミナルウィンドウをノッチへスナップさせます。実験的で、まだ不安定です。";
-"settings.experimental.hitTestDebugOverlay" = "ドッキングのデバッグ輪郭を表示";
-"settings.experimental.hitTestDebugOverlay.subtitle" = "ドッキング領域とヒットテスト領域の色付き破線ガイドを表示します。";
-"settings.experimental.projectStatus.help" = "展開したノッチ内に、現在のフォルダ名やアクティブなターミナルセッションのgit状態など、軽量なプロジェクト情報を表示します。";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "シミュレートされたノッチのネオン紫グローエフェクト。";
 "settings.fakeNotchGlowTheme" = "グローテーマ";
@@ -171,6 +170,7 @@
 "settings.about.donate" = "コーヒーを奢る";
 "settings.about.donate.subtitle" = "開発をサポート";
 "settings.about.thirdParty" = "サードパーティの情報を表示";
+"settings.about.thirdParty.subtitle" = "このアプリで使用されているライセンスと帰属。";
 "settings.about.copyright" = "© 2026 Marco Astorga González. 全著作権所有。オープンソースとして公開。";
 
 /* Actions */
@@ -245,6 +245,7 @@
 "storage.filter.size.1gb" = "1 GB以上";
 "storage.filter.sort" = "並び順";
 "storage.filter.sort.largest" = "サイズが大きい順";
+"storage.filter.sort.smallest" = "サイズが小さい順";
 "storage.filter.sort.recent" = "更新が新しい順";
 "storage.filter.sort.oldest" = "更新が古い順";
 "storage.filter.sort.name" = "名前";
@@ -266,8 +267,8 @@
 "storage.inUse.more" = "さらに %d 件の項目でもアクティビティが検出されました。";
 "storage.inUse.partialCheck" = "続行前に選択した %d 件を確認しました。";
 
-/* Open Ports */
-"openPorts.title" = "オープンポート";
+/* Active Ports */
+"openPorts.title" = "アクティブポート";
 "openPorts.subtitle" = "使用中のポートをすばやく確認して終了します";
 "openPorts.theme" = "テーマ";
 "openPorts.theme.system" = "システム";
@@ -275,9 +276,13 @@
 "openPorts.theme.light" = "ライト";
 "openPorts.scope.dev" = "開発";
 "openPorts.scope.all" = "すべて";
+"openPorts.scope.picker" = "表示範囲";
 "openPorts.scope.other" = "その他";
 "openPorts.search.placeholder" = "ポート、プロセス、PIDで絞り込み";
 "openPorts.scanning" = "ポートをスキャン中...";
+"openPorts.action.refresh" = "再読み込み";
+"openPorts.summary.count" = "開発 %d 件";
+"openPorts.summary.other" = "その他 %d 件";
 "openPorts.empty.all" = "このフィルターに一致するオープンポートはありません。";
 "openPorts.empty.dev" = "このフィルターに一致する開発用ポートはありません。";
 "openPorts.row.pidAndEndpoint" = "PID %@ • %@";

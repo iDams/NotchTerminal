@@ -15,27 +15,44 @@ class PassthroughHostingView<Content: View>: NSHostingView<Content> {
         true
     }
 
-    private func interactionRects() -> (notchRect: CGRect, orbRect: CGRect?)? {
-        guard let model = model else { return nil }
+    /// Checks whether a screen-coordinate cursor position falls inside the visible notch shape.
+    /// Called proactively from the mouse-tracking timer to set `ignoresMouseEvents` BEFORE events arrive.
+    func isCursorInsideNotchShape(cursor: NSPoint) -> Bool {
+        guard let model = model, let window = window else { return false }
+        // Convert screen cursor to our local coordinate system.
+        let windowPoint = window.convertPoint(fromScreen: cursor)
+        let localPoint = convert(windowPoint, from: nil)
+
         let hostRect = StartupOrbGeometry.hostRectInPanel(
             panelBounds: bounds,
             model: model,
             shadowPadding: 42
         )
-        return (hostRect.insetBy(dx: -20, dy: -20), nil)
+
+        if model.isExpanded {
+            let cornerRadius: CGFloat = 32
+            let shapePath = NSBezierPath(
+                roundedRect: hostRect.insetBy(dx: -2, dy: -2),
+                xRadius: cornerRadius,
+                yRadius: cornerRadius
+            )
+            return shapePath.contains(localPoint)
+        } else {
+            return hostRect.insetBy(dx: -20, dy: -20).contains(localPoint)
+        }
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard let rects = interactionRects() else { return super.hitTest(point) }
-
-        if rects.notchRect.contains(point) || rects.orbRect?.contains(point) == true {
-            return super.hitTest(point)
-        }
-        return nil
+        // The primary passthrough gating is now done proactively via
+        // panel.ignoresMouseEvents in the mouse-tracking timer.
+        // hitTest only serves as a secondary safety net.
+        return super.hitTest(point)
     }
 }
 
 @MainActor
+/// Owns one overlay panel per display and coordinates overlay state with the
+/// terminal window manager, hover tracking, and session persistence.
 final class NotchOverlayController {
     private let collapsedNoNotchSize = NSSize(width: 126, height: 26)
     private let expandedSize = NSSize(width: 336, height: 78)
@@ -184,6 +201,8 @@ final class NotchOverlayController {
         guard let modelContext else { return }
         let descriptor = FetchDescriptor<TerminalSession>()
         if let sessions = try? modelContext.fetch(descriptor), !sessions.isEmpty {
+            // Restore only the persisted window graph. Runtime-only state is
+            // rebuilt by the window controller as each window is created.
             let plans = SessionPersistenceLogic.restorePlans(from: sessions)
             for plan in plans {
                 blackWindowController.createWindow(
@@ -207,6 +226,8 @@ final class NotchOverlayController {
         let latestSessions = blackWindowController.currentSessions()
         let latestIDs = Set(latestSessions.map(\.id))
 
+        // Persistence mirrors the live window graph: missing snapshots are
+        // deleted, existing ones are updated, new ones are inserted.
         for existing in existingSessions where !latestIDs.contains(existing.id) {
             modelContext.delete(existing)
         }
@@ -276,6 +297,8 @@ final class NotchOverlayController {
     }
 
     private func startMouseTracking() {
+        // Polling keeps expansion and pass-through accurate across displays,
+        // spaces, and hover transitions that SwiftUI/AppKit do not always emit.
         trackingFPS = preferredTrackingFPS()
         let interval = 1.0 / Double(trackingFPS)
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
@@ -475,7 +498,10 @@ final class NotchOverlayController {
                     self?.blackWindowController.closeAllWindows(on: displayID)
                 },
                 requestCloseAllConfirmation: { [weak self] sourceDisplayID in
-                    self?.presentSystemCloseAllAlert(for: sourceDisplayID)
+                    self?.presentSystemCloseAllAlert(for: sourceDisplayID, scope: .allDisplays)
+                },
+                requestCloseAllOnDisplayConfirmation: { [weak self] sourceDisplayID in
+                    self?.presentSystemCloseAllAlert(for: sourceDisplayID, scope: .singleDisplay(displayID))
                 },
                 openSettings: { [weak self] in
                     self?.openSettings(for: displayID)
@@ -616,6 +642,22 @@ final class NotchOverlayController {
         if !changedDisplays.isEmpty {
             layoutPanels(animated: true, displays: changedDisplays)
         }
+
+        // Update pass-through ownership ahead of clicks so the window server
+        // knows whether to route input to the overlay or the window below it.
+        for screen in NSScreen.screens {
+            guard let displayID = displayID(for: screen),
+                  let panel = panelsByDisplay[displayID],
+                  let model = modelsByDisplay[displayID] else { continue }
+            guard model.isExpanded else { continue }
+            // Skip if the panel is hidden (fullscreen app, etc.)
+            guard panel.alphaValue > 0 else { continue }
+
+            if let hostingView = panel.contentView as? PassthroughHostingView<AnyView> {
+                let cursorInsideNotch = hostingView.isCursorInsideNotchShape(cursor: cursor)
+                panel.ignoresMouseEvents = !cursorInsideNotch
+            }
+        }
     }
 
     private func scheduleDelayedExpandIfNeeded(displayID: CGDirectDisplayID, screen: NSScreen, model: NotchViewModel) {
@@ -689,8 +731,6 @@ final class NotchOverlayController {
             screenNotchSize: screen.notchSize,
             fallbackNotchSize: collapsedNoNotchSize,
             hasPhysicalNotch: model.hasPhysicalNotch,
-            widthOffset: model.notchWidthOffset,
-            heightOffset: model.notchHeightOffset,
             configuration: configuration,
             constants: constants
         )
@@ -781,6 +821,8 @@ final class NotchOverlayController {
             collapsedNoNotchSize: collapsedNoNotchSize,
             notchClosedWidthScale: notchClosedWidthScale,
             notchClosedHeightScale: notchClosedHeightScale,
+            physicalNotchBaseWidthAdjustment: -80,
+            physicalNotchBaseHeightAdjustment: -8,
             shadowPadding: shadowPadding,
             noNotchTopInset: noNotchTopInset,
             notchTopInset: notchTopInset
@@ -908,13 +950,30 @@ final class NotchOverlayController {
         }
     }
 
-    private func presentSystemCloseAllAlert(for sourceDisplayID: CGDirectDisplayID) {
-        let terminalCount = modelsByDisplay.values.first?.terminalItems.count ?? 0
+    private enum CloseAllAlertScope {
+        case allDisplays
+        case singleDisplay(CGDirectDisplayID)
+    }
+
+    private func presentSystemCloseAllAlert(for sourceDisplayID: CGDirectDisplayID, scope: CloseAllAlertScope) {
+        let terminalCount: Int
+        switch scope {
+        case .allDisplays:
+            terminalCount = modelsByDisplay.values.first?.terminalItems.count ?? 0
+        case .singleDisplay(let displayID):
+            terminalCount = modelsByDisplay[displayID]?.terminalItems.filter { $0.displayID == displayID }.count ?? 0
+        }
+
         guard terminalCount > 0 else { return }
         pinDisplayExpanded(sourceDisplayID)
 
         let alert = NSAlert()
-        alert.messageText = "Close all terminals?"
+        switch scope {
+        case .allDisplays:
+            alert.messageText = "Close all terminals?"
+        case .singleDisplay:
+            alert.messageText = "Close all terminals on this display?"
+        }
         alert.informativeText = "Close \(terminalCount) terminal\(terminalCount == 1 ? "" : "s")?"
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Close All")
@@ -929,7 +988,12 @@ final class NotchOverlayController {
             AppPreferences.setConfirmBeforeCloseAll(false)
         }
         if response == .alertFirstButtonReturn {
-            blackWindowController.closeAllWindows()
+            switch scope {
+            case .allDisplays:
+                blackWindowController.closeAllWindows()
+            case .singleDisplay(let displayID):
+                blackWindowController.closeAllWindows(on: displayID)
+            }
         }
 
         unpinDisplayExpanded(sourceDisplayID)

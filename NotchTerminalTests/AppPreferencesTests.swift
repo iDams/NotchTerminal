@@ -240,7 +240,6 @@ final class AppPreferencesTests: XCTestCase {
             AppPreferences.ExperimentalFeatureConfiguration(
                 dragToNotchEnabled: AppPreferences.Defaults.experimentalDragToNotchEnabled,
                 startupOrbEnabled: AppPreferences.Defaults.experimentalStartupOrbEnabled,
-                hitTestDebugOverlayEnabled: AppPreferences.Defaults.hitTestDebugOverlayEnabled,
                 notchDockingSensitivity: AppPreferences.Defaults.notchDockingSensitivity,
                 projectStatusCardEnabled: AppPreferences.Defaults.experimentalProjectStatusCardEnabled,
                 projectStatusShowGit: AppPreferences.Defaults.experimentalProjectStatusShowGit,
@@ -250,7 +249,6 @@ final class AppPreferencesTests: XCTestCase {
 
         defaults.set(true, forKey: AppPreferences.Keys.experimentalDragToNotchEnabled)
         defaults.set(true, forKey: AppPreferences.Keys.experimentalStartupOrbEnabled)
-        defaults.set(true, forKey: AppPreferences.Keys.hitTestDebugOverlayEnabled)
         defaults.set(44.0, forKey: AppPreferences.Keys.notchDockingSensitivity)
         defaults.set(true, forKey: AppPreferences.Keys.experimentalProjectStatusCardEnabled)
         defaults.set(false, forKey: AppPreferences.Keys.experimentalProjectStatusShowGit)
@@ -261,7 +259,6 @@ final class AppPreferencesTests: XCTestCase {
             AppPreferences.ExperimentalFeatureConfiguration(
                 dragToNotchEnabled: true,
                 startupOrbEnabled: true,
-                hitTestDebugOverlayEnabled: true,
                 notchDockingSensitivity: 44,
                 projectStatusCardEnabled: true,
                 projectStatusShowGit: false,

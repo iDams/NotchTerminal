@@ -7,6 +7,8 @@ struct SessionRestorePlan: Equatable {
     let shouldStartMinimized: Bool
 }
 
+/// Maps stored session snapshots into restore/update decisions without pulling
+/// persistence APIs or UI concerns into the call sites.
 enum SessionPersistenceLogic {
     static func resolvedDisplayID(from raw: String, fallback: CGDirectDisplayID = CGMainDisplayID()) -> CGDirectDisplayID {
         guard let parsed = UInt32(raw) else { return fallback }
@@ -17,6 +19,8 @@ enum SessionPersistenceLogic {
         from sessions: [TerminalSession],
         fallbackDisplayID: CGDirectDisplayID = CGMainDisplayID()
     ) -> [SessionRestorePlan] {
+        // Docked windows come back minimized so the notch can own their initial
+        // presentation instead of flashing full window chrome on launch.
         sessions.map { session in
             SessionRestorePlan(
                 session: session,
@@ -27,6 +31,8 @@ enum SessionPersistenceLogic {
     }
 
     static func updatePersistedSession(_ persisted: TerminalSession, from snapshot: TerminalSession) {
+        // Keeping this field-to-field makes it obvious which runtime values are
+        // expected to survive app relaunch.
         persisted.workingDirectory = snapshot.workingDirectory
         persisted.windowWidth = snapshot.windowWidth
         persisted.windowHeight = snapshot.windowHeight

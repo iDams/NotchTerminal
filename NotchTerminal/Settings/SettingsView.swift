@@ -10,7 +10,7 @@ struct SettingsView: View {
     private let minimumWindowWidth: CGFloat = 560
     private let maximumWindowWidth: CGFloat = 760
     private let minimumWindowHeight: CGFloat = 320
-    private let maximumWindowHeight: CGFloat = 700
+    private let maximumWindowHeight: CGFloat = 760
     private let tabChromeHeight: CGFloat = 110
 
     init() {
@@ -27,15 +27,13 @@ struct SettingsView: View {
     private var fallbackContentHeight: CGFloat {
         switch selectedTab {
         case .general:
-            return 430
+            return 560
         case .notch:
             return 620
         case .appearance:
             return 560
         case .about:
-            return 640
-        case .aiCronjobs:
-            return 560
+            return 720
         case .experimental:
             return 320
         }
@@ -70,12 +68,6 @@ struct SettingsView: View {
                 .tag(SettingsTab.about)
                 .tabItem {
                     Label("settings.about".localized, systemImage: "info.circle")
-                }
-
-            AICronjobsSettingsView()
-                .tag(SettingsTab.aiCronjobs)
-                .tabItem {
-                    Label("NotchAgent", systemImage: "cpu")
                 }
 
             if showExperimentalSettings {
@@ -230,25 +222,12 @@ private struct SettingsWindowObserver: NSViewRepresentable {
 }
 
 struct GeneralSettingsView: View {
-    private enum CloseActionDisplayMode: String, CaseIterable, Identifiable {
-        case closeWindowOnly
-        case terminateProcessAndClose
-
-        var id: String { rawValue }
-
-        var title: String {
-            switch self {
-            case .closeWindowOnly:
-                return "settings.closeActionMode.closeWindow".localized
-            case .terminateProcessAndClose:
-                return "settings.closeActionMode.terminateProcess".localized
-            }
-        }
-    }
-
     @AppStorage(AppPreferences.Keys.hapticFeedback) var hapticFeedback: Bool = AppPreferences.Defaults.hapticFeedback
     @AppStorage(AppPreferences.Keys.showDockIcon) var showDockIcon: Bool = AppPreferences.Defaults.showDockIcon
-    @AppStorage(AppPreferences.Keys.showExperimentalSettings) var showExperimentalSettings: Bool = AppPreferences.Defaults.showExperimentalSettings
+    @AppStorage(AppPreferences.Keys.showMenuBarShortcuts) var showMenuBarShortcuts: Bool = AppPreferences.Defaults.showMenuBarShortcuts
+    @AppStorage(AppPreferences.Keys.terminalDefaultWidth) var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
+    @AppStorage(AppPreferences.Keys.terminalDefaultHeight) var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
+    @AppStorage(AppPreferences.Keys.showActivePortsInTerminal) var showActivePortsInTerminal: Bool = AppPreferences.Defaults.showActivePortsInTerminal
     @AppStorage(AppPreferences.Keys.autoOpenOnHover) var autoOpenOnHover: Bool = AppPreferences.Defaults.autoOpenOnHover
     @AppStorage(AppPreferences.Keys.autoOpenOnHoverDelay) var autoOpenOnHoverDelay: Double = AppPreferences.Defaults.autoOpenOnHoverDelay
     @AppStorage(AppPreferences.Keys.lockWhileTyping) var lockWhileTyping: Bool = AppPreferences.Defaults.lockWhileTyping
@@ -262,13 +241,6 @@ struct GeneralSettingsView: View {
         AppPreferences.terminalActionConfiguration()
     }
 
-    private var showChipCloseButtonBinding: Binding<Bool> {
-        Binding(
-            get: { terminalActionConfiguration.showChipCloseButtonOnHover },
-            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.showChipCloseButtonOnHover) }
-        )
-    }
-
     private var confirmBeforeCloseAllBinding: Binding<Bool> {
         Binding(
             get: { terminalActionConfiguration.confirmBeforeCloseAll },
@@ -276,10 +248,15 @@ struct GeneralSettingsView: View {
         )
     }
 
-    private var closeActionModeBinding: Binding<String> {
+    private var terminateProcessOnCloseBinding: Binding<Bool> {
         Binding(
-            get: { terminalActionConfiguration.closeActionMode },
-            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.closeActionMode) }
+            get: { terminalActionConfiguration.closeActionMode == AppPreferences.Defaults.closeActionMode },
+            set: {
+                UserDefaults.standard.set(
+                    $0 ? AppPreferences.Defaults.closeActionMode : "closeWindowOnly",
+                    forKey: AppPreferences.Keys.closeActionMode
+                )
+            }
         )
     }
 
@@ -295,7 +272,8 @@ struct GeneralSettingsView: View {
                 }
                 languageSection
                 systemSection
-                automationSection
+                notchBehaviorSection
+                terminalWindowsSection
                 terminalActionsSection
                 dangerZoneSection
             }
@@ -400,15 +378,16 @@ struct GeneralSettingsView: View {
             )
 
             NotchTerminalPreferenceToggleRow(
-                title: "settings.showExperimentalSettings".localized,
-                subtitle: "settings.showExperimentalSettings.subtitle".localized,
-                icon: "flask",
-                binding: $showExperimentalSettings
+                title: "settings.system.menuBar.shortcuts".localized,
+                subtitle: "settings.system.menuBar.shortcuts.subtitle".localized,
+                icon: "menubar.arrow.up.rectangle",
+                binding: $showMenuBarShortcuts
             )
+
         }
     }
 
-    private var automationSection: some View {
+    private var notchBehaviorSection: some View {
         NotchTerminalSettingsSection(contentSpacing: 12) {
             NotchTerminalSectionHeading(
                 title: "settings.automation".localized,
@@ -447,6 +426,44 @@ struct GeneralSettingsView: View {
         }
     }
 
+    private var terminalWindowsSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
+                title: "settings.appearance.terminalDefaults".localized,
+                subtitle: "settings.appearance.terminalDefaults.subtitle".localized,
+                icon: "macwindow.on.rectangle",
+                helpTooltip: "settings.appearance.terminalDefaults.help".localized
+            )
+
+            NotchTerminalSliderPreferenceRow(
+                title: "settings.terminalDefaultWidth".localized,
+                subtitle: "settings.terminalDefaultWidth.subtitle".localized,
+                icon: "arrow.left.and.right",
+                value: $terminalDefaultWidth,
+                range: 400 ... 1600,
+                step: 10,
+                valueFormatter: { "\(Int($0))" }
+            )
+
+            NotchTerminalSliderPreferenceRow(
+                title: "settings.terminalDefaultHeight".localized,
+                subtitle: "settings.terminalDefaultHeight.subtitle".localized,
+                icon: "arrow.up.and.down",
+                value: $terminalDefaultHeight,
+                range: 200 ... 1000,
+                step: 10,
+                valueFormatter: { "\(Int($0))" }
+            )
+
+            NotchTerminalPreferenceToggleRow(
+                title: "settings.showActivePorts".localized,
+                subtitle: "settings.showActivePorts.subtitle".localized,
+                icon: "network",
+                binding: $showActivePortsInTerminal
+            )
+        }
+    }
+
     private var terminalActionsSection: some View {
         NotchTerminalSettingsSection(contentSpacing: 12) {
             NotchTerminalSectionHeading(
@@ -457,44 +474,18 @@ struct GeneralSettingsView: View {
             )
 
             NotchTerminalPreferenceToggleRow(
-                title: "settings.showChipCloseButton".localized,
-                subtitle: "settings.showChipCloseButton.subtitle".localized,
-                icon: "xmark.circle",
-                binding: showChipCloseButtonBinding
-            )
-
-            NotchTerminalPreferenceToggleRow(
                 title: "settings.confirmBeforeCloseAll".localized,
                 subtitle: "settings.confirmBeforeCloseAll.subtitle".localized,
                 icon: "exclamationmark.triangle",
                 binding: confirmBeforeCloseAllBinding
             )
 
-            HStack(alignment: .center, spacing: 10) {
-                Image(systemName: "bolt.horizontal.circle")
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 20, height: 20)
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("settings.closeActionMode".localized)
-                        .font(.body.weight(.medium))
-                    Text("settings.closeActionMode.subtitle".localized)
-                        .font(.footnote)
-                        .foregroundStyle(.tertiary)
-                }
-
-                Spacer(minLength: 8)
-
-                Picker("settings.closeActionMode".localized, selection: closeActionModeBinding) {
-                    ForEach(CloseActionDisplayMode.allCases) { mode in
-                        Text(mode.title).tag(mode.rawValue)
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(width: 210)
-            }
-            .padding(.vertical, 2)
+            NotchTerminalPreferenceToggleRow(
+                title: "settings.closeActionMode".localized,
+                subtitle: "settings.closeActionMode.subtitle".localized,
+                icon: "bolt.horizontal.circle",
+                binding: terminateProcessOnCloseBinding
+            )
         }
     }
 
@@ -535,11 +526,12 @@ struct GeneralSettingsView: View {
 struct AppearanceSettingsView: View {
     @AppStorage(AppPreferences.Keys.contentPadding) var contentPadding: Double = AppPreferences.Defaults.contentPadding
 
-    @AppStorage(AppPreferences.Keys.terminalDefaultWidth) var terminalDefaultWidth: Double = AppPreferences.Defaults.terminalDefaultWidth
-    @AppStorage(AppPreferences.Keys.terminalDefaultHeight) var terminalDefaultHeight: Double = AppPreferences.Defaults.terminalDefaultHeight
-
     @AppStorage(AppPreferences.Keys.auroraBackgroundEnabled) var auroraBackgroundEnabled: Bool = AppPreferences.Defaults.auroraBackgroundEnabled
     @AppStorage(AppPreferences.Keys.auroraTheme) var auroraTheme: NotchViewModel.AuroraTheme = .classic
+    @AppStorage(AppPreferences.Keys.showTerminalPreviewOnHover) var showTerminalPreviewOnHover: Bool = AppPreferences.Defaults.showTerminalPreviewOnHover
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusCardEnabled) var projectStatusCardEnabled: Bool = AppPreferences.Defaults.experimentalProjectStatusCardEnabled
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowGit) var projectStatusShowGit: Bool = AppPreferences.Defaults.experimentalProjectStatusShowGit
+    @AppStorage(AppPreferences.Keys.experimentalProjectStatusShowFolder) var projectStatusShowFolder: Bool = AppPreferences.Defaults.experimentalProjectStatusShowFolder
 
     private var hasAnyNotch: Bool {
         NSScreen.screens.contains { screen in
@@ -553,12 +545,24 @@ struct AppearanceSettingsView: View {
         }
     }
 
+    private var terminalActionConfiguration: AppPreferences.TerminalActionConfiguration {
+        AppPreferences.terminalActionConfiguration()
+    }
+
+    private var showChipCloseButtonBinding: Binding<Bool> {
+        Binding(
+            get: { terminalActionConfiguration.showChipCloseButtonOnHover },
+            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.showChipCloseButtonOnHover) }
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 geometrySection
-                terminalDefaultsSection
+                terminalChipsSection
                 effectsSection
+                projectStatusSection
                 resetSection
             }
             .padding(.horizontal, 14)
@@ -587,38 +591,6 @@ struct AppearanceSettingsView: View {
             )
         }
     }
-
-    private var terminalDefaultsSection: some View {
-        NotchTerminalSettingsSection(contentSpacing: 12) {
-            NotchTerminalSectionHeading(
-                title: "settings.appearance.terminalDefaults".localized,
-                subtitle: "settings.appearance.terminalDefaults.subtitle".localized,
-                icon: "macwindow.on.rectangle",
-                helpTooltip: "settings.appearance.terminalDefaults.help".localized
-            )
-
-            NotchTerminalSliderPreferenceRow(
-                title: "settings.terminalDefaultWidth".localized,
-                subtitle: "settings.terminalDefaultWidth.subtitle".localized,
-                icon: "arrow.left.and.right",
-                value: $terminalDefaultWidth,
-                range: 400 ... 1600,
-                step: 10,
-                valueFormatter: { "\(Int($0))" }
-            )
-
-            NotchTerminalSliderPreferenceRow(
-                title: "settings.terminalDefaultHeight".localized,
-                subtitle: "settings.terminalDefaultHeight.subtitle".localized,
-                icon: "arrow.up.and.down",
-                value: $terminalDefaultHeight,
-                range: 200 ... 1000,
-                step: 10,
-                valueFormatter: { "\(Int($0))" }
-            )
-        }
-    }
-
 
     private var effectsSection: some View {
         NotchTerminalSettingsSection(contentSpacing: 12) {
@@ -650,6 +622,68 @@ struct AppearanceSettingsView: View {
         }
     }
 
+    private var terminalChipsSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
+                title: "settings.appearance.terminalChips".localized,
+                subtitle: "settings.appearance.terminalChips.subtitle".localized,
+                icon: "capsule",
+                helpTooltip: "settings.appearance.terminalChips.help".localized
+            )
+
+            NotchTerminalPreferenceToggleRow(
+                title: "settings.showChipCloseButton".localized,
+                subtitle: "settings.showChipCloseButton.subtitle".localized,
+                icon: "xmark.circle",
+                binding: showChipCloseButtonBinding
+            )
+
+            NotchTerminalPreferenceToggleRow(
+                title: "settings.showTerminalPreview".localized,
+                subtitle: "settings.showTerminalPreview.subtitle".localized,
+                icon: "rectangle.on.rectangle",
+                binding: $showTerminalPreviewOnHover
+            )
+        }
+    }
+
+    private var projectStatusSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
+                title: "settings.appearance.projectStatus".localized,
+                subtitle: "settings.appearance.projectStatus.subtitle".localized,
+                icon: "lanyardcard.fill",
+                helpTooltip: "settings.appearance.projectStatus.help".localized
+            )
+
+            NotchTerminalPreferenceToggleRow(
+                title: "settings.appearance.projectStatus.enabled".localized,
+                subtitle: "settings.appearance.projectStatus.enabled.subtitle".localized,
+                icon: "menubar.rectangle",
+                binding: $projectStatusCardEnabled
+            )
+
+            if projectStatusCardEnabled {
+                VStack(alignment: .leading, spacing: 12) {
+                    NotchTerminalPreferenceToggleRow(
+                        title: "settings.appearance.projectStatus.showFolder".localized,
+                        subtitle: "settings.appearance.projectStatus.showFolder.subtitle".localized,
+                        icon: "folder",
+                        binding: $projectStatusShowFolder
+                    )
+
+                    NotchTerminalPreferenceToggleRow(
+                        title: "settings.appearance.projectStatus.showGit".localized,
+                        subtitle: "settings.appearance.projectStatus.showGit.subtitle".localized,
+                        icon: "arrow.triangle.branch",
+                        binding: $projectStatusShowGit
+                    )
+                }
+                .padding(.leading, 32)
+            }
+        }
+    }
+
     private var resetSection: some View {
         NotchTerminalSettingsSection(contentSpacing: 12) {
             HStack {
@@ -671,16 +705,25 @@ struct AppearanceSettingsView: View {
 
     private var isUsingAppearanceDefaults: Bool {
         contentPadding == AppPreferences.Defaults.contentPadding &&
-        terminalDefaultWidth == AppPreferences.Defaults.terminalDefaultWidth &&
-        terminalDefaultHeight == AppPreferences.Defaults.terminalDefaultHeight &&
+        terminalActionConfiguration.showChipCloseButtonOnHover == AppPreferences.Defaults.showChipCloseButtonOnHover &&
+        showTerminalPreviewOnHover == AppPreferences.Defaults.showTerminalPreviewOnHover &&
+        projectStatusCardEnabled == AppPreferences.Defaults.experimentalProjectStatusCardEnabled &&
+        projectStatusShowGit == AppPreferences.Defaults.experimentalProjectStatusShowGit &&
+        projectStatusShowFolder == AppPreferences.Defaults.experimentalProjectStatusShowFolder &&
         auroraBackgroundEnabled == AppPreferences.Defaults.auroraBackgroundEnabled &&
         auroraTheme == .classic
     }
 
     private func resetAppearanceDefaults() {
         contentPadding = AppPreferences.Defaults.contentPadding
-        terminalDefaultWidth = AppPreferences.Defaults.terminalDefaultWidth
-        terminalDefaultHeight = AppPreferences.Defaults.terminalDefaultHeight
+        UserDefaults.standard.set(
+            AppPreferences.Defaults.showChipCloseButtonOnHover,
+            forKey: AppPreferences.Keys.showChipCloseButtonOnHover
+        )
+        showTerminalPreviewOnHover = AppPreferences.Defaults.showTerminalPreviewOnHover
+        projectStatusCardEnabled = AppPreferences.Defaults.experimentalProjectStatusCardEnabled
+        projectStatusShowGit = AppPreferences.Defaults.experimentalProjectStatusShowGit
+        projectStatusShowFolder = AppPreferences.Defaults.experimentalProjectStatusShowFolder
         auroraBackgroundEnabled = AppPreferences.Defaults.auroraBackgroundEnabled
         auroraTheme = .classic
     }

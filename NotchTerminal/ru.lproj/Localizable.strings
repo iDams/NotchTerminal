@@ -1,0 +1,295 @@
+/* General */
+"app.name" = "NotchTerminal";
+"app.tagline" = "Эмулятор терминала, который живет в вашей Notch.";
+
+/* Settings - General */
+"settings.general" = "Основные";
+"settings.notch" = "Notch";
+"settings.appearance" = "Внешний вид";
+"settings.about" = "О приложении";
+"settings.experimental" = "Экспериментальное";
+
+/* Settings - Notch */
+"settings.notch.displays" = "Активные Notch";
+"settings.notch.displays.subtitle" = "Включите или отключите Notch независимо на каждом подключенном дисплее.";
+"settings.notch.displays.help" = "Настройте поведение Notch для каждого дисплея. Каждый экран может иметь свое собственное состояние включения, настройки позиции, настройку ширины и опциональную перезапись фона.";
+"settings.notch.empty" = "Активных дисплеев не обнаружено.";
+"settings.notch.enabled" = "Включить этот Notch";
+"settings.notch.enabled.subtitle" = "Показывать Notch только на этом дисплее.";
+"settings.notch.offsetX" = "Горизонтальная позиция";
+"settings.notch.offsetX.subtitle" = "Переместить этот Notch влево или вправо на его дисплее.";
+"settings.notch.offsetY" = "Вертикальная позиция";
+"settings.notch.offsetY.subtitle" = "Переместить этот Notch вверх или вниз на его дисплее.";
+"settings.notch.width" = "Настройка ширины";
+"settings.notch.width.subtitle" = "Сузить или расширить этот Notch без влияния на другие.";
+"settings.notch.customBackground" = "Пользовательский фон";
+"settings.notch.customBackground.subtitle" = "Перезаписать глобальный фон Notch только для этого дисплея.";
+"settings.notch.customBackground.enabled" = "Включить фон Aurora";
+"settings.notch.customBackground.enabled.subtitle" = "Применяет эффект Aurora только к этому Notch.";
+"settings.notch.customBackground.theme.subtitle" = "Выберите тему фона для этого Notch.";
+"settings.notch.display.physical" = "Физический Notch";
+"settings.notch.display.pill" = "Pill Notch";
+"settings.notch.display.main" = "Основной дисплей";
+
+/* Settings - System */
+"settings.system" = "Система";
+"settings.system.subtitle" = "Основное поведение и параметры видимости приложения.";
+"settings.system.help" = "Управляет поведением всего приложения, таким как тактильная отдача, видимость в Dock и отображение нестабильных функций в Настройках.";
+"settings.hapticFeedback" = "Включить тактильную отдачу";
+"settings.hapticFeedback.subtitle" = "Использовать тактильную отдачу при взаимодействиях в Notch.";
+"settings.showDockIcon" = "Показывать значок в Dock";
+"settings.showDockIcon.subtitle" = "Отображать значок приложения в Dock с использованием настроенного ресурса AppIcon.";
+"settings.system.menuBar.shortcuts" = "Показывать значок в строке меню";
+"settings.system.menuBar.shortcuts.subtitle" = "Отображать значок NotchTerminal в строке меню macOS.";
+"settings.showExperimentalSettings" = "Показывать вкладку Экспериментальное";
+"settings.showExperimentalSettings.subtitle" = "Отображать экспериментальные настройки и нестабильные функции в Настройках.";
+"settings.quitApp" = "Выйти из приложения";
+"settings.quitApp.subtitle" = "Полностью закрыть NotchTerminal.";
+
+/* Settings - Automation */
+"settings.automation" = "Автоматизация";
+"settings.automation.subtitle" = "Управляет тем, как и когда Notch открывается и закрывается.";
+"settings.automation.help" = "Настройте автоматическое поведение Notch, включая время открытия при наведении и остается ли Notch открытым во время активного ввода.";
+"settings.autoOpenOnHover" = "Открывать Notch при наведении";
+"settings.autoOpenOnHover.subtitle" = "Автоматически расширяет Notch, когда курсор достигает его.";
+"settings.autoOpenOnHoverDelay" = "Задержка открытия при наведении";
+"settings.autoOpenOnHoverDelay.subtitle" = "Как долго курсор должен оставаться возле Notch перед открытием.";
+"settings.lockWhileTyping" = "Держать открытым при вводе";
+"settings.lockWhileTyping.subtitle" = "Избегать автоматического закрытия, пока вы активно печатаете.";
+
+/* Settings - Terminal Actions */
+"settings.terminalActions" = "Закрытие и Безопасность";
+"settings.terminalActions.subtitle" = "Подтверждение и поведение закрытия для сессий терминала.";
+"settings.terminalActions.help" = "Определяет, как ведут себя чипы терминала и массовые действия, включая подтверждения безопасности и закрывает ли закрытие сессии только окно или также завершает выполняемый процесс.";
+"settings.showChipCloseButton" = "Показывать кнопку закрытия при наведении на чип";
+"settings.showChipCloseButton.subtitle" = "Отображать небольшую кнопку закрытия при наведении на чип терминала.";
+"settings.showTerminalPreview" = "Показывать предпросмотр терминала";
+"settings.showTerminalPreview.subtitle" = "Отображать предпросмотр терминала в реальном времени при наведении на чип.";
+"settings.confirmBeforeCloseAll" = "Подтверждать перед Закрыть Всё";
+"settings.confirmBeforeCloseAll.subtitle" = "Запрашивать подтверждение перед действиями Закрыть Всё.";
+"settings.closeActionMode" = "Также останавливать выполняемую команду при закрытии";
+"settings.closeActionMode.subtitle" = "Если выключено, закрытие только закрывает окно. Если включено, также завершает выполняемый процесс терминала.";
+"settings.dangerZone" = "Опасная Зона";
+"settings.dangerZone.subtitle" = "Чувствительные действия, влияющие на все приложение.";
+"settings.dangerZone.help" = "Содержит действия с немедленным глобальным влиянием, такие как выход из приложения. Используйте их, когда хотите остановить всю текущую активность NotchTerminal.";
+
+/* Settings - Appearance */
+"settings.appearance.geometry" = "Геометрия";
+"settings.appearance.geometry.subtitle" = "Точная настройка макета и отступов Notch.";
+"settings.appearance.geometry.help" = "Настройте отступы внутри Notch, чтобы интерфейс выглядел сбалансированным на разных размерах экрана и плотностях контента.";
+"settings.contentPadding" = "Отступы контента";
+"settings.contentPadding.subtitle" = "Расстояние между контентом терминала и краями Notch.";
+"settings.appearance.terminalChips" = "Чипы Терминала";
+"settings.appearance.terminalChips.subtitle" = "Управление элементами терминала, отображаемыми внутри Notch.";
+"settings.appearance.terminalChips.help" = "Настройте, как ведут себя чипы терминала и какие элементы управления появляются прямо внутри Notch.";
+
+"settings.appearance.terminalDefaults" = "По умолчанию Окно Терминала";
+"settings.appearance.terminalDefaults.subtitle" = "Параметры размера для новых сессий терминала.";
+"settings.appearance.terminalDefaults.help" = "Устанавливает ширину и высоту по умолчанию, используемые при создании новых плавающих окон терминала.";
+"settings.terminalDefaultWidth" = "Ширина по умолчанию";
+"settings.terminalDefaultWidth.subtitle" = "Горизонтальный размер в пунктах.";
+"settings.terminalDefaultHeight" = "Высота по умолчанию";
+"settings.terminalDefaultHeight.subtitle" = "Вертикальный размер в пунктах.";
+"settings.showActivePorts" = "Показывать Активные Порты";
+"settings.showActivePorts.subtitle" = "Отображать инструмент Активные Порты в окнах терминала.";
+
+"settings.appearance.docking" = "Чувствительность Стыковки";
+"settings.appearance.docking.subtitle" = "Насколько близко окно должно быть для привязки к Notch.";
+"settings.notchDockingSensitivity" = "Радиус обнаружения";
+"settings.notchDockingSensitivity.subtitle" = "Больше означает более раннее обнаружение, меньше требует большего приближения.";
+
+"settings.appearance.effects" = "Эффекты";
+"settings.appearance.effects.subtitle" = "Визуальные эффекты для поверхности Notch.";
+"settings.appearance.effects.help" = "Управляет опциональными визуальными стилями, такими как тема фона Aurora, используемая за контентом Notch на поддерживаемых дисплеях.";
+"settings.appearance.projectStatus" = "Карточка Статуса Проекта";
+"settings.appearance.projectStatus.subtitle" = "Отображать контекстные детали проекта в расширенном Notch.";
+"settings.appearance.projectStatus.help" = "Показывает легкий контекст проекта в расширенном Notch, такой как имя текущей папки и git-статус активной сессии терминала.";
+"settings.appearance.projectStatus.enabled" = "Включить Карточку Статуса Проекта";
+"settings.appearance.projectStatus.enabled.subtitle" = "Показывать карточку, когда Notch расширен.";
+"settings.appearance.projectStatus.showFolder" = "Показывать Имя Папки";
+"settings.appearance.projectStatus.showFolder.subtitle" = "Отображать папку проекта активного терминала.";
+"settings.appearance.projectStatus.showGit" = "Показывать Git Статус";
+"settings.appearance.projectStatus.showGit.subtitle" = "Отображать текущую ветку и ожидающие изменения.";
+"settings.appearance.reset" = "Сбросить настройки внешнего вида";
+"settings.appearance.reset.subtitle" = "Восстановить значения по умолчанию для этой вкладки.";
+
+/* Settings - Experimental */
+"settings.experimental.effects" = "Экспериментальные Эффекты";
+"settings.experimental.effects.subtitle" = "Опциональные визуальные эффекты, которые могут различаться для дисплея/GPU.";
+"settings.experimental.effects.help" = "Визуальные эффекты, изменяющие внешний вид Notch или области терминала. Некоторые опции могут использовать больше GPU и батареи, и поведение может различаться для типа дисплея.";
+"settings.experimental.notice.title" = "Экспериментальные функции могут измениться";
+"settings.experimental.notice.body" = "Эти опции все еще тестируются. Некоторые могут измениться, переместиться или быть удалены по мере развития продукта, и новые эксперименты могут появиться со временем.";
+"settings.experimental.startupOrb.section" = "Орб Уведомления";
+"settings.experimental.startupOrb.section.subtitle" = "Экспериментальный внешний вид и позиционирование орба уведомления.";
+"settings.experimental.startupOrb.section.help" = "Управляет маленьким орбом, показываемым возле Notch для состояний запуска или уведомления. Используйте смещения для точной настройки его позиции на fake-Notch и physical-Notch дисплеях.";
+"settings.experimental.startupOrb" = "Показывать орб уведомления";
+"settings.experimental.startupOrb.subtitle" = "Отображать орб уведомления рядом с Notch.";
+"settings.experimental.startupOrb.pillOffsetX" = "Смещение X орба уведомления pill";
+"settings.experimental.startupOrb.pillOffsetX.subtitle" = "Настроить горизонтальное смещение орба для fake-Notch дисплеев.";
+"settings.experimental.startupOrb.pillOffsetY" = "Смещение Y орба уведомления pill";
+"settings.experimental.startupOrb.pillOffsetY.subtitle" = "Настроить вертикальное смещение орба для fake-Notch дисплеев.";
+"settings.experimental.startupOrb.notchOffsetX" = "Смещение X орба уведомления notch";
+"settings.experimental.startupOrb.notchOffsetX.subtitle" = "Настроить горизонтальное смещение орба для physical-Notch дисплеев.";
+"settings.experimental.startupOrb.notchOffsetY" = "Смещение Y орба уведомления notch";
+"settings.experimental.startupOrb.notchOffsetY.subtitle" = "Настроить вертикальное смещение орба для physical-Notch дисплеев.";
+"settings.experimental.warning" = "Эти визуальные эффекты очень экспериментальны и расходуют батарею.";
+"settings.experimental.geometry.help" = "Расширенные настройки геометрии для physical-Notch дисплеев. Используйте только когда маска Notch не выравнивается правильно с вашим оборудованием.";
+"settings.experimental.docking.help" = "Управляет тем, как окна терминала привязываются к области Notch при перетаскивании поблизости. Более высокая чувствительность делает стыковку более легкой.";
+"settings.experimental.dragToNotch" = "Включить перетаскивание-к-notch стыковку";
+"settings.experimental.dragToNotch.subtitle" = "Позволяет окнам терминала привязываться к Notch при перетаскивании поблизости. Экспериментально и сейчас нестабильно.";
+"settings.fakeNotchGlow" = "Pill Notch Glow";
+"settings.fakeNotchGlow.subtitle" = "Неоновый фиолетовый эффект свечения для симулированных Notch.";
+"settings.fakeNotchGlowTheme" = "Тема Свечения";
+"settings.auroraBackground" = "Фон Aurora";
+"settings.auroraBackground.subtitle" = "Анимированный Metal шейдер за контентом терминала.";
+"settings.crtFilter" = "Фильтр CRT Монитора";
+"settings.crtFilter.subtitle" = "Добавляет кривизну, scanlines и статический шум для эмуляции старого оборудования.";
+
+/* Settings - Language */
+"settings.language" = "Язык";
+"settings.language.subtitle" = "Выберите предпочитаемый язык.";
+"settings.language.help" = "Выберите, следует ли NotchTerminal системному языку или использует ручное переопределение для интерфейса.";
+"settings.language.system" = "Системный по умолчанию";
+"settings.language.system.subtitle" = "Использует настройку системного языка.";
+
+/* Persistence */
+"persistence.alert.title" = "Сохранение сессий недоступно";
+"persistence.alert.message" = "NotchTerminal не смог инициализировать локальное хранилище данных. Восстановление сессий и автосохранение отключены для этого запуска.\n\nДетали: %@";
+"persistence.warning.title" = "Сохранение сессий недоступно";
+"persistence.warning.body" = "Восстановление сессий и автоматическое сохранение сейчас отключены. Приложение может работать, но открытые сессии терминала не будут восстановлены после перезапуска.";
+"persistence.warning.details" = "Детали: %@";
+
+/* Settings - About */
+"settings.about.versionFormat" = "Версия %@ (%@)";
+"settings.about.checkUpdates" = "Проверить Обновления";
+"settings.about.checkUpdates.subtitle" = "Ищет новые версии";
+"settings.about.releaseNotes" = "Примечания к Выпуску";
+"settings.about.releaseNotes.subtitle" = "Посмотреть, что изменилось";
+"settings.about.website" = "Сайт Проекта";
+"settings.about.website.subtitle" = "Репозиторий и документация";
+"settings.about.donate" = "Купить Мне Кофе";
+"settings.about.donate.subtitle" = "Поддержать разработку";
+"settings.about.thirdParty" = "Просмотреть Уведомления Третьих Сторон";
+"settings.about.thirdParty.subtitle" = "Лицензии и атрибуции, используемые этим приложением.";
+"settings.about.copyright" = "© 2026 Marco Astorga González. Все права защищены. Выпущено как open source.";
+"settings.auroraTheme" = "Тема Aurora";
+
+/* Actions */
+"action.restore" = "Восстановить";
+"action.minimize" = "Свернуть";
+"action.close" = "Закрыть";
+"action.closeAll" = "Закрыть Всё";
+"action.restoreAll" = "Восстановить Всё";
+"action.minimizeAll" = "Свернуть Всё";
+"action.moveToThisDisplay" = "Переместить на этот Дисплей";
+"action.alwaysOnTop" = "Всегда Поверх Окон";
+"action.disableAlwaysOnTop" = "Отключить Всегда Поверх Окон";
+"action.reorganize" = "Реорганизовать Терминалы";
+"action.settings" = "Настройки";
+"action.showAllWindows" = "Показать Все Окна";
+"action.newTerminal" = "Новый Терминал";
+"action.hide" = "Скрыть";
+"action.cancel" = "Отмена";
+"action.quit" = "Выйти";
+"action.resetDefaults" = "Сбросить По умолчанию";
+
+/* Misc */
+"menu.bulkActions" = "Массовые действия";
+"menu.closeAllOnThisDisplay" = "Закрыть Всё на этом Дисплее";
+"menu.options" = "Опции";
+"storage.menu.title" = "Анализ Хранилища";
+"storage.menu.subtitle" = "Проверить обычные занимающие много места папки";
+"storage.menu.sidebarSubtitle" = "Просматривать категории и быстро освобождать место";
+"storage.menu.scanning" = "Сканирование обычных мест очистки...";
+"storage.menu.foundSoFar" = "Найдено пока";
+"storage.menu.progress" = "Сканирование мест очистки... (%d/%d)";
+"storage.menu.scanAgain" = "Сканировать Снова";
+"storage.menu.empty" = "Пока ничего большого не найдено";
+"storage.category.nodeModules" = "node_modules";
+"storage.category.nodeModules.subtitle" = "JavaScript зависимости, которые часто можно переустановить";
+"storage.category.derivedData" = "DerivedData";
+"storage.category.derivedData.subtitle" = "Артефакты сборки Xcode и промежуточные файлы";
+"storage.category.pods" = "Pods";
+"storage.category.pods.subtitle" = "Зависимости CocoaPods внутри ваших проектов";
+"storage.category.carthage" = "Carthage";
+"storage.category.carthage.subtitle" = "Папки сборки Carthage внутри ваших проектов";
+"storage.category.caches" = "Кэши";
+"storage.category.caches.subtitle" = "Кэши приложений и разработчика, хранящиеся в Library/Caches";
+"storage.category.logs" = "Логи";
+"storage.category.logs.subtitle" = "Логи приложений и системы, хранящиеся в Library/Logs";
+"storage.category.trash" = "Корзина";
+"storage.category.trash.subtitle" = "Элементы, находящиеся в корзине macOS";
+"storage.category.downloads" = "Старые Загрузки";
+"storage.category.downloads.subtitle" = "Загрузки старше 30 дней, которые могут больше не понадобиться";
+"storage.action.reveal" = "Показать в Finder";
+"storage.action.revealSelected" = "Показать Выбранное";
+"storage.action.trash" = "Переместить в Корзину";
+"storage.action.trashSelected" = "Переместить Выбранное в Корзину";
+"storage.action.trashAll" = "Переместить Всё в Корзину";
+"storage.action.selectAll" = "Выбрать Всё";
+"storage.action.clearSelection" = "Очистить Выбор";
+"storage.action.selectedItemsTitle" = "Выбранные Элементы";
+"storage.confirm.title" = "Переместить файлы в Корзину?";
+"storage.confirm.message" = "Переместить %@ (%d элемент(ов), %@) в Корзину?";
+"storage.detail.itemsCount" = "%d элемент(ов)";
+"storage.detail.back" = "Назад";
+"storage.filter.date" = "Дата";
+"storage.filter.date.all" = "Любое Время";
+"storage.filter.date.today" = "Сегодня";
+"storage.filter.date.week" = "Последние 7 Дней";
+"storage.filter.date.month" = "Последние 30 Дней";
+"storage.filter.date.quarter" = "Последние 90 Дней";
+"storage.filter.size" = "Размер";
+"storage.filter.size.any" = "Любой Размер";
+"storage.filter.size.100mb" = "Более 100 МБ";
+"storage.filter.size.500mb" = "Более 500 МБ";
+"storage.filter.size.1gb" = "Более 1 ГБ";
+"storage.filter.sort" = "Сортировать";
+"storage.filter.sort.largest" = "Сначала Большие";
+"storage.filter.sort.smallest" = "Сначала Маленькие";
+"storage.filter.sort.recent" = "Самые Последние";
+"storage.filter.sort.oldest" = "Сначала Старые";
+"storage.filter.sort.name" = "Имя";
+"storage.filter.sort.path" = "Путь";
+"storage.search.placeholder" = "Фильтровать по имени или пути";
+"storage.detail.name" = "Имя";
+"storage.detail.path" = "Путь";
+"storage.detail.modified" = "Изменено";
+"storage.detail.size" = "Размер";
+"storage.detail.filteredCount" = "%d из %d элемент(ов)";
+"storage.detail.selectCategory" = "Выберите Категорию";
+"storage.detail.selectCategorySubtitle" = "Выберите категорию из боковой панели для проверки больших папок.";
+"storage.detail.noMatches" = "Нет элементов, соответствующих этим фильтрам";
+"storage.detail.noMatchesSubtitle" = "Попробуйте более широкий фильтр даты, размера или поиска.";
+"storage.detail.unknownDate" = "Неизвестно";
+"storage.filter.clear" = "Очистить Фильтры";
+"storage.inUse.title" = "Некоторые Элементы Похоже Используются";
+"storage.inUse.message" = "Эти папки могут все еще использоваться активными процессами. Перемещение их в Корзину может оставить их там, пока эти процессы не остановятся.";
+"storage.inUse.continue" = "Все Равно Переместить";
+"storage.inUse.timeout" = "диагностика превысила время ожидания";
+"storage.inUse.more" = "%d другой(ых) элемент(ов) также сообщили об активности.";
+"storage.inUse.partialCheck" = "Проверено %d выбранный(ых) элемент(ов) перед продолжением.";
+
+/* Active Ports */
+"openPorts.title" = "Активные Порты";
+"openPorts.subtitle" = "Быстро проверить и остановить слушающие локальные порты";
+"openPorts.theme" = "Тема";
+"openPorts.theme.system" = "Системная";
+"openPorts.theme.dark" = "Темная";
+"openPorts.theme.light" = "Светлая";
+"openPorts.scope.dev" = "Dev";
+"openPorts.scope.all" = "Все";
+"openPorts.scope.picker" = "Область";
+"openPorts.scope.other" = "Другие";
+"openPorts.search.placeholder" = "Фильтровать по порту, процессу или PID";
+"openPorts.scanning" = "Сканирование портов...";
+"openPorts.action.refresh" = "Обновить";
+"openPorts.summary.count" = "%d dev";
+"openPorts.summary.other" = "%d другие";
+"openPorts.empty.all" = "Нет открытых портов, соответствующих этому фильтру.";
+"openPorts.empty.dev" = "Нет dev портов, соответствующих этому фильтру.";
+"openPorts.row.pidAndEndpoint" = "PID %@ • %@";
+"openPorts.kill" = "Убить";
+"openPorts.message.noListening" = "Не найдено слушающих TCP портов.";
+"openPorts.message.loadFailed" = "Не удалось загрузить открытые порты.";
+"openPorts.message.terminateFailed" = "Не удалось завершить PID %@.";

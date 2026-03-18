@@ -7,10 +7,10 @@ struct CLICommandBranding {
 }
 
 enum CLICommandBrandingResolver {
-    /// Whitelist of AI CLI tools that should change the window title.
+    /// Whitelist of supported CLI tools that should change the window title.
     /// Only these commands will update the title — everything else is ignored.
-    private static let aiCLITools: Set<String> = [
-        // OpenAI
+    private static let brandedCLITools: Set<String> = [
+        // OpenAI CLI
         "openai",
         // Anthropic
         "claude",
@@ -27,7 +27,7 @@ enum CLICommandBrandingResolver {
         "llama",
         // Ollama
         "ollama",
-        // OpenAI Codex
+        // Codex CLI
         "codex",
         // GitHub Copilot
         "copilot",
@@ -67,7 +67,7 @@ enum CLICommandBrandingResolver {
         "interpreter",
         // ShellGPT
         "sgpt",
-        // AI Chat
+        // Generic chat CLIs
         "ai",
         // Cody
         "cody",
@@ -89,12 +89,12 @@ enum CLICommandBrandingResolver {
         "claud code": "CLIClaude"
     ]
 
-    /// Returns branding only for whitelisted AI CLI tools.
-    /// Returns nil title for non-AI commands so the window keeps its default "NotchTerminal" title.
+    /// Returns branding only for whitelisted CLI tools.
+    /// Returns nil title for non-whitelisted commands so the window keeps its default "NotchTerminal" title.
     static func branding(for command: String) -> CLICommandBranding {
         let normalized = normalize(command)
 
-        guard aiCLITools.contains(normalized) else {
+        guard brandedCLITools.contains(normalized) else {
             return CLICommandBranding(title: nil, icon: nil)
         }
 

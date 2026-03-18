@@ -80,6 +80,8 @@ vendor/
 # Local scratch/debug files
 output.log
 test_canvas.swift
+.cache/
+.deriveddata/
 
 # Local signing overrides
 Config/Signing.local.xcconfig

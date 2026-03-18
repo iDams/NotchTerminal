@@ -8,9 +8,6 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetY) var startupOrbPillOffsetY: Double = AppPreferences.Defaults.startupOrbPillOffsetY
     @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetX) var startupOrbNotchOffsetX: Double = AppPreferences.Defaults.startupOrbNotchOffsetX
     @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetY) var startupOrbNotchOffsetY: Double = AppPreferences.Defaults.startupOrbNotchOffsetY
-    @AppStorage(AppPreferences.Keys.notchWidthOffset) var notchWidthOffset: Double = AppPreferences.Defaults.notchWidthOffset
-    @AppStorage(AppPreferences.Keys.notchHeightOffset) var notchHeightOffset: Double = AppPreferences.Defaults.notchHeightOffset
-
     private var experimentalFeatures: AppPreferences.ExperimentalFeatureConfiguration {
         AppPreferences.experimentalFeatureConfiguration()
     }
@@ -29,38 +26,10 @@ struct ExperimentalSettingsView: View {
         )
     }
 
-    private var hitTestDebugOverlayBinding: Binding<Bool> {
-        Binding(
-            get: { experimentalFeatures.hitTestDebugOverlayEnabled },
-            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.hitTestDebugOverlayEnabled) }
-        )
-    }
-
     private var notchDockingSensitivityBinding: Binding<Double> {
         Binding(
             get: { experimentalFeatures.notchDockingSensitivity },
             set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.notchDockingSensitivity) }
-        )
-    }
-
-    private var projectStatusCardEnabledBinding: Binding<Bool> {
-        Binding(
-            get: { experimentalFeatures.projectStatusCardEnabled },
-            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalProjectStatusCardEnabled) }
-        )
-    }
-
-    private var projectStatusShowGitBinding: Binding<Bool> {
-        Binding(
-            get: { experimentalFeatures.projectStatusShowGit },
-            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalProjectStatusShowGit) }
-        )
-    }
-
-    private var projectStatusShowFolderBinding: Binding<Bool> {
-        Binding(
-            get: { experimentalFeatures.projectStatusShowFolder },
-            set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalProjectStatusShowFolder) }
         )
     }
 
@@ -119,11 +88,9 @@ struct ExperimentalSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                geometrySection
+                experimentalNoticeSection
                 dockingSection
-                debugSection
                 startupOrbSection
-                projectStatusCardSection
                 NotchTerminalSettingsSection(contentSpacing: 12) {
                     NotchTerminalSectionHeading(
                         title: "settings.experimental.effects".localized,
@@ -166,6 +133,27 @@ struct ExperimentalSettingsView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .reportSettingsContentHeight(for: .experimental)
+        }
+    }
+
+    private var experimentalNoticeSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "flask")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .frame(width: 24, height: 24)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("settings.experimental.notice.title".localized)
+                        .font(.body.weight(.semibold))
+
+                    Text("settings.experimental.notice.body".localized)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 
@@ -273,99 +261,6 @@ struct ExperimentalSettingsView: View {
         }
     }
 
-    private var debugSection: some View {
-        NotchTerminalSettingsSection(contentSpacing: 12) {
-            NotchTerminalSectionHeading(
-                title: "settings.experimental.debug".localized,
-                subtitle: "settings.experimental.debug.subtitle".localized,
-                icon: "ladybug",
-                helpTooltip: "settings.experimental.debug.help".localized
-            )
-
-            NotchTerminalPreferenceToggleRow(
-                title: "settings.experimental.hitTestDebugOverlay".localized,
-                subtitle: "settings.experimental.hitTestDebugOverlay.subtitle".localized,
-                icon: "viewfinder.circle",
-                binding: hitTestDebugOverlayBinding
-            )
-        }
-    }
-
-    private var geometrySection: some View {
-        Group {
-            if hasAnyPhysicalNotch {
-                NotchTerminalSettingsSection(contentSpacing: 12) {
-                    NotchTerminalSectionHeading(
-                        title: "settings.appearance.geometry".localized,
-                        subtitle: "settings.appearance.geometry.subtitle".localized,
-                        icon: "aspectratio",
-                        helpTooltip: "settings.experimental.geometry.help".localized
-                    )
-
-                    Text("settings.experimental.notchOffsets.note".localized)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-
-                    NotchTerminalSliderPreferenceRow(
-                        title: "settings.notchWidthOffset".localized,
-                        subtitle: "settings.notchWidthOffset.subtitle".localized,
-                        icon: "arrow.left.and.right",
-                        value: $notchWidthOffset,
-                        range: -80 ... 80,
-                        step: 1,
-                        valueFormatter: { "\(Int($0))" }
-                    )
-
-                    NotchTerminalSliderPreferenceRow(
-                        title: "settings.notchHeightOffset".localized,
-                        subtitle: "settings.notchHeightOffset.subtitle".localized,
-                        icon: "arrow.up.and.down",
-                        value: $notchHeightOffset,
-                        range: -48 ... 48,
-                        step: 1,
-                        valueFormatter: { "\(Int($0))" }
-                    )
-                }
-            }
-        }
-    }
-
-    private var projectStatusCardSection: some View {
-        NotchTerminalSettingsSection(contentSpacing: 12) {
-            NotchTerminalSectionHeading(
-                title: "Project Status Card",
-                subtitle: "Display contextual project information in the Notch overlay",
-                icon: "lanyardcard.fill",
-                helpTooltip: "settings.experimental.projectStatus.help".localized
-            )
-
-            NotchTerminalPreferenceToggleRow(
-                title: "Enable Project Status Card",
-                subtitle: "Show the card when Notch is expanded",
-                icon: "menubar.rectangle",
-                binding: projectStatusCardEnabledBinding
-            )
-
-            if experimentalFeatures.projectStatusCardEnabled {
-                VStack(alignment: .leading, spacing: 12) {
-                    NotchTerminalPreferenceToggleRow(
-                        title: "Show Folder Name",
-                        subtitle: "Display the active terminal's project folder",
-                        icon: "folder",
-                        binding: projectStatusShowFolderBinding
-                    )
-
-                    NotchTerminalPreferenceToggleRow(
-                        title: "Show Git Status",
-                        subtitle: "Display current branch and pending changes",
-                        icon: "arrow.triangle.branch",
-                        binding: projectStatusShowGitBinding
-                    )
-                }
-                .padding(.leading, 32)
-            }
-        }
-    }
 }
 
 #Preview("Settings - Experimental") {
