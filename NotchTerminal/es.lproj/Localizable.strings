@@ -11,11 +11,11 @@
 
 /* Settings - Notch */
 "settings.notch.displays" = "Notches activos";
-"settings.notch.displays.subtitle" = "Activa o desactiva el notch de forma independiente en cada pantalla conectada.";
-"settings.notch.displays.help" = "Configura el comportamiento del notch por pantalla. Cada monitor puede tener su propio estado activo, ajustes de posicion, ajuste de ancho y fondo personalizado opcional.";
+"settings.notch.displays.subtitle" = "Activa o desactiva el Notch de forma independiente en cada pantalla conectada.";
+"settings.notch.displays.help" = "Configura el comportamiento del Notch por pantalla. Cada monitor puede tener su propio estado activo, ajustes de posicion, ajuste de ancho y fondo personalizado opcional.";
 "settings.notch.empty" = "No se detectaron pantallas activas.";
 "settings.notch.enabled" = "Activar este notch";
-"settings.notch.enabled.subtitle" = "Muestra el notch solo en esta pantalla.";
+"settings.notch.enabled.subtitle" = "Muestra el Notch solo en esta pantalla.";
 "settings.notch.offsetX" = "Posición horizontal";
 "settings.notch.offsetX.subtitle" = "Mueve este notch hacia la izquierda o derecha en su pantalla.";
 "settings.notch.offsetY" = "Posición vertical";
@@ -23,7 +23,7 @@
 "settings.notch.width" = "Ajuste de ancho";
 "settings.notch.width.subtitle" = "Encoge o ensancha este notch sin afectar a los demás.";
 "settings.notch.customBackground" = "Fondo personalizado";
-"settings.notch.customBackground.subtitle" = "Sobrescribe el fondo global del notch solo para esta pantalla.";
+"settings.notch.customBackground.subtitle" = "Sobrescribe el fondo global del Notch solo para esta pantalla.";
 "settings.notch.customBackground.enabled" = "Activar fondo aurora";
 "settings.notch.customBackground.enabled.subtitle" = "Aplica el efecto aurora solo a este notch.";
 "settings.notch.customBackground.theme.subtitle" = "Elige un tema de fondo para este notch.";
@@ -51,9 +51,9 @@
 "settings.automation.subtitle" = "Controla cómo y cuándo se abre y cierra el notch.";
 "settings.automation.help" = "Ajusta el comportamiento automatico del notch, incluyendo el tiempo de apertura por hover y si debe quedarse abierto mientras escribes.";
 "settings.autoOpenOnHover" = "Abrir notch al pasar el cursor";
-"settings.autoOpenOnHover.subtitle" = "Expande automáticamente el notch cuando el cursor llega.";
+"settings.autoOpenOnHover.subtitle" = "Expande automáticamente el Notch cuando el cursor llega.";
 "settings.autoOpenOnHoverDelay" = "Retraso de apertura por hover";
-"settings.autoOpenOnHoverDelay.subtitle" = "Tiempo que el cursor debe mantenerse cerca del notch antes de abrir.";
+"settings.autoOpenOnHoverDelay.subtitle" = "Tiempo que el cursor debe mantenerse cerca del Notch antes de abrir.";
 "settings.lockWhileTyping" = "Mantener abierto mientras escribes";
 "settings.lockWhileTyping.subtitle" = "Evita el cierre automático mientras escribes activamente.";
 
@@ -76,7 +76,7 @@
 /* Settings - Appearance */
 "settings.appearance.geometry" = "Geometría";
 "settings.appearance.geometry.subtitle" = "Ajusta finamente el diseño y espaciado del notch.";
-"settings.appearance.geometry.help" = "Ajusta el espaciado interno del notch para que la interfaz se vea equilibrada en diferentes tamanos de pantalla y densidades de contenido.";
+"settings.appearance.geometry.help" = "Ajusta el espaciado interno del Notch para que la interfaz se vea equilibrada en diferentes tamanos de pantalla y densidades de contenido.";
 "settings.contentPadding" = "Relleno de contenido";
 "settings.contentPadding.subtitle" = "Espaciado entre el contenido del terminal y los bordes del notch.";
 "settings.appearance.terminalChips" = "Chips de terminal";
@@ -100,12 +100,12 @@
 
 "settings.appearance.effects" = "Efectos";
 "settings.appearance.effects.subtitle" = "Efectos visuales para la superficie del notch.";
-"settings.appearance.effects.help" = "Controla estilos visuales opcionales, como el fondo Aurora usado detras del contenido del notch en pantallas compatibles.";
+"settings.appearance.effects.help" = "Controla estilos visuales opcionales, como el fondo Aurora usado detras del contenido del Notch en pantallas compatibles.";
 "settings.appearance.projectStatus" = "Tarjeta de estado del proyecto";
-"settings.appearance.projectStatus.subtitle" = "Muestra detalles contextuales del proyecto en el notch expandido.";
-"settings.appearance.projectStatus.help" = "Muestra contexto ligero del proyecto en el notch expandido, como el nombre de la carpeta actual y el estado de git de la sesion de terminal activa.";
+"settings.appearance.projectStatus.subtitle" = "Muestra detalles contextuales del proyecto en el Notch expandido.";
+"settings.appearance.projectStatus.help" = "Muestra contexto ligero del proyecto en el Notch expandido, como el nombre de la carpeta actual y el estado de git de la sesion de terminal activa.";
 "settings.appearance.projectStatus.enabled" = "Activar tarjeta de estado del proyecto";
-"settings.appearance.projectStatus.enabled.subtitle" = "Muestra la tarjeta cuando el notch esta expandido.";
+"settings.appearance.projectStatus.enabled.subtitle" = "Muestra la tarjeta cuando el Notch esta expandido.";
 "settings.appearance.projectStatus.showFolder" = "Mostrar nombre de carpeta";
 "settings.appearance.projectStatus.showFolder.subtitle" = "Muestra la carpeta del proyecto del terminal activo.";
 "settings.appearance.projectStatus.showGit" = "Mostrar estado de Git";
@@ -116,12 +116,12 @@
 /* Settings - Experimental */
 "settings.experimental.effects" = "Efectos experimentales";
 "settings.experimental.effects.subtitle" = "Visuales opcionales que pueden variar según pantalla/GPU.";
-"settings.experimental.effects.help" = "Efectos visuales que cambian como se ve el notch o el area del terminal. Algunas opciones pueden usar mas GPU y bateria, y su comportamiento puede variar segun la pantalla.";
+"settings.experimental.effects.help" = "Efectos visuales que cambian como se ve el Notch o el area del terminal. Algunas opciones pueden usar mas GPU y bateria, y su comportamiento puede variar segun la pantalla.";
 "settings.experimental.notice.title" = "Las funciones experimentales pueden cambiar";
 "settings.experimental.notice.body" = "Estas opciones siguen en prueba. Algunas pueden cambiar, moverse o eliminarse a medida que evoluciona el producto, y tambien pueden aparecer nuevos experimentos con el tiempo.";
 "settings.experimental.startupOrb.section" = "Orb de notificaciones";
 "settings.experimental.startupOrb.section.subtitle" = "Apariencia y posición experimental del orb de notificaciones.";
-"settings.experimental.startupOrb.section.help" = "Controla el pequeno orb que aparece cerca del notch para estados de inicio o notificaciones. Usa los offsets para afinar su posicion en pantallas con notch simulado o notch fisico.";
+"settings.experimental.startupOrb.section.help" = "Controla el pequeno orb que aparece cerca del Notch para estados de inicio o notificaciones. Usa los offsets para afinar su posicion en pantallas con notch simulado o notch fisico.";
 "settings.experimental.startupOrb" = "Mostrar orb de notificaciones";
 "settings.experimental.startupOrb.subtitle" = "Muestra el orb de notificaciones junto al notch.";
 "settings.experimental.startupOrb.pillOffsetX" = "Desplazamiento X del orb de notificaciones pill";
@@ -133,10 +133,10 @@
 "settings.experimental.startupOrb.notchOffsetY" = "Desplazamiento Y del orb de notificaciones en notch real";
 "settings.experimental.startupOrb.notchOffsetY.subtitle" = "Ajusta el desplazamiento vertical del orb en pantallas con notch físico.";
 "settings.experimental.warning" = "Estos efectos visuales son altamente experimentales y consumen batería.";
-"settings.experimental.geometry.help" = "Ajustes avanzados de geometria para pantallas con notch fisico. Usalos solo cuando la mascara del notch no se alinea correctamente con tu hardware.";
-"settings.experimental.docking.help" = "Controla como las ventanas de terminal se acoplan al area del notch al arrastrarlas cerca. Una sensibilidad mas alta hace que el acople se active con mayor facilidad.";
-"settings.experimental.dragToNotch" = "Activar acople al notch por arrastre";
-"settings.experimental.dragToNotch.subtitle" = "Permite que las ventanas de terminal se acoplen al notch al arrastrarlas cerca. Experimental y aún inestable.";
+"settings.experimental.geometry.help" = "Ajustes avanzados de geometria para pantallas con notch fisico. Usalos solo cuando la mascara del Notch no se alinea correctamente con tu hardware.";
+"settings.experimental.docking.help" = "Controla como las ventanas de terminal se acoplan al area del Notch al arrastrarlas cerca. Una sensibilidad mas alta hace que el acople se active con mayor facilidad.";
+"settings.experimental.dragToNotch" = "Activar acople al Notch por arrastre";
+"settings.experimental.dragToNotch.subtitle" = "Permite que las ventanas de terminal se acoplen al Notch al arrastrarlas cerca. Experimental y aún inestable.";
 "settings.fakeNotchGlow" = "Pill Notch Glow";
 "settings.fakeNotchGlow.subtitle" = "Efecto de brillo néon morado para notches simulados.";
 "settings.fakeNotchGlowTheme" = "Tema de brillo";
