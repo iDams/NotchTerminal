@@ -6,8 +6,6 @@
 
 **English** | **Español** | **日本語** | **简体中文** | **Français**
 
-> Coming soon
-
 <p align="center">
   <img src="docs/hero.png" alt="NotchTerminal" width="720" />
 </p>
