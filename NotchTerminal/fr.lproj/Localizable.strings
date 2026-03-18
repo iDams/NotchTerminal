@@ -117,6 +117,8 @@
 "settings.experimental.effects" = "Effets expérimentaux";
 "settings.experimental.effects.subtitle" = "Visuels optionnels qui peuvent varier selon l'écran/GPU.";
 "settings.experimental.effects.help" = "Effets visuels qui modifient l'apparence du notch ou de la zone du terminal. Certaines options peuvent utiliser davantage de GPU et de batterie, et le rendu peut varier selon l'ecran.";
+"settings.experimental.notice.title" = "Les fonctions experimentales peuvent changer";
+"settings.experimental.notice.body" = "Ces options sont encore en cours de test. Certaines peuvent changer, etre deplacees ou supprimees a mesure que le produit evolue, et de nouvelles experiences peuvent apparaitre avec le temps.";
 "settings.experimental.startupOrb.section" = "Orbe de notification";
 "settings.experimental.startupOrb.section.subtitle" = "Apparence et position expérimentales de l’orbe de notification.";
 "settings.experimental.startupOrb.section.help" = "Controle le petit orbe affiche pres du notch pour les etats de demarrage ou de notification. Utilisez les offsets pour affiner sa position sur les ecrans a faux notch ou a notch physique.";
@@ -168,6 +170,7 @@
 "settings.about.donate" = "M'offrir un café";
 "settings.about.donate.subtitle" = "Soutenir le développement";
 "settings.about.thirdParty" = "Voir les avis tiers";
+"settings.about.thirdParty.subtitle" = "Licences et attributions utilisées par cette application.";
 "settings.about.copyright" = "© 2026 Marco Astorga González. Tous droits réservés. Publié en open source.";
 
 /* Actions */
@@ -242,6 +245,7 @@
 "storage.filter.size.1gb" = "Plus de 1 Go";
 "storage.filter.sort" = "Trier";
 "storage.filter.sort.largest" = "Plus volumineux d'abord";
+"storage.filter.sort.smallest" = "Plus petits d'abord";
 "storage.filter.sort.recent" = "Plus recents";
 "storage.filter.sort.oldest" = "Plus anciens";
 "storage.filter.sort.name" = "Nom";

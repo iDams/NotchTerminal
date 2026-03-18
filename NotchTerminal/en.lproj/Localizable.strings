@@ -117,6 +117,8 @@
 "settings.experimental.effects" = "Experimental Effects";
 "settings.experimental.effects.subtitle" = "Optional visuals that may vary by screen/GPU.";
 "settings.experimental.effects.help" = "Visual effects that change how the notch or terminal area looks. Some options may use more GPU and battery, and behavior can vary by display type.";
+"settings.experimental.notice.title" = "Experimental features can change";
+"settings.experimental.notice.body" = "These options are still being tested. Some may change, move, or be removed as the product evolves, and new experiments may appear over time.";
 "settings.experimental.startupOrb.section" = "Notification Orb";
 "settings.experimental.startupOrb.section.subtitle" = "Experimental notification orb appearance and positioning.";
 "settings.experimental.startupOrb.section.help" = "Controls the small orb shown near the notch for startup or notification states. Use the offsets to fine-tune its position on fake-notch and physical-notch displays.";

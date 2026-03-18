@@ -10,6 +10,7 @@ NotchTerminal supports multiple languages with automatic system detection and ma
 | `es` | Spanish | ✅ |
 | `fr` | French | ✅ |
 | `ja` | Japanese | ✅ |
+| `zh-Hans` | Simplified Chinese | ✅ |
 
 ## How It Works
 
@@ -28,7 +29,7 @@ If the system language is not supported, it falls back to English (`en`).
 Users can manually select their preferred language in **Settings → General → Language**:
 
 - **System Default**: Uses the system's language setting
-- **Manual Selection**: Choose from available languages (English, Spanish, French, Japanese)
+- **Manual Selection**: Choose from available languages (English, Spanish, French, Japanese, Simplified Chinese)
 
 The user's selection is stored in `UserDefaults` with the key `userLanguageOverride`.
 
@@ -68,7 +69,7 @@ final class LanguageManager: ObservableObject {
 Add the new language code to `supportedLanguageCodes`:
 
 ```swift
-private let supportedLanguageCodes = ["en", "es", "fr", "ja", "de"] // Add "de" for German
+private let supportedLanguageCodes = ["en", "es", "fr", "ja", "zh-Hans", "de"] // Add "de" for German
 ```
 
 ### 2. Create Localization File
@@ -124,6 +125,8 @@ NotchTerminal/
 │   └── Localizable.strings      # French
 ├── ja.lproj/
 │   └── Localizable.strings      # Japanese
+├── zh-Hans.lproj/
+│   └── Localizable.strings      # Simplified Chinese
 └── Settings/
     └── SettingsView.swift       # Language picker UI
 ```

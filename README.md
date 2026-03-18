@@ -148,7 +148,7 @@ Why this exists:
 ## Settings Overview
 
 - `General`
-  - Language: system default or manual override (`en`, `es`, `fr`, `ja`)
+  - Language: system default or manual override (`en`, `es`, `fr`, `ja`, `zh-Hans`)
   - Haptics
   - Dock icon toggle
   - Menu bar icon toggle

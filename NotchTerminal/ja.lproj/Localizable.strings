@@ -117,6 +117,8 @@
 "settings.experimental.effects" = "実験的エフェクト";
 "settings.experimental.effects.subtitle" = "画面/GPUによって異なる場合があります。";
 "settings.experimental.effects.help" = "ノッチやターミナル領域の見た目を変える視覚効果です。設定によってはGPUやバッテリー消費が増え、表示はディスプレイごとに異なる場合があります。";
+"settings.experimental.notice.title" = "実験的な機能は今後変わることがあります";
+"settings.experimental.notice.body" = "これらの項目はまだ検証中です。製品の進化にあわせて変更、移動、削除される場合があり、今後新しい実験項目が追加されることもあります。";
 "settings.experimental.startupOrb.section" = "通知オーブ";
 "settings.experimental.startupOrb.section.subtitle" = "通知オーブの外観と位置に関する実験的設定です。";
 "settings.experimental.startupOrb.section.help" = "起動時や通知時にノッチ付近へ表示される小さなオーブを制御します。擬似ノッチ画面と物理ノッチ画面の両方で、オフセットを使って位置を微調整できます。";
@@ -168,6 +170,7 @@
 "settings.about.donate" = "コーヒーを奢る";
 "settings.about.donate.subtitle" = "開発をサポート";
 "settings.about.thirdParty" = "サードパーティの情報を表示";
+"settings.about.thirdParty.subtitle" = "このアプリで使用されているライセンスと帰属。";
 "settings.about.copyright" = "© 2026 Marco Astorga González. 全著作権所有。オープンソースとして公開。";
 
 /* Actions */
@@ -242,6 +245,7 @@
 "storage.filter.size.1gb" = "1 GB以上";
 "storage.filter.sort" = "並び順";
 "storage.filter.sort.largest" = "サイズが大きい順";
+"storage.filter.sort.smallest" = "サイズが小さい順";
 "storage.filter.sort.recent" = "更新が新しい順";
 "storage.filter.sort.oldest" = "更新が古い順";
 "storage.filter.sort.name" = "名前";

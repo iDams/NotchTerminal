@@ -88,6 +88,7 @@ struct ExperimentalSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                experimentalNoticeSection
                 dockingSection
                 startupOrbSection
                 NotchTerminalSettingsSection(contentSpacing: 12) {
@@ -132,6 +133,27 @@ struct ExperimentalSettingsView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .reportSettingsContentHeight(for: .experimental)
+        }
+    }
+
+    private var experimentalNoticeSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "flask")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .frame(width: 24, height: 24)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("settings.experimental.notice.title".localized)
+                        .font(.body.weight(.semibold))
+
+                    Text("settings.experimental.notice.body".localized)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 

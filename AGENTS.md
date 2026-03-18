@@ -43,7 +43,7 @@ Requirements:
 
 ## Localization
 - Primary strings: `NotchTerminal/*/*.strings` and `*.lproj/Localizable.strings`.
-- Existing languages include `en`, `es`, `fr`, `ja`.
+- Existing languages include `en`, `es`, `fr`, `ja`, `zh-Hans`.
 - See `docs/localization/LOCALIZATION.md` for language system details.
 
 ## Safe Change Guidelines

@@ -6,7 +6,8 @@ final class LanguageManager: ObservableObject {
     static let shared = LanguageManager()
 
     private let userOverrideKey = "userLanguageOverride"
-    private let supportedLanguageCodes = ["en", "es", "fr", "ja"]
+    private let fallbackLanguageCode = "en"
+    private let supportedLanguageCodes = ["en", "es", "fr", "ja", "zh-Hans"]
     
     private var _updateTrigger: Int = 0
     var updateTrigger: Int {
@@ -15,18 +16,16 @@ final class LanguageManager: ObservableObject {
 
     var currentLanguage: String {
         if let userOverride = UserDefaults.standard.string(forKey: userOverrideKey) {
-            return userOverride
+            return normalizedLanguageCode(from: userOverride)
         }
         return systemLanguage
     }
 
     var systemLanguage: String {
-        let preferredLanguages = Locale.preferredLanguages
-        guard let firstLanguage = preferredLanguages.first else {
-            return "en"
+        guard let firstLanguage = Locale.preferredLanguages.first else {
+            return fallbackLanguageCode
         }
-        let languageCode = String(firstLanguage.prefix(2))
-        return supportedLanguageCodes.contains(languageCode) ? languageCode : "en"
+        return normalizedLanguageCode(from: firstLanguage)
     }
 
     var userHasSelectedLanguage: Bool {
@@ -34,8 +33,9 @@ final class LanguageManager: ObservableObject {
     }
 
     func setLanguage(_ languageCode: String) {
-        guard supportedLanguageCodes.contains(languageCode) else { return }
-        UserDefaults.standard.set(languageCode, forKey: userOverrideKey)
+        let normalizedCode = normalizedLanguageCode(from: languageCode)
+        guard supportedLanguageCodes.contains(normalizedCode) else { return }
+        UserDefaults.standard.set(normalizedCode, forKey: userOverrideKey)
         _updateTrigger += 1
         objectWillChange.send()
     }
@@ -47,6 +47,9 @@ final class LanguageManager: ObservableObject {
     }
 
     func displayName(for languageCode: String) -> String {
+        if languageCode == "zh-Hans" {
+            return "简体中文"
+        }
         let locale = Locale(identifier: languageCode)
         return locale.localizedString(forLanguageCode: languageCode) ?? languageCode.uppercased()
     }
@@ -64,6 +67,23 @@ final class LanguageManager: ObservableObject {
             return NSLocalizedString(key, comment: "")
         }
         return NSLocalizedString(key, bundle: bundle, comment: "")
+    }
+
+    private func normalizedLanguageCode(from identifier: String) -> String {
+        let normalizedIdentifier = identifier.lowercased()
+
+        if normalizedIdentifier.hasPrefix("zh-hans")
+            || normalizedIdentifier.hasPrefix("zh-cn")
+            || normalizedIdentifier == "zh" {
+            return "zh-Hans"
+        }
+
+        if normalizedIdentifier.hasPrefix("en") { return "en" }
+        if normalizedIdentifier.hasPrefix("es") { return "es" }
+        if normalizedIdentifier.hasPrefix("fr") { return "fr" }
+        if normalizedIdentifier.hasPrefix("ja") { return "ja" }
+
+        return fallbackLanguageCode
     }
 }
 
