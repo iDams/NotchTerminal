@@ -2,6 +2,8 @@
 
 NotchTerminal is a macOS terminal app built around the notch.
 
+Version `1.2.0` is the current stable release.
+
 <p align="center">
   <img src="docs/logo.png" alt="NotchTerminal Logo" width="160" />
 </p>
@@ -82,7 +84,7 @@ The rest of the app builds around that core workflow.
 
 These features are useful extras around the main terminal experience.
 
-### Open Ports Panel
+### Active Ports
 - Lists listening TCP ports
 - Search and filter by dev/all
 - Kill process by PID from the UI
