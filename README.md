@@ -20,7 +20,9 @@
 
 
 <p align="center">
-  <a href="docs/demo1.mp4">Demo 1</a> | <a href="docs/demo2.mp4">Demo 2</a>
+## Demo
+
+[Watch demo video](https://github.com/iDams/NotchTerminal/raw/refs/heads/main/docs/demo1.mp4)
 </p>
 
 ---
