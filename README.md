@@ -4,7 +4,7 @@
 [![macOS](https://img.shields.io/badge/macOS-14%2B-blue.svg)]()
 [![Version](https://img.shields.io/badge/Version-1.2.0-green.svg)]()
 
-**English** | **Español** | **日本語** | **简体中文** | **Français**
+**English** | [**Español**](README.es.md) | [**日本語**](README.ja.md) | [**简体中文**](README.zh-Hans.md) | [**Français**](README.fr.md)
 
 <p align="center">
   <img src="docs/hero.png" alt="NotchTerminal" width="720" />
