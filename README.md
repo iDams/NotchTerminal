@@ -10,34 +10,44 @@
   <img src="docs/hero.png" alt="NotchTerminal" width="720" />
 </p>
 
-**NotchTerminal** is a macOS terminal app built around the notch. Keep terminal access fast, visible, and close to what you're doing, without filling your desktop with extra windows.
+A drop-down terminal for macOS that lives in your notch. Fast, always accessible, and stays out of your way.
 
 ---
-
 
 ## Demo
 
 https://github.com/user-attachments/assets/bfe05d72-96fe-45c9-a9d1-94521a5d3023
 
-
 https://github.com/user-attachments/assets/4b07bcd6-1c13-4916-bbe0-b65342c73f78
 
 ---
 
-## Table of Contents
+## Features
 
-- [Screenshots](#screenshots)
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Build from Source](#build-from-source)
-- [Project Structure](#project-structure)
-- [Settings](#settings)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [Credits](#credits)
-- [Support](#support)
-- [License](#license)
+- **Notch Integration:** Hover to expand. Works on all Macs (even those without a physical notch) and across multiple displays.
+- **Menu Bar Access:** A menu bar item is available for quick access to core functions and settings.
+- **Session Management:** SwiftData persistence automatically restores your window positions, sizes, and states across launches.
+- **Window Management:** Compact mode, always-on-top, and a drag-and-drop system that supports paths.
+- **Built-in Tools:**
+  - *Active Ports:* View listening TCP ports and kill processes directly.
+  - *Storage Analyzer:* Quickly scan and clean up `node_modules`, `DerivedData`, caches, and logs.
+
+### Experimental Features
+NotchTerminal includes an experimental settings tab featuring:
+- **CRT Filter:** A retro CRT terminal overlay using Metal shaders.
+- **Fake Notch Glow:** Simulates a glowing ambient light coming from the notch (Cyberpunk theme, etc).
+- **Startup Orb:** A visual indicator during app launch.
+- **Drag-to-Dock:** Adjust the magnetic sensitivity when dragging terminal windows near the notch.
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘C` / `⌘V` / `⌘A` | Copy / Paste / Select All |
+| `⌘K` | Clear buffer |
+| `⌘F` | Search |
+| `⌘W` | Close session |
+| `⌘+` / `⌘-` | Adjust font size |
 
 ---
 
@@ -53,55 +63,10 @@ https://github.com/user-attachments/assets/4b07bcd6-1c13-4916-bbe0-b65342c73f78
 
 ---
 
-## Features
-
-### Notch Overlay
-- Expands on hover
-- Works across multiple displays
-- Compatible with Macs with and without a physical notch
-- Shows minimized terminal chips
-- Quick actions: `New`, `Reorg`, `Bulk`, `Settings`
-
-### Terminal Windows
-- Open/close/minimize/maximize
-- Compact mode
-- Always on Top toggle
-- Dock-to-notch when dragged near the notch
-- Drag & drop files/folders (inserts escaped paths)
-
-### Sessions
-- Persistence via SwiftData
-- Automatic restore on launch: position, size, docked state, compact mode, always-on-top, maximized state
-
-### Developer Utilities
-- **Active Ports**: list listening TCP ports, filter, kill processes by PID
-- **Storage Analysis**: scan `node_modules`, `DerivedData`, `Pods`, caches, logs, Trash, and more
-
-### Visual Effects
-- Aurora background styling
-- CRT filter
-- Fake Notch glow
-
-### Menu Bar
-- Quick access: New Terminal, Show All Windows, Settings, Hide, Quit
-
-### Keyboard Shortcuts
-| Shortcut | Action |
-|----------|--------|
-| `⌘C` / `⌘V` / `⌘A` | Copy / Paste / Select All |
-| `⌘K` | Clear buffer |
-| `⌘F` | Search |
-| `⌘W` | Close session |
-| `⌘+` / `⌘-` | Adjust font size |
-
----
-
 ## Requirements
 
-- macOS 14 or later
-- Xcode 16+ (for development only)
-
-> The default shell is `/bin/zsh`, available on any clean macOS install.
+- macOS 14+
+- Xcode 16+ (to build from source)
 
 ---
 
@@ -113,93 +78,31 @@ https://github.com/user-attachments/assets/4b07bcd6-1c13-4916-bbe0-b65342c73f78
 
 ## Build from Source
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/marcoastorj/NotchTerminal.git
-   cd NotchTerminal
-   ```
+```bash
+git clone https://github.com/marcoastorj/NotchTerminal.git
+cd NotchTerminal
+```
+Open `NotchTerminal.xcodeproj` and run the `NotchTerminal` scheme.
 
-2. Open `NotchTerminal.xcodeproj`
-
-3. Select scheme `NotchTerminal`
-
-4. Build and run
-
-### Local Code Signing for Contributors
-
-The repository does not include a personal Apple `DEVELOPMENT_TEAM`:
-
+**Local Code Signing:**
+The repository does not include a personal Apple `DEVELOPMENT_TEAM`. To build locally:
 1. Copy `Config/Signing.local.example.xcconfig` to `Config/Signing.local.xcconfig`
-2. Replace `YOURTEAMID` with your own Apple Developer team ID
-3. Keep `Config/Signing.local.xcconfig` local only (in `.gitignore`)
-
-### Debug Workflow
-
-Debug builds automatically install to `/Applications/NotchTerminal.app` for testing outside Xcode.
+2. Add your Apple Developer team ID.
+3. Keep this file local (it's in `.gitignore`).
 
 ---
 
-## Project Structure
+## Documentation & Links
 
-```
-NotchTerminal/
-├── App/                    # App lifecycle
-├── Features/
-│   ├── Notch/              # Overlay UI, interactions
-│   ├── Storage/            # Storage analysis
-│   ├── Windows/            # Window manager, terminal
-│   └── Persistence/        # SwiftData models
-├── Rendering/Metal/        # Shaders and renderers
-├── Settings/               # Settings screens
-├── Services/               # Helpers and services
-└── Assets.xcassets/        # Icons and images
-```
-
----
-
-## Settings
-
-| Section | Main Options |
-|---------|--------------|
-| **General** | Language, haptics, Dock icon, menu bar icon, hover behavior |
-| **Notch** | Per-display enable/disable, X/Y offsets, width, custom Aurora |
-| **Appearance** | Padding, chip close on hover, preview on hover, Aurora theme |
-| **About** | Show Experimental tab |
-| **Experimental** | Drag-to-notch sensitivity, Startup Orb, Fake Notch Glow, CRT Filter |
-
-Supported languages: English, Español, Français, 日本語, 简体中文
-
----
-
-## Documentation
-
-- Docs index: [`docs/README.md`](docs/README.md)
-- Testing: [`docs/quality/`](docs/quality/)
-- Localization: [`docs/localization/LOCALIZATION.md`](docs/localization/LOCALIZATION.md)
-
----
-
-## Contributing
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
----
-
-## Credits
-
-See [`NotchTerminal/Resources/THIRD_PARTY_NOTICES.md`](NotchTerminal/Resources/THIRD_PARTY_NOTICES.md).
-
-Main attributions:
-- **SwiftTerm** – terminal emulation (MIT)
-- **Port-Killer** – inspiration for the port workflow (MIT)
-
-Brand marks/logos used in the UI belong to their respective owners.
+- [Documentation Index](docs/README.md)
+- [Testing Guide](docs/quality/)
+- [Localization](docs/localization/LOCALIZATION.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
+- [Third-Party Notices](NotchTerminal/Resources/THIRD_PARTY_NOTICES.md)
 
 ---
 
 ## Support
-
-If you'd like to support development:
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow.svg)](https://buymeacoffee.com/marcoastorj)
 
@@ -212,9 +115,3 @@ If you'd like to support development:
 ## License
 
 [MIT](LICENSE) © 2026 Marco Astorga González
-
----
-
-<p align="center">
-  Made with ❤️ by Marco Astorga González
-</p>

@@ -10,34 +10,44 @@
   <img src="docs/hero.png" alt="NotchTerminal" width="720" />
 </p>
 
-**NotchTerminal** es una aplicación de terminal para macOS construida alrededor del "notch". Mantén el acceso a la terminal rápido, visible y cerca de lo que estás haciendo, sin llenar tu escritorio con ventanas adicionales.
+Una terminal desplegable para macOS que vive en tu notch. Rápida, siempre accesible y no estorba.
 
 ---
-
 
 ## Demostración
 
 https://github.com/user-attachments/assets/bfe05d72-96fe-45c9-a9d1-94521a5d3023
 
-
 https://github.com/user-attachments/assets/4b07bcd6-1c13-4916-bbe0-b65342c73f78
 
 ---
 
-## Tabla de Contenidos
+## Características
 
-- [Capturas de pantalla](#capturas-de-pantalla)
-- [Características](#características)
-- [Requisitos](#requisitos)
-- [Instalación](#instalación)
-- [Construir desde el código fuente](#construir-desde-el-código-fuente)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Ajustes](#ajustes)
-- [Documentación](#documentación)
-- [Contribución](#contribución)
-- [Créditos](#créditos)
-- [Soporte](#soporte)
-- [Licencia](#licencia)
+- **Integración con el Notch:** Se expande al pasar el cursor. Funciona en todos los Macs (incluso aquellos sin notch físico) y en múltiples pantallas.
+- **Acceso en la Barra de Menú:** Un ícono en la barra de menú está disponible para acceso rápido a las funciones principales y ajustes.
+- **Gestión de Sesiones:** La persistencia con SwiftData restaura automáticamente las posiciones, tamaños y estados de tus ventanas al iniciar.
+- **Gestión de Ventanas:** Modo compacto, siempre visible (always-on-top) y un sistema de arrastrar y soltar que soporta rutas.
+- **Herramientas Integradas:**
+  - *Puertos Activos:* Ve los puertos TCP en escucha y mata procesos directamente.
+  - *Analizador de Almacenamiento:* Escanea y limpia rápidamente `node_modules`, `DerivedData`, cachés y registros.
+
+### Funciones Experimentales
+NotchTerminal incluye una pestaña de ajustes experimentales que ofrece:
+- **Filtro CRT:** Una superposición de terminal CRT retro usando shaders de Metal.
+- **Brillo Simulado del Notch:** Simula una luz ambiental que proviene del notch (tema Cyberpunk, etc.).
+- **Orbe de Inicio:** Un indicador visual durante el lanzamiento de la aplicación.
+- **Arrastrar para Acoplar (Drag-to-Dock):** Ajusta la sensibilidad magnética al arrastrar ventanas de terminal cerca del notch.
+
+### Atajos de Teclado
+
+| Atajo | Acción |
+|----------|--------|
+| `⌘C` / `⌘V` / `⌘A` | Copiar / Pegar / Seleccionar Todo |
+| `⌘K` | Limpiar buffer |
+| `⌘F` | Buscar |
+| `⌘W` | Cerrar sesión |
+| `⌘+` / `⌘-` | Ajustar tamaño de fuente |
 
 ---
 
@@ -53,55 +63,10 @@ https://github.com/user-attachments/assets/4b07bcd6-1c13-4916-bbe0-b65342c73f78
 
 ---
 
-## Características
-
-### Superposición del Notch
-- Se expande al pasar el cursor
-- Funciona en múltiples pantallas
-- Compatible con Macs con y sin notch físico
-- Muestra los terminales minimizados
-- Acciones rápidas: `Nuevo`, `Reorganizar`, `En masa`, `Ajustes`
-
-### Ventanas de Terminal
-- Abrir/cerrar/minimizar/maximizar
-- Modo compacto
-- Opción de "Siempre visible" (Always on Top)
-- Se acopla al notch al arrastrar cerca de él
-- Arrastrar y soltar archivos/carpetas (inserta rutas escapadas)
-
-### Sesiones
-- Persistencia a través de SwiftData
-- Restauración automática al iniciar: posición, tamaño, estado acoplado, modo compacto, siempre visible, estado maximizado
-
-### Utilidades para Desarrolladores
-- **Puertos Activos**: lista de puertos TCP en escucha, filtrar, matar procesos por PID
-- **Análisis de Almacenamiento**: escaneo de `node_modules`, `DerivedData`, `Pods`, cachés, registros, Papelera, y más
-
-### Efectos Visuales
-- Fondo estilo Aurora
-- Filtro CRT
-- Brillo simulado del Notch
-
-### Barra de Menú
-- Acceso rápido: Nuevo Terminal, Mostrar Todas las Ventanas, Ajustes, Ocultar, Salir
-
-### Atajos de Teclado
-| Atajo | Acción |
-|----------|--------|
-| `⌘C` / `⌘V` / `⌘A` | Copiar / Pegar / Seleccionar Todo |
-| `⌘K` | Limpiar buffer |
-| `⌘F` | Buscar |
-| `⌘W` | Cerrar sesión |
-| `⌘+` / `⌘-` | Ajustar tamaño de fuente |
-
----
-
 ## Requisitos
 
 - macOS 14 o superior
-- Xcode 16+ (solo para desarrollo)
-
-> La shell por defecto es `/bin/zsh`, disponible en cualquier instalación limpia de macOS.
+- Xcode 16+ (solo para compilar desde el código fuente)
 
 ---
 
@@ -113,93 +78,31 @@ https://github.com/user-attachments/assets/4b07bcd6-1c13-4916-bbe0-b65342c73f78
 
 ## Construir desde el código fuente
 
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/marcoastorj/NotchTerminal.git
-   cd NotchTerminal
-   ```
+```bash
+git clone https://github.com/marcoastorj/NotchTerminal.git
+cd NotchTerminal
+```
+Abre `NotchTerminal.xcodeproj` y ejecuta el esquema `NotchTerminal`.
 
-2. Abre `NotchTerminal.xcodeproj`
-
-3. Selecciona el esquema `NotchTerminal`
-
-4. Compila y ejecuta
-
-### Firma de Código Local para Contribuidores
-
-El repositorio no incluye un `DEVELOPMENT_TEAM` personal de Apple:
-
+**Firma de Código Local:**
+El repositorio no incluye un `DEVELOPMENT_TEAM` personal de Apple. Para compilar localmente:
 1. Copia `Config/Signing.local.example.xcconfig` a `Config/Signing.local.xcconfig`
-2. Reemplaza `YOURTEAMID` con tu propio ID de equipo de Apple Developer
-3. Mantén `Config/Signing.local.xcconfig` solo a nivel local (en `.gitignore`)
-
-### Flujo de Trabajo de Depuración
-
-Las compilaciones de depuración se instalan automáticamente en `/Applications/NotchTerminal.app` para probar fuera de Xcode.
+2. Añade tu propio ID de equipo de Apple Developer.
+3. Mantén este archivo solo de forma local (está en `.gitignore`).
 
 ---
 
-## Estructura del Proyecto
+## Documentación y Enlaces
 
-```
-NotchTerminal/
-├── App/                    # Ciclo de vida de la aplicación
-├── Features/
-│   ├── Notch/              # Interfaz superpuesta, interacciones
-│   ├── Storage/            # Análisis de almacenamiento
-│   ├── Windows/            # Gestor de ventanas, terminal
-│   └── Persistence/        # Modelos de SwiftData
-├── Rendering/Metal/        # Shaders y renderizadores
-├── Settings/               # Pantallas de ajustes
-├── Services/               # Ayudantes y servicios
-└── Assets.xcassets/        # Iconos e imágenes
-```
-
----
-
-## Ajustes
-
-| Sección | Opciones Principales |
-|---------|--------------|
-| **General** | Idioma, háptica, icono en el Dock, icono en barra de menú, comportamiento al pasar el cursor |
-| **Notch** | Habilitar/deshabilitar por pantalla, desplazamientos X/Y, ancho, Aurora personalizada |
-| **Apariencia** | Relleno, cerrar al pasar el cursor, vista previa al pasar, tema Aurora |
-| **Acerca de** | Mostrar pestaña Experimental |
-| **Experimental** | Sensibilidad de arrastre al notch, Orbe de Inicio, Brillo de Notch falso, Filtro CRT |
-
-Idiomas soportados: English, Español, Français, 日本語, 简体中文
-
----
-
-## Documentación
-
-- Índice de documentación: [`docs/README.md`](docs/README.md)
-- Pruebas: [`docs/quality/`](docs/quality/)
-- Localización: [`docs/localization/LOCALIZATION.md`](docs/localization/LOCALIZATION.md)
-
----
-
-## Contribución
-
-Ver [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
----
-
-## Créditos
-
-Ver [`NotchTerminal/Resources/THIRD_PARTY_NOTICES.md`](NotchTerminal/Resources/THIRD_PARTY_NOTICES.md).
-
-Atribuciones principales:
-- **SwiftTerm** – emulación de terminal (MIT)
-- **Port-Killer** – inspiración para el flujo de puertos (MIT)
-
-Las marcas/logotipos utilizados en la interfaz de usuario pertenecen a sus respectivos dueños.
+- [Índice de Documentación](docs/README.md)
+- [Guía de Pruebas](docs/quality/)
+- [Localización](docs/localization/LOCALIZATION.md)
+- [Guía de Contribución](CONTRIBUTING.md)
+- [Avisos de Terceros](NotchTerminal/Resources/THIRD_PARTY_NOTICES.md)
 
 ---
 
 ## Soporte
-
-Si deseas apoyar el desarrollo:
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow.svg)](https://buymeacoffee.com/marcoastorj)
 
@@ -212,9 +115,3 @@ Si deseas apoyar el desarrollo:
 ## Licencia
 
 [MIT](LICENSE) © 2026 Marco Astorga González
-
----
-
-<p align="center">
-  Hecho con ❤️ por Marco Astorga González
-</p>
