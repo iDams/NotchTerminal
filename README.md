@@ -14,14 +14,13 @@
 
 ---
 
+
 ## Demo
 
+https://github.com/user-attachments/assets/bfe05d72-96fe-45c9-a9d1-94521a5d3023
 
-<p align="center">
-## Demo
 
-[Watch demo video](https://github.com/iDams/NotchTerminal/raw/refs/heads/main/docs/demo1.mp4)
-</p>
+https://github.com/user-attachments/assets/4b07bcd6-1c13-4916-bbe0-b65342c73f78
 
 ---
 
