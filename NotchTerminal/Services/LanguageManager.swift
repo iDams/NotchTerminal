@@ -7,7 +7,7 @@ final class LanguageManager: ObservableObject {
 
     private let userOverrideKey = "userLanguageOverride"
     private let fallbackLanguageCode = "en"
-    private let supportedLanguageCodes = ["en", "es", "fr", "ja", "zh-Hans"]
+    private let supportedLanguageCodes = ["en", "es", "fr", "ja", "zh-Hans", "de", "pt-BR", "ko"]
     
     private var _updateTrigger: Int = 0
     var updateTrigger: Int {
@@ -50,6 +50,15 @@ final class LanguageManager: ObservableObject {
         if languageCode == "zh-Hans" {
             return "简体中文"
         }
+        if languageCode == "de" {
+            return "Deutsch"
+        }
+        if languageCode == "pt-BR" {
+            return "Português (Brasil)"
+        }
+        if languageCode == "ko" {
+            return "한국어"
+        }
         let locale = Locale(identifier: languageCode)
         return locale.localizedString(forLanguageCode: languageCode) ?? languageCode.uppercased()
     }
@@ -82,6 +91,9 @@ final class LanguageManager: ObservableObject {
         if normalizedIdentifier.hasPrefix("es") { return "es" }
         if normalizedIdentifier.hasPrefix("fr") { return "fr" }
         if normalizedIdentifier.hasPrefix("ja") { return "ja" }
+        if normalizedIdentifier.hasPrefix("de") { return "de" }
+        if normalizedIdentifier.hasPrefix("pt-br") || normalizedIdentifier.hasPrefix("pt") { return "pt-BR" }
+        if normalizedIdentifier.hasPrefix("ko") { return "ko" }
 
         return fallbackLanguageCode
     }
