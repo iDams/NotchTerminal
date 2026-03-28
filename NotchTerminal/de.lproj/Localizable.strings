@@ -318,3 +318,17 @@
 "onboarding.openAtLogin.subtitle" = "Empfohlen. Das kannst du später unter Einstellungen > Allgemein ändern.";
 "onboarding.openAtLogin.footer" = "Du behältst die Kontrolle. Das beeinflusst nur, ob die App sich beim Anmelden automatisch startet.";
 "onboarding.openAtLogin.approval" = "Beim ersten Mal kann macOS dafür eine Freigabe in den Anmeldeobjekten verlangen.";
+
+"settings.experimental.slapDetection" = "Klopf-Erkennung";
+"settings.experimental.slapDetection.subtitle" = "Erkennt physische Schläge auf Ihrem MacBook über den eingebauten Beschleunigungssensor.";
+"settings.experimental.slapDetection.help" = "Verwendet den Apple Silicon Beschleunigungssensor (Bosch BMI286 IMU) über IOKit HID um physische Schläge zu erkennen. Nur auf Apple Silicon MacBooks mit M2+ (oder M1 Pro/Max/Ultra). Erfordert erhöhte Berechtigungen für IOKit-Zugriff.";
+"settings.experimental.slapDetection.enable" = "Klopf-Erkennung aktivieren";
+"settings.experimental.slapDetection.enable.subtitle" = "Öffnet ein Hello World Fenster wenn ein Schlag erkannt wird. Experimentell, erfordert Apple Silicon.";
+"slap.helloWorld.message" = "Sie haben Ihr MacBook geschlagen!";
+"settings.experimental.slapDetection.needsRoot" = "Klopf-Erkennung erfordert Administratorrechte. Starten Sie mit sudo neu für Beschleunigungssensor-Zugriff.";
+"settings.experimental.slapDetection.noSensor" = "Kein Beschleunigungssensor gefunden. Erfordert Apple Silicon MacBook (M2+ oder M1 Pro/Max/Ultra).";
+"settings.experimental.slapDetection.active" = "Beschleunigungssensor aktiv. Schlagen Sie Ihr MacBook zum Auslösen.";
+"settings.experimental.slapDetection.sensitivity" = "Klopf-Empfindlichkeit";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "Höhere Werte erfordern einen leichteren Schlag zum Auslösen.";
+"settings.experimental.slapDetection.requiredSlaps" = "Erforderliche Schläge";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "Anzahl der Schläge zum Auslösen der Aktion.";

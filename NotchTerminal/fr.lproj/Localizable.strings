@@ -315,3 +315,17 @@
 "onboarding.openAtLogin.subtitle" = "Recommandé. Vous pourrez modifier cela plus tard dans Réglages > Général.";
 "onboarding.openAtLogin.footer" = "Vous gardez le contrôle. Cela détermine seulement si l'app se lance automatiquement à la connexion.";
 "onboarding.openAtLogin.approval" = "La première fois, macOS peut demander une approbation dans les éléments d'ouverture.";
+
+"settings.experimental.slapDetection" = "Détection de claquement";
+"settings.experimental.slapDetection.subtitle" = "Détecte les chocs physiques sur votre MacBook avec l'accéléromètre intégré.";
+"settings.experimental.slapDetection.help" = "Utilise l'accéléromètre Apple Silicon (IMU Bosch BMI286) via IOKit HID pour détecter les impacts physiques. Fonctionne uniquement sur les MacBooks Apple Silicon M2+ (ou M1 Pro/Max/Ultra). Nécessite des privilèges élevés pour l'accès IOKit.";
+"settings.experimental.slapDetection.enable" = "Activer la détection de claquement";
+"settings.experimental.slapDetection.enable.subtitle" = "Ouvre une fenêtre Hello World lorsqu'un claquement est détecté. Expérimental, nécessite Apple Silicon.";
+"slap.helloWorld.message" = "Vous avez tapé votre MacBook !";
+"settings.experimental.slapDetection.needsRoot" = "La détection de claquement nécessite les privilèges administrateur. Relancez avec sudo pour l'accès à l'accéléromètre.";
+"settings.experimental.slapDetection.noSensor" = "Aucun accéléromètre trouvé. Requiert un MacBook Apple Silicon (M2+, ou M1 Pro/Max/Ultra).";
+"settings.experimental.slapDetection.active" = "Accéléromètre actif. Donnez un coup à votre MacBook pour déclencher.";
+"settings.experimental.slapDetection.sensitivity" = "Sensibilité du claquement";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "Des valeurs plus élevées nécessitent un choc plus léger pour se déclencher.";
+"settings.experimental.slapDetection.requiredSlaps" = "Claquements requis";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "Nombre de claquements nécessaires pour déclencher l'action.";

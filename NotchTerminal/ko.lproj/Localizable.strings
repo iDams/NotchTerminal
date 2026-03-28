@@ -318,3 +318,17 @@
 "onboarding.openAtLogin.subtitle" = "권장됩니다. 나중에 설정 > 일반에서 변경할 수 있습니다.";
 "onboarding.openAtLogin.footer" = "제어권은 여전히 당신에게 있습니다. 로그인 시 앱을 자동 실행할지 여부만 바뀝니다.";
 "onboarding.openAtLogin.approval" = "처음 한 번은 macOS가 로그인 항목에서 승인을 요청할 수 있습니다.";
+
+"settings.experimental.slapDetection" = "슬랩 감지";
+"settings.experimental.slapDetection.subtitle" = "내장 가속도계를 사용하여 MacBook의 물리적 충격을 감지합니다.";
+"settings.experimental.slapDetection.help" = "Apple Silicon 가속도계(Bosch BMI286 IMU)를 IOKit HID를 통해 사용하여 물리적 충격을 감지합니다. M2 이상(또는 M1 Pro/Max/Ultra) Apple Silicon MacBook에서만 작동합니다. IOKit 접근을 위해 높은 권한이 필요합니다.";
+"settings.experimental.slapDetection.enable" = "슬랩 감지 활성화";
+"settings.experimental.slapDetection.enable.subtitle" = "슬랩이 감지되면 Hello World 창을 엽니다. 실험적이며 Apple Silicon이 필요합니다.";
+"slap.helloWorld.message" = "MacBook을 쳤습니다!";
+"settings.experimental.slapDetection.needsRoot" = "슬랩 감지에는 관리자 권한이 필요합니다. 가속도계 접근을 위해 sudo로 다시 시작하세요.";
+"settings.experimental.slapDetection.noSensor" = "가속도계를 찾을 수 없습니다. Apple Silicon MacBook(M2+ 또는 M1 Pro/Max/Ultra)이 필요합니다.";
+"settings.experimental.slapDetection.active" = "가속도계가 활성화되었습니다. MacBook을 쳐서 활성화하세요.";
+"settings.experimental.slapDetection.sensitivity" = "슬랩 감도";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "값이 높을수록 더 가벼운 탭으로 반응합니다.";
+"settings.experimental.slapDetection.requiredSlaps" = "필요한 슬랩 수";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "동작을 트리거하기 위해 필요한 슬랩 횟수.";

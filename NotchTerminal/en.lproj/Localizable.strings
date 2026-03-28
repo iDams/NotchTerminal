@@ -318,3 +318,17 @@
 "onboarding.openAtLogin.subtitle" = "Recommended. You can change this later from Settings > General.";
 "onboarding.openAtLogin.footer" = "You stay in control. This only affects whether the app launches automatically when you sign in.";
 "onboarding.openAtLogin.approval" = "macOS may ask you to approve this in Login Items the first time.";
+
+"settings.experimental.slapDetection" = "Slap Detection";
+"settings.experimental.slapDetection.subtitle" = "Detect physical taps on your MacBook using the built-in accelerometer.";
+"settings.experimental.slapDetection.help" = "Uses the Apple Silicon accelerometer (Bosch BMI286 IMU) via IOKit HID to detect physical impacts on the laptop. Only works on Apple Silicon MacBooks with M2 or later (or M1 Pro/Max/Ultra). Requires the app to be run with elevated privileges for IOKit access.";
+"settings.experimental.slapDetection.enable" = "Enable slap detection";
+"settings.experimental.slapDetection.enable.subtitle" = "Opens a Hello World window when a slap is detected. Experimental and requires Apple Silicon.";
+"slap.helloWorld.message" = "You slapped your MacBook!";
+"settings.experimental.slapDetection.needsRoot" = "Slap detection requires the app to run with administrator privileges. Relaunch with sudo for accelerometer access.";
+"settings.experimental.slapDetection.noSensor" = "No accelerometer sensor found. This feature requires an Apple Silicon MacBook (M2 or later, or M1 Pro/Max/Ultra).";
+"settings.experimental.slapDetection.active" = "Accelerometer sensor active. Slap your MacBook to trigger.";
+"settings.experimental.slapDetection.sensitivity" = "Slap sensitivity";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "Higher values require a lighter tap to trigger.";
+"settings.experimental.slapDetection.requiredSlaps" = "Required slaps";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "Number of slaps needed to trigger the action.";

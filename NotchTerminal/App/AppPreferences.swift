@@ -30,6 +30,9 @@ enum AppPreferences {
         let projectStatusCardEnabled: Bool
         let projectStatusShowGit: Bool
         let projectStatusShowFolder: Bool
+        let slapDetectionEnabled: Bool
+        let slapDetectionSensitivity: Double
+        let slapDetectionRequiredSlaps: Int
     }
 
     enum Keys {
@@ -72,6 +75,9 @@ enum AppPreferences {
         static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
         static let experimentalProjectStatusShowFolder = "experimentalProjectStatusShowFolder"
         static let hasShownOnboarding = "hasShownOnboarding"
+        static let experimentalSlapDetectionEnabled = "experimentalSlapDetectionEnabled"
+        static let experimentalSlapDetectionSensitivity = "experimentalSlapDetectionSensitivity"
+        static let experimentalSlapDetectionRequiredSlaps = "experimentalSlapDetectionRequiredSlaps"
     }
 
     enum Defaults {
@@ -105,6 +111,9 @@ enum AppPreferences {
         static let experimentalProjectStatusShowGit = true
         static let experimentalProjectStatusShowFolder = true
         static let hasShownOnboarding = false
+        static let experimentalSlapDetectionEnabled = false
+        static let experimentalSlapDetectionSensitivity: Double = 50
+        static let experimentalSlapDetectionRequiredSlaps: Int = 2
     }
 
     /// Disabled displays are stored as a stable comma-separated list so the
@@ -301,6 +310,21 @@ enum AppPreferences {
                 forKey: Keys.experimentalProjectStatusShowFolder,
                 default: Defaults.experimentalProjectStatusShowFolder,
                 in: defaults
+            ),
+            slapDetectionEnabled: bool(
+                forKey: Keys.experimentalSlapDetectionEnabled,
+                default: Defaults.experimentalSlapDetectionEnabled,
+                in: defaults
+            ),
+            slapDetectionSensitivity: double(
+                forKey: Keys.experimentalSlapDetectionSensitivity,
+                default: Defaults.experimentalSlapDetectionSensitivity,
+                in: defaults
+            ),
+            slapDetectionRequiredSlaps: int(
+                forKey: Keys.experimentalSlapDetectionRequiredSlaps,
+                default: Defaults.experimentalSlapDetectionRequiredSlaps,
+                in: defaults
             )
         )
     }
@@ -344,6 +368,11 @@ enum AppPreferences {
 
     private static func string(forKey key: String, default defaultValue: String, in defaults: UserDefaults) -> String {
         defaults.string(forKey: key) ?? defaultValue
+    }
+
+    private static func int(forKey key: String, default defaultValue: Int, in defaults: UserDefaults) -> Int {
+        guard defaults.object(forKey: key) != nil else { return defaultValue }
+        return defaults.integer(forKey: key)
     }
 
     private static func setPerDisplayDouble(_ value: Double, for displayID: CGDirectDisplayID, key: String, in defaults: UserDefaults) {

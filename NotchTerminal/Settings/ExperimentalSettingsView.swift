@@ -4,6 +4,9 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.enableCRTFilter) var enableCRTFilter: Bool = AppPreferences.Defaults.enableCRTFilter
     @AppStorage(AppPreferences.Keys.fakeNotchGlowEnabled) var fakeNotchGlowEnabled: Bool = AppPreferences.Defaults.fakeNotchGlowEnabled
     @AppStorage(AppPreferences.Keys.fakeNotchGlowTheme) var fakeNotchGlowTheme: NotchViewModel.GlowTheme = .cyberpunk
+    @AppStorage(AppPreferences.Keys.experimentalSlapDetectionEnabled) var slapDetectionEnabled: Bool = AppPreferences.Defaults.experimentalSlapDetectionEnabled
+    @AppStorage(AppPreferences.Keys.experimentalSlapDetectionSensitivity) var slapDetectionSensitivity: Double = AppPreferences.Defaults.experimentalSlapDetectionSensitivity
+    @AppStorage(AppPreferences.Keys.experimentalSlapDetectionRequiredSlaps) var slapDetectionRequiredSlaps: Int = AppPreferences.Defaults.experimentalSlapDetectionRequiredSlaps
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetX) var startupOrbPillOffsetX: Double = AppPreferences.Defaults.startupOrbPillOffsetX
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetY) var startupOrbPillOffsetY: Double = AppPreferences.Defaults.startupOrbPillOffsetY
     @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetX) var startupOrbNotchOffsetX: Double = AppPreferences.Defaults.startupOrbNotchOffsetX
@@ -16,6 +19,27 @@ struct ExperimentalSettingsView: View {
         Binding(
             get: { experimentalFeatures.dragToNotchEnabled },
             set: { UserDefaults.standard.set($0, forKey: AppPreferences.Keys.experimentalDragToNotchEnabled) }
+        )
+    }
+
+    private var slapDetectionBinding: Binding<Bool> {
+        Binding(
+            get: { slapDetectionEnabled },
+            set: { slapDetectionEnabled = $0 }
+        )
+    }
+
+    private var slapSensitivityBinding: Binding<Double> {
+        Binding(
+            get: { slapDetectionSensitivity },
+            set: { slapDetectionSensitivity = $0 }
+        )
+    }
+
+    private var slapRequiredSlapsBinding: Binding<Double> {
+        Binding(
+            get: { Double(slapDetectionRequiredSlaps) },
+            set: { slapDetectionRequiredSlaps = Int($0) }
         )
     }
 
@@ -89,6 +113,7 @@ struct ExperimentalSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 experimentalNoticeSection
+                slapDetectionSection
                 dockingSection
                 startupOrbSection
                 NotchTerminalSettingsSection(contentSpacing: 12) {
@@ -256,6 +281,46 @@ struct ExperimentalSettingsView: View {
                     range: 0 ... 100,
                     step: 2,
                     valueFormatter: { "\(Int($0)) pt" }
+                )
+            }
+        }
+    }
+
+    private var slapDetectionSection: some View {
+        NotchTerminalSettingsSection(contentSpacing: 12) {
+            NotchTerminalSectionHeading(
+                title: "settings.experimental.slapDetection".localized,
+                subtitle: "settings.experimental.slapDetection.subtitle".localized,
+                icon: "hand.wave.fill",
+                helpTooltip: "settings.experimental.slapDetection.help".localized
+            )
+
+            NotchTerminalPreferenceToggleRow(
+                title: "settings.experimental.slapDetection.enable".localized,
+                subtitle: "settings.experimental.slapDetection.enable.subtitle".localized,
+                icon: "sensor.tag.radiowaves.forward",
+                binding: slapDetectionBinding
+            )
+
+            if slapDetectionEnabled {
+                NotchTerminalSliderPreferenceRow(
+                    title: "settings.experimental.slapDetection.sensitivity".localized,
+                    subtitle: "settings.experimental.slapDetection.sensitivity.subtitle".localized,
+                    icon: "gauge.with.dots.needle.bottom.50percent",
+                    value: slapSensitivityBinding,
+                    range: 0 ... 100,
+                    step: 5,
+                    valueFormatter: { "\(Int($0))%" }
+                )
+
+                NotchTerminalSliderPreferenceRow(
+                    title: "settings.experimental.slapDetection.requiredSlaps".localized,
+                    subtitle: "settings.experimental.slapDetection.requiredSlaps.subtitle".localized,
+                    icon: "hand.tap.fill",
+                    value: slapRequiredSlapsBinding,
+                    range: 1 ... 5,
+                    step: 1,
+                    valueFormatter: { $0 == 1 ? "1 slap".localized : "\($0) slaps".localized }
                 )
             }
         }

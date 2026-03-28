@@ -318,3 +318,17 @@
 "onboarding.openAtLogin.subtitle" = "推荐。之后你也可以在 设置 > 通用 中修改。";
 "onboarding.openAtLogin.footer" = "控制权仍然在你手里。这只会影响你登录时应用是否自动启动。";
 "onboarding.openAtLogin.approval" = "第一次启用时，macOS 可能会要求你在登录项中批准此设置。";
+
+"settings.experimental.slapDetection" = "拍打检测";
+"settings.experimental.slapDetection.subtitle" = "使用内置加速度传感器检测 MacBook 上的物理撞击。";
+"settings.experimental.slapDetection.help" = "通过 IOKit HID 使用 Apple Silicon 加速度传感器（Bosch BMI286 IMU）检测笔记本电脑上的物理撞击。仅支持 M2 及以上（或 M1 Pro/Max/Ultra）的 Apple Silicon MacBook。需要提升权限以访问 IOKit。";
+"settings.experimental.slapDetection.enable" = "启用拍打检测";
+"settings.experimental.slapDetection.enable.subtitle" = "检测到拍打时打开 Hello World 窗口。实验性功能，需要 Apple Silicon。";
+"slap.helloWorld.message" = "你拍了你的 MacBook！";
+"settings.experimental.slapDetection.needsRoot" = "拍打检测需要管理员权限。请使用 sudo 重新启动以访问加速度传感器。";
+"settings.experimental.slapDetection.noSensor" = "未找到加速度传感器。需要 Apple Silicon MacBook（M2+ 或 M1 Pro/Max/Ultra）。";
+"settings.experimental.slapDetection.active" = "加速度传感器已激活。拍打你的 MacBook 即可触发。";
+"settings.experimental.slapDetection.sensitivity" = "拍打灵敏度";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "数值越高，轻拍即可触发。";
+"settings.experimental.slapDetection.requiredSlaps" = "所需拍打次数";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "触发操作所需的拍打次数。";

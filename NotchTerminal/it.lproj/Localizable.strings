@@ -318,3 +318,17 @@
 "onboarding.openAtLogin.subtitle" = "Consigliato. Puoi cambiarlo più tardi in Impostazioni > Generali.";
 "onboarding.openAtLogin.footer" = "Hai sempre il controllo. Questo cambia solo l'avvio automatico dell'app quando accedi.";
 "onboarding.openAtLogin.approval" = "La prima volta macOS potrebbe chiederti l'approvazione negli elementi login.";
+
+"settings.experimental.slapDetection" = "Rilevamento colpi";
+"settings.experimental.slapDetection.subtitle" = "Rileva colpi fisici sul tuo MacBook usando l'accelerometro integrato.";
+"settings.experimental.slapDetection.help" = "Usa l'accelerometro Apple Silicon (IMU Bosch BMI286) via IOKit HID per rilevare impatti fisici. Funziona solo su MacBook Apple Silicon con M2+ (o M1 Pro/Max/Ultra). Richiede privilegi elevati per l'accesso IOKit.";
+"settings.experimental.slapDetection.enable" = "Abilita rilevamento colpi";
+"settings.experimental.slapDetection.enable.subtitle" = "Apre una finestra Hello World quando viene rilevato un colpo. Sperimentale, richiede Apple Silicon.";
+"slap.helloWorld.message" = "Hai colpito il tuo MacBook!";
+"settings.experimental.slapDetection.needsRoot" = "Il rilevamento colpi richiede privilegi di amministratore. Riavvia con sudo per l'accesso all'accelerometro.";
+"settings.experimental.slapDetection.noSensor" = "Nessun accelerometro trovato. Richiede un MacBook Apple Silicon (M2+ o M1 Pro/Max/Ultra).";
+"settings.experimental.slapDetection.active" = "Accelerometro attivo. Colpisci il tuo MacBook per attivare.";
+"settings.experimental.slapDetection.sensitivity" = "Sensibilità colpo";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "Valori più alti richiedono un tocco più leggero per attivarsi.";
+"settings.experimental.slapDetection.requiredSlaps" = "Colpi richiesti";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "Numero di colpi necessari per attivare l'azione.";

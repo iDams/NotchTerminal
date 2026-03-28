@@ -315,3 +315,17 @@
 "onboarding.openAtLogin.subtitle" = "Recomendado. Puedes cambiar esto más tarde en Configuración > General.";
 "onboarding.openAtLogin.footer" = "Tú sigues teniendo el control. Esto solo define si la app se abre automáticamente cuando inicias sesión.";
 "onboarding.openAtLogin.approval" = "La primera vez, macOS puede pedirte aprobar esto en Ítems de inicio de sesión.";
+
+"settings.experimental.slapDetection" = "Detección de golpes";
+"settings.experimental.slapDetection.subtitle" = "Detecta golpes físicos en tu MacBook usando el acelerómetro integrado.";
+"settings.experimental.slapDetection.help" = "Usa el acelerómetro de Apple Silicon (IMU Bosch BMI286) vía IOKit HID para detectar impactos físicos en el portátil. Solo funciona en MacBooks Apple Silicon con M2 o posterior (o M1 Pro/Max/Ultra). Requiere privilegios elevados para acceso a IOKit.";
+"settings.experimental.slapDetection.enable" = "Activar detección de golpes";
+"settings.experimental.slapDetection.enable.subtitle" = "Abre una ventana Hello World al detectar un golpe. Experimental y requiere Apple Silicon.";
+"slap.helloWorld.message" = "¡Golpeaste tu MacBook!";
+"settings.experimental.slapDetection.needsRoot" = "La detección de golpes requiere privilegios de administrador. Reinicia con sudo para acceder al acelerómetro.";
+"settings.experimental.slapDetection.noSensor" = "No se encontró sensor de acelerómetro. Requiere un MacBook Apple Silicon (M2+, o M1 Pro/Max/Ultra).";
+"settings.experimental.slapDetection.active" = "Sensor de acelerómetro activo. Golpea tu MacBook para activarlo.";
+"settings.experimental.slapDetection.sensitivity" = "Sensibilidad del golpe";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "Valores más altos requieren un golpe más suave para activarse.";
+"settings.experimental.slapDetection.requiredSlaps" = "Golpes necesarios";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "Número de golpes necesarios para activar la acción.";

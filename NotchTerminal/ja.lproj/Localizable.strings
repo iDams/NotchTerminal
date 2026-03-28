@@ -315,3 +315,17 @@
 "onboarding.openAtLogin.subtitle" = "おすすめです。あとで 設定 > 一般 から変更できます。";
 "onboarding.openAtLogin.footer" = "主導権はあなたにあります。サインイン時にアプリを自動起動するかどうかだけを変更します。";
 "onboarding.openAtLogin.approval" = "初回は macOS がログイン項目で承認を求める場合があります。";
+
+"settings.experimental.slapDetection" = "スラップ検出";
+"settings.experimental.slapDetection.subtitle" = "内蔵加速度センサーを使ってMacBookへの物理的な打撃を検出します。";
+"settings.experimental.slapDetection.help" = "Apple Siliconの加速度センサー（Bosch BMI286 IMU）をIOKit HID経由で使用し、物理的な衝撃を検出します。M2以降（またはM1 Pro/Max/Ultra）のApple Silicon MacBookでのみ動作します。IOKitアクセスには昇格された権限が必要です。";
+"settings.experimental.slapDetection.enable" = "スラップ検出を有効にする";
+"settings.experimental.slapDetection.enable.subtitle" = "スラップ検出時にHello Worldウィンドウを開きます。実験的でApple Siliconが必要です。";
+"slap.helloWorld.message" = "MacBookを叩きました！";
+"settings.experimental.slapDetection.needsRoot" = "スラップ検出には管理者権限が必要です。加速度センサーにアクセスするにはsudoで再起動してください。";
+"settings.experimental.slapDetection.noSensor" = "加速度センサーが見つかりません。Apple Silicon MacBook（M2以降、またはM1 Pro/Max/Ultra）が必要です。";
+"settings.experimental.slapDetection.active" = "加速度センサーがアクティブです。MacBookを叩いてください。";
+"settings.experimental.slapDetection.sensitivity" = "スラップ感度";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "値を上げると、より軽いタップで反応するようになります。";
+"settings.experimental.slapDetection.requiredSlaps" = "必要なスラップ数";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "アクションをトリガーするために必要なスラップの回数。";

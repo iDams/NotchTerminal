@@ -318,3 +318,17 @@
 "onboarding.openAtLogin.subtitle" = "Рекомендуется. Позже это можно изменить в Настройки > Основные.";
 "onboarding.openAtLogin.footer" = "Контроль остается у вас. Это влияет только на автоматический запуск приложения при входе в систему.";
 "onboarding.openAtLogin.approval" = "При первом включении macOS может попросить одобрение в элементах входа.";
+
+"settings.experimental.slapDetection" = "Обнаружение удара";
+"settings.experimental.slapDetection.subtitle" = "Обнаруживает физические удары по MacBook с помощью встроенного акселерометра.";
+"settings.experimental.slapDetection.help" = "Использует акселерометр Apple Silicon (IMU Bosch BMI286) через IOKit HID для обнаружения физических ударов. Работает только на MacBook с Apple Silicon M2+ (или M1 Pro/Max/Ultra). Требуются повышенные привилегии для доступа к IOKit.";
+"settings.experimental.slapDetection.enable" = "Включить обнаружение удара";
+"settings.experimental.slapDetection.enable.subtitle" = "Открывает окно Hello World при обнаружении удара. Экспериментально, требуется Apple Silicon.";
+"slap.helloWorld.message" = "Вы ударили свой MacBook!";
+"settings.experimental.slapDetection.needsRoot" = "Обнаружение удара требует прав администратора. Перезапустите с sudo для доступа к акселерометру.";
+"settings.experimental.slapDetection.noSensor" = "Акселерометр не найден. Требуется MacBook с Apple Silicon (M2+ или M1 Pro/Max/Ultra).";
+"settings.experimental.slapDetection.active" = "Акселерометр активен. Ударьте MacBook для срабатывания.";
+"settings.experimental.slapDetection.sensitivity" = "Чувствительность удара";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "Более высокие значения требуют более легкого удара для срабатывания.";
+"settings.experimental.slapDetection.requiredSlaps" = "Требуемые удары";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "Количество ударов для сactivación действия.";

@@ -318,3 +318,17 @@
 "onboarding.openAtLogin.subtitle" = "Recomendado. Você pode mudar isso depois em Ajustes > Geral.";
 "onboarding.openAtLogin.footer" = "Você continua no controle. Isso só define se o app abre automaticamente quando você entra no sistema.";
 "onboarding.openAtLogin.approval" = "Na primeira vez, o macOS pode pedir aprovação em Itens de Início.";
+
+"settings.experimental.slapDetection" = "Detecção de tapa";
+"settings.experimental.slapDetection.subtitle" = "Detecta batidas físicas no seu MacBook usando o acelerômetro integrado.";
+"settings.experimental.slapDetection.help" = "Usa o acelerômetro Apple Silicon (IMU Bosch BMI286) via IOKit HID para detectar impactos físicos. Funciona apenas em MacBooks Apple Silicon M2+ (ou M1 Pro/Max/Ultra). Requer privilégios elevados para acesso IOKit.";
+"settings.experimental.slapDetection.enable" = "Ativar detecção de tapa";
+"settings.experimental.slapDetection.enable.subtitle" = "Abre uma janela Hello World quando um tapa é detectado. Experimental, requer Apple Silicon.";
+"slap.helloWorld.message" = "Você bateu no seu MacBook!";
+"settings.experimental.slapDetection.needsRoot" = "A detecção de tapa requer privilégios de administrador. Reinicie com sudo para acesso ao acelerômetro.";
+"settings.experimental.slapDetection.noSensor" = "Nenhum acelerômetro encontrado. Requer um MacBook Apple Silicon (M2+ ou M1 Pro/Max/Ultra).";
+"settings.experimental.slapDetection.active" = "Acelerômetro ativo. Bata no seu MacBook para ativar.";
+"settings.experimental.slapDetection.sensitivity" = "Sensibilidade do tapa";
+"settings.experimental.slapDetection.sensitivity.subtitle" = "Valores mais altos exigem um toque mais leve para ativar.";
+"settings.experimental.slapDetection.requiredSlaps" = "Taps necessários";
+"settings.experimental.slapDetection.requiredSlaps.subtitle" = "Número de taps necessários para ativar a ação.";
