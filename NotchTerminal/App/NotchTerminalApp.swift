@@ -23,11 +23,13 @@ struct NotchTerminalApp: App {
 
 private struct NotchTerminalAppCommands: Commands {
     let appDelegate: AppDelegate
+    @Environment(\.openSettings) private var openSettings
 
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
             Button("About \(AppMetadata.displayName)") {
-                appDelegate.openAboutInSettings()
+                SettingsNavigationCoordinator.request(tab: .about)
+                openSettings()
             }
         }
 
@@ -40,7 +42,7 @@ private struct NotchTerminalAppCommands: Commands {
 
         CommandGroup(replacing: .appSettings) {
             Button("action.settings".localized + "...") {
-                appDelegate.openSettingsWindow()
+                openSettings()
             }
             .keyboardShortcut(",", modifiers: .command)
         }
@@ -242,15 +244,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsItem.view = StatusMenuSettingsLinkView().hostingView()
         optionsMenu.addItem(settingsItem)
 
-        let onboardingItem = NSMenuItem(
-            title: "menu.onboarding".localized,
-            action: #selector(openOnboardingFromStatusItem(_:)),
-            keyEquivalent: ""
-        )
-        onboardingItem.image = NSImage(systemSymbolName: "sparkles.rectangle.stack", accessibilityDescription: nil)
-        onboardingItem.target = self
-        optionsMenu.addItem(onboardingItem)
-
         menu.setSubmenu(optionsMenu, for: optionsItem)
         menu.addItem(optionsItem)
         menu.addItem(.separator())
@@ -274,14 +267,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(activePortsItem)
         menu.addItem(.separator())
 
-        let showAllWindowsItem = NSMenuItem(
-            title: "action.showAllWindows".localized,
-            action: #selector(showAllWindowsFromStatusItem(_:)),
+        let onboardingItem = NSMenuItem(
+            title: "menu.onboarding".localized,
+            action: #selector(openOnboardingFromStatusItem(_:)),
             keyEquivalent: ""
         )
-        showAllWindowsItem.image = NSImage(systemSymbolName: "macwindow.on.rectangle", accessibilityDescription: nil)
-        showAllWindowsItem.target = self
-        menu.addItem(showAllWindowsItem)
+        onboardingItem.image = NSImage(systemSymbolName: "sparkles.rectangle.stack", accessibilityDescription: nil)
+        onboardingItem.target = self
+        menu.addItem(onboardingItem)
 
         let hideItem = NSMenuItem(
             title: "action.hide".localized,
@@ -418,6 +411,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if let onboardingWindow {
+            centerWindowOnActiveScreen(onboardingWindow)
             onboardingWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -448,6 +442,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.delegate = self
         centerWindowOnActiveScreen(window)
         window.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async { [weak self, weak window] in
+            guard let self, let window else { return }
+            self.centerWindowOnActiveScreen(window)
+        }
         onboardingWindow = window
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -471,7 +469,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             y: visibleFrame.midY - windowFrame.height / 2
         )
 
-        window.setFrameOrigin(origin)
+        let centeredFrame = NSRect(origin: origin, size: windowFrame.size).integral
+        window.setFrame(centeredFrame, display: false)
     }
 
     @MainActor

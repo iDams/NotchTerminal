@@ -846,7 +846,7 @@ final class NotchOverlayController {
         )
     }
 
-    private func openSettings(for displayID: CGDirectDisplayID) {
+    private func openSettings(for _: CGDirectDisplayID) {
         if #available(macOS 13.0, *) {
             NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         } else {
