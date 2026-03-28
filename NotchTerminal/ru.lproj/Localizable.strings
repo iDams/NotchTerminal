@@ -298,3 +298,23 @@
 "openPorts.message.noListening" = "Не найдено слушающих TCP портов.";
 "openPorts.message.loadFailed" = "Не удалось загрузить открытые порты.";
 "openPorts.message.terminateFailed" = "Не удалось завершить PID %@.";
+
+/* Onboarding */
+"menu.onboarding" = "Онбординг...";
+"onboarding.previous" = "Назад";
+"onboarding.next" = "Продолжить";
+"onboarding.finish" = "Начать";
+"onboarding.welcome.title" = "Управляйте терминалом прямо из выреза.";
+"onboarding.welcome.body" = "NotchTerminal дает мгновенный доступ к окнам терминала через легкое и ненавязчивое оверлейное окно.";
+"onboarding.welcome.callout.title" = "Создан для быстрого доступа";
+"onboarding.welcome.callout.body" = "Открывайте сессии, восстанавливайте окна и возвращайтесь к работе без поиска по рабочему столу.";
+"onboarding.control.title" = "Держите рабочее пространство в порядке.";
+"onboarding.control.body" = "Используйте значок в строке меню и оверлей выреза, чтобы создавать терминалы, возвращать скрытые окна и управлять активными сессиями в одном месте.";
+"onboarding.control.callout.title" = "Всегда под рукой";
+"onboarding.control.callout.body" = "Вы можете снова открыть этот онбординг в любой момент через значок в строке меню.";
+"onboarding.login.title" = "Готово сразу после запуска Mac.";
+"onboarding.login.body" = "Если хотите, NotchTerminal может открываться автоматически при входе в систему, чтобы вырез был готов сразу после появления рабочего стола.";
+"onboarding.openAtLogin.title" = "Открывать NotchTerminal при входе";
+"onboarding.openAtLogin.subtitle" = "Рекомендуется. Позже это можно изменить в Настройки > Основные.";
+"onboarding.openAtLogin.footer" = "Контроль остается у вас. Это влияет только на автоматический запуск приложения при входе в систему.";
+"onboarding.openAtLogin.approval" = "При первом включении macOS может попросить одобрение в элементах входа.";

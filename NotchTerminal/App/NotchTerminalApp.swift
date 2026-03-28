@@ -78,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var userDefaultsObserver: NSObjectProtocol?
     private var modelContainer: ModelContainer?
     private var uiTestWindow: NSWindow?
+    private var onboardingWindow: NSWindow?
     private var statusItem: NSStatusItem?
     private let persistenceHealth = PersistenceHealth.shared
     private let storageCleanupService = StorageCleanupService.shared
@@ -122,6 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             notchController = NotchOverlayController(modelContext: modelContainer?.mainContext)
             notchController?.start()
             applyStatusItemPreference()
+            presentOnboardingIfNeeded()
         }
 
         if UITestSupport.isEnabled {
@@ -239,6 +241,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsItem = NSMenuItem()
         settingsItem.view = StatusMenuSettingsLinkView().hostingView()
         optionsMenu.addItem(settingsItem)
+
+        let onboardingItem = NSMenuItem(
+            title: "menu.onboarding".localized,
+            action: #selector(openOnboardingFromStatusItem(_:)),
+            keyEquivalent: ""
+        )
+        onboardingItem.image = NSImage(systemSymbolName: "sparkles.rectangle.stack", accessibilityDescription: nil)
+        onboardingItem.target = self
+        optionsMenu.addItem(onboardingItem)
+
         menu.setSubmenu(optionsMenu, for: optionsItem)
         menu.addItem(optionsItem)
         menu.addItem(.separator())
@@ -321,6 +333,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openSettings(selectedTab: nil)
     }
 
+    func openOnboardingWindow() {
+        presentOnboarding(markShown: true)
+    }
+
     private func openSettings(selectedTab: SettingsTab?) {
         if let selectedTab {
             SettingsNavigationCoordinator.request(tab: selectedTab)
@@ -355,6 +371,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc
+    private func openOnboardingFromStatusItem(_ sender: Any?) {
+        openOnboardingWindow()
+    }
+
+    @objc
     private func hideFromStatusItem(_ sender: Any?) {
         NSApp.hide(nil)
     }
@@ -383,6 +404,80 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         uiTestWindow = window
+    }
+
+    private func presentOnboardingIfNeeded() {
+        guard !AppPreferences.hasShownOnboarding() else { return }
+        presentOnboarding(markShown: true)
+    }
+
+    @MainActor
+    private func presentOnboarding(markShown: Bool) {
+        if markShown {
+            AppPreferences.setHasShownOnboarding(true)
+        }
+
+        if let onboardingWindow {
+            onboardingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let hostingController = NSHostingController(
+            rootView: OnboardingView { [weak self] in
+                self?.dismissOnboardingWindow()
+            }
+        )
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 610),
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = AppMetadata.displayName
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.isReleasedWhenClosed = false
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = true
+        window.contentViewController = hostingController
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        window.standardWindowButton(.zoomButton)?.isHidden = true
+        window.delegate = self
+        centerWindowOnActiveScreen(window)
+        window.makeKeyAndOrderFront(nil)
+        onboardingWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @MainActor
+    private func centerWindowOnActiveScreen(_ window: NSWindow) {
+        let mouseLocation = NSEvent.mouseLocation
+        let targetScreen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
+
+        guard let targetScreen else {
+            window.center()
+            return
+        }
+
+        let visibleFrame = targetScreen.visibleFrame
+        let windowFrame = window.frame
+        let origin = CGPoint(
+            x: visibleFrame.midX - windowFrame.width / 2,
+            y: visibleFrame.midY - windowFrame.height / 2
+        )
+
+        window.setFrameOrigin(origin)
+    }
+
+    @MainActor
+    private func dismissOnboardingWindow() {
+        onboardingWindow?.close()
+        onboardingWindow = nil
     }
 
     @MainActor
@@ -418,5 +513,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         try? task.run()
         
         NSApp.terminate(nil)
+    }
+}
+
+extension AppDelegate: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window === onboardingWindow else { return }
+        onboardingWindow = nil
     }
 }

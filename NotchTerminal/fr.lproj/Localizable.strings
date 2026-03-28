@@ -295,3 +295,23 @@
 "openPorts.message.noListening" = "Aucun port TCP en écoute trouvé.";
 "openPorts.message.loadFailed" = "Impossible de charger les ports ouverts.";
 "openPorts.message.terminateFailed" = "Impossible d'arrêter le PID %@.";
+
+/* Onboarding */
+"menu.onboarding" = "Onboarding...";
+"onboarding.previous" = "Précédent";
+"onboarding.next" = "Continuer";
+"onboarding.finish" = "Commencer";
+"onboarding.welcome.title" = "Contrôlez votre terminal depuis l'encoche.";
+"onboarding.welcome.body" = "NotchTerminal vous donne un accès immédiat à vos fenêtres de terminal depuis une surcouche légère, rapide et discrète.";
+"onboarding.welcome.callout.title" = "Pensé pour l'accès rapide";
+"onboarding.welcome.callout.body" = "Ouvrez des sessions, restaurez des fenêtres et reprenez votre travail sans fouiller votre bureau.";
+"onboarding.control.title" = "Gardez votre espace bien rangé.";
+"onboarding.control.body" = "Utilisez l'icône de la barre de menus et la surcouche de l'encoche pour créer des terminaux, restaurer les fenêtres masquées et gérer vos sessions actives au même endroit.";
+"onboarding.control.callout.title" = "Toujours à portée de main";
+"onboarding.control.callout.body" = "Vous pouvez rouvrir cet onboarding à tout moment depuis l'icône de la barre de menus.";
+"onboarding.login.title" = "Prêt dès le démarrage de votre Mac.";
+"onboarding.login.body" = "Si vous le souhaitez, NotchTerminal peut s'ouvrir automatiquement à la connexion pour que l'encoche soit prête dès l'apparition du bureau.";
+"onboarding.openAtLogin.title" = "Ouvrir NotchTerminal à la connexion";
+"onboarding.openAtLogin.subtitle" = "Recommandé. Vous pourrez modifier cela plus tard dans Réglages > Général.";
+"onboarding.openAtLogin.footer" = "Vous gardez le contrôle. Cela détermine seulement si l'app se lance automatiquement à la connexion.";
+"onboarding.openAtLogin.approval" = "La première fois, macOS peut demander une approbation dans les éléments d'ouverture.";

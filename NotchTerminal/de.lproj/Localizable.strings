@@ -298,3 +298,23 @@
 "openPorts.message.noListening" = "Keine hörenden TCP-Ports gefunden.";
 "openPorts.message.loadFailed" = "Konnte offene Ports nicht laden.";
 "openPorts.message.terminateFailed" = "Konnte PID %@ nicht beenden.";
+
+/* Onboarding */
+"menu.onboarding" = "Onboarding...";
+"onboarding.previous" = "Zurück";
+"onboarding.next" = "Weiter";
+"onboarding.finish" = "Loslegen";
+"onboarding.welcome.title" = "Steuere dein Terminal direkt über die Notch.";
+"onboarding.welcome.body" = "NotchTerminal gibt dir sofortigen Zugriff auf deine Terminalfenster über ein leichtes Overlay, das schnell und unaufdringlich bleibt.";
+"onboarding.welcome.callout.title" = "Für schnellen Zugriff gebaut";
+"onboarding.welcome.callout.body" = "Öffne Sitzungen, stelle Fenster wieder her und kehre zur Arbeit zurück, ohne deinen Desktop zu durchsuchen.";
+"onboarding.control.title" = "Halte deinen Arbeitsplatz aufgeräumt.";
+"onboarding.control.body" = "Nutze das Menüleistensymbol und das Notch-Overlay, um Terminals zu erstellen, versteckte Fenster wiederherzustellen und aktive Sitzungen an einem Ort zu verwalten.";
+"onboarding.control.callout.title" = "Immer griffbereit";
+"onboarding.control.callout.body" = "Du kannst dieses Onboarding jederzeit über das Menüleistensymbol erneut öffnen.";
+"onboarding.login.title" = "Bereit, sobald dein Mac startet.";
+"onboarding.login.body" = "Wenn du möchtest, kann NotchTerminal sich beim Anmelden automatisch öffnen, damit die Notch sofort bereit ist.";
+"onboarding.openAtLogin.title" = "NotchTerminal beim Anmelden öffnen";
+"onboarding.openAtLogin.subtitle" = "Empfohlen. Das kannst du später unter Einstellungen > Allgemein ändern.";
+"onboarding.openAtLogin.footer" = "Du behältst die Kontrolle. Das beeinflusst nur, ob die App sich beim Anmelden automatisch startet.";
+"onboarding.openAtLogin.approval" = "Beim ersten Mal kann macOS dafür eine Freigabe in den Anmeldeobjekten verlangen.";

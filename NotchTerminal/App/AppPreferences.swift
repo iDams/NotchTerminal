@@ -71,6 +71,7 @@ enum AppPreferences {
         static let experimentalProjectStatusCardEnabled = "experimentalProjectStatusCardEnabled"
         static let experimentalProjectStatusShowGit = "experimentalProjectStatusShowGit"
         static let experimentalProjectStatusShowFolder = "experimentalProjectStatusShowFolder"
+        static let hasShownOnboarding = "hasShownOnboarding"
     }
 
     enum Defaults {
@@ -103,6 +104,7 @@ enum AppPreferences {
         static let experimentalProjectStatusCardEnabled = false
         static let experimentalProjectStatusShowGit = true
         static let experimentalProjectStatusShowFolder = true
+        static let hasShownOnboarding = false
     }
 
     /// Disabled displays are stored as a stable comma-separated list so the
@@ -305,6 +307,18 @@ enum AppPreferences {
 
     static func setConfirmBeforeCloseAll(_ isEnabled: Bool, in defaults: UserDefaults = .standard) {
         defaults.set(isEnabled, forKey: Keys.confirmBeforeCloseAll)
+    }
+
+    static func hasShownOnboarding(in defaults: UserDefaults = .standard) -> Bool {
+        bool(
+            forKey: Keys.hasShownOnboarding,
+            default: Defaults.hasShownOnboarding,
+            in: defaults
+        )
+    }
+
+    static func setHasShownOnboarding(_ hasShown: Bool, in defaults: UserDefaults = .standard) {
+        defaults.set(hasShown, forKey: Keys.hasShownOnboarding)
     }
 
     private static func perDisplayDouble(for displayID: CGDirectDisplayID, key: String, in defaults: UserDefaults) -> Double {

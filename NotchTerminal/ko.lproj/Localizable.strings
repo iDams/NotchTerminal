@@ -298,3 +298,23 @@
 "openPorts.message.noListening" = "리스닝 중인 TCP 포트가 없습니다.";
 "openPorts.message.loadFailed" = "열린 포트를 로드할 수 없습니다.";
 "openPorts.message.terminateFailed" = "PID %@ 를 종료할 수 없습니다.";
+
+/* Onboarding */
+"menu.onboarding" = "온보딩...";
+"onboarding.previous" = "이전";
+"onboarding.next" = "계속";
+"onboarding.finish" = "시작하기";
+"onboarding.welcome.title" = "노치에서 바로 터미널을 제어하세요.";
+"onboarding.welcome.body" = "NotchTerminal은 가볍고 방해되지 않는 오버레이를 통해 터미널 창에 즉시 접근할 수 있게 해줍니다.";
+"onboarding.welcome.callout.title" = "빠른 접근을 위한 설계";
+"onboarding.welcome.callout.body" = "세션을 열고, 창을 복원하고, 데스크톱을 뒤질 필요 없이 바로 작업으로 돌아갈 수 있습니다.";
+"onboarding.control.title" = "작업 공간을 깔끔하게 유지하세요.";
+"onboarding.control.body" = "메뉴 막대 아이콘과 노치 오버레이를 사용해 터미널 생성, 숨겨진 창 복원, 활성 세션 관리를 한곳에서 처리하세요.";
+"onboarding.control.callout.title" = "언제나 손이 닿는 곳에";
+"onboarding.control.callout.body" = "이 온보딩은 메뉴 막대 아이콘에서 언제든 다시 열 수 있습니다.";
+"onboarding.login.title" = "Mac이 시작되면 바로 준비됩니다.";
+"onboarding.login.body" = "원한다면 로그인할 때 NotchTerminal을 자동으로 열어 데스크톱이 나타나자마자 노치를 사용할 수 있습니다.";
+"onboarding.openAtLogin.title" = "로그인 시 NotchTerminal 열기";
+"onboarding.openAtLogin.subtitle" = "권장됩니다. 나중에 설정 > 일반에서 변경할 수 있습니다.";
+"onboarding.openAtLogin.footer" = "제어권은 여전히 당신에게 있습니다. 로그인 시 앱을 자동 실행할지 여부만 바뀝니다.";
+"onboarding.openAtLogin.approval" = "처음 한 번은 macOS가 로그인 항목에서 승인을 요청할 수 있습니다.";

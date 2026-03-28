@@ -295,3 +295,23 @@
 "openPorts.message.noListening" = "待ち受け中のTCPポートは見つかりませんでした。";
 "openPorts.message.loadFailed" = "オープンポートを読み込めませんでした。";
 "openPorts.message.terminateFailed" = "PID %@ を終了できませんでした。";
+
+/* Onboarding */
+"menu.onboarding" = "オンボーディング...";
+"onboarding.previous" = "前へ";
+"onboarding.next" = "続ける";
+"onboarding.finish" = "はじめる";
+"onboarding.welcome.title" = "ノッチからターミナルをすばやく操作。";
+"onboarding.welcome.body" = "NotchTerminal は、軽量で邪魔にならないオーバーレイからターミナルウィンドウへすぐアクセスできるようにします。";
+"onboarding.welcome.callout.title" = "すばやいアクセスのために設計";
+"onboarding.welcome.callout.body" = "セッションを開き、ウィンドウを復元し、デスクトップを探し回らずに作業へ戻れます。";
+"onboarding.control.title" = "作業スペースをすっきり保つ。";
+"onboarding.control.body" = "メニューバーアイコンとノッチオーバーレイを使って、ターミナル作成、隠れたウィンドウの復元、アクティブセッションの管理をひとつの場所で行えます。";
+"onboarding.control.callout.title" = "いつでも手の届く場所に";
+"onboarding.control.callout.body" = "このオンボーディングはメニューバーアイコンからいつでも再表示できます。";
+"onboarding.login.title" = "Mac の起動と同時に準備完了。";
+"onboarding.login.body" = "必要なら、ログイン時に NotchTerminal を自動起動して、デスクトップ表示と同時にノッチを使えるようにできます。";
+"onboarding.openAtLogin.title" = "ログイン時に NotchTerminal を開く";
+"onboarding.openAtLogin.subtitle" = "おすすめです。あとで 設定 > 一般 から変更できます。";
+"onboarding.openAtLogin.footer" = "主導権はあなたにあります。サインイン時にアプリを自動起動するかどうかだけを変更します。";
+"onboarding.openAtLogin.approval" = "初回は macOS がログイン項目で承認を求める場合があります。";

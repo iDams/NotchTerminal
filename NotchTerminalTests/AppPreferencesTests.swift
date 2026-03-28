@@ -28,6 +28,7 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertTrue(AppPreferences.Defaults.autoOpenOnHover)
         XCTAssertTrue(AppPreferences.Defaults.hapticFeedback)
         XCTAssertFalse(AppPreferences.Defaults.showDockIcon)
+        XCTAssertFalse(AppPreferences.Defaults.hasShownOnboarding)
     }
 
     func testSetNotchEnabledTracksDisabledDisplayIDs() {
@@ -230,6 +231,18 @@ final class AppPreferencesTests: XCTestCase {
                 closeActionMode: "closeWindowOnly"
             )
         )
+    }
+
+    func testOnboardingFlagDefaultsToFalse() {
+        XCTAssertFalse(AppPreferences.hasShownOnboarding(in: defaults))
+    }
+
+    func testOnboardingFlagRoundTrips() {
+        AppPreferences.setHasShownOnboarding(true, in: defaults)
+        XCTAssertTrue(AppPreferences.hasShownOnboarding(in: defaults))
+
+        AppPreferences.setHasShownOnboarding(false, in: defaults)
+        XCTAssertFalse(AppPreferences.hasShownOnboarding(in: defaults))
     }
 
     func testExperimentalFeatureConfigurationUsesStoredValuesOrDefaults() {

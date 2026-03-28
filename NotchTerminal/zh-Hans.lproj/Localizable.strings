@@ -298,3 +298,23 @@
 "openPorts.message.noListening" = "未找到正在监听的 TCP 端口。";
 "openPorts.message.loadFailed" = "无法加载打开的端口。";
 "openPorts.message.terminateFailed" = "无法终止 PID %@。";
+
+/* Onboarding */
+"menu.onboarding" = "引导...";
+"onboarding.previous" = "上一步";
+"onboarding.next" = "继续";
+"onboarding.finish" = "开始使用";
+"onboarding.welcome.title" = "直接从刘海控制你的终端。";
+"onboarding.welcome.body" = "NotchTerminal 通过一个轻量且不打扰工作的悬浮层，让你即时访问终端窗口。";
+"onboarding.welcome.callout.title" = "为快速访问而设计";
+"onboarding.welcome.callout.body" = "打开会话、恢复窗口，并且无需在桌面里翻找就能回到工作状态。";
+"onboarding.control.title" = "让工作区保持整洁。";
+"onboarding.control.body" = "使用菜单栏图标和刘海悬浮层来创建终端、恢复隐藏窗口，并在一个地方管理当前会话。";
+"onboarding.control.callout.title" = "始终触手可及";
+"onboarding.control.callout.body" = "你可以随时从菜单栏图标重新打开这个引导。";
+"onboarding.login.title" = "开机即准备就绪。";
+"onboarding.login.body" = "如果你愿意，NotchTerminal 可以在登录时自动打开，这样桌面一出现刘海功能就已经准备好了。";
+"onboarding.openAtLogin.title" = "登录时打开 NotchTerminal";
+"onboarding.openAtLogin.subtitle" = "推荐。之后你也可以在 设置 > 通用 中修改。";
+"onboarding.openAtLogin.footer" = "控制权仍然在你手里。这只会影响你登录时应用是否自动启动。";
+"onboarding.openAtLogin.approval" = "第一次启用时，macOS 可能会要求你在登录项中批准此设置。";

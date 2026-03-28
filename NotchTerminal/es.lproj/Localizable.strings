@@ -295,3 +295,23 @@
 "openPorts.message.noListening" = "No se encontraron puertos TCP en escucha.";
 "openPorts.message.loadFailed" = "No se pudieron cargar los puertos abiertos.";
 "openPorts.message.terminateFailed" = "No se pudo terminar el PID %@.";
+
+/* Onboarding */
+"menu.onboarding" = "Onboarding...";
+"onboarding.previous" = "Anterior";
+"onboarding.next" = "Continuar";
+"onboarding.finish" = "Empezar";
+"onboarding.welcome.title" = "Controla tu terminal desde el notch.";
+"onboarding.welcome.body" = "NotchTerminal te da acceso inmediato a tus ventanas de terminal desde una superposición ligera que se mantiene rápida y fuera del camino.";
+"onboarding.welcome.callout.title" = "Hecho para acceso rápido";
+"onboarding.welcome.callout.body" = "Abre sesiones, restaura ventanas y vuelve al trabajo sin perder tiempo buscando en el escritorio.";
+"onboarding.control.title" = "Mantén tu espacio ordenado.";
+"onboarding.control.body" = "Usa el icono de la barra de menú y la superposición del notch para crear terminales, restaurar ventanas ocultas y gestionar tus sesiones activas en un solo lugar.";
+"onboarding.control.callout.title" = "Siempre a mano";
+"onboarding.control.callout.body" = "Puedes volver a abrir este onboarding cuando quieras desde el icono de la barra de menú.";
+"onboarding.login.title" = "Arranca listo junto con tu Mac.";
+"onboarding.login.body" = "Si quieres, NotchTerminal puede abrirse automáticamente al iniciar sesión para que el notch esté listo apenas aparezca tu escritorio.";
+"onboarding.openAtLogin.title" = "Abrir NotchTerminal al iniciar sesión";
+"onboarding.openAtLogin.subtitle" = "Recomendado. Puedes cambiar esto más tarde en Configuración > General.";
+"onboarding.openAtLogin.footer" = "Tú sigues teniendo el control. Esto solo define si la app se abre automáticamente cuando inicias sesión.";
+"onboarding.openAtLogin.approval" = "La primera vez, macOS puede pedirte aprobar esto en Ítems de inicio de sesión.";
