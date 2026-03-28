@@ -41,6 +41,11 @@
 "settings.showDockIcon.subtitle" = "Отображать значок приложения в Dock с использованием настроенного ресурса AppIcon.";
 "settings.system.menuBar.shortcuts" = "Показывать значок в строке меню";
 "settings.system.menuBar.shortcuts.subtitle" = "Отображать значок NotchTerminal в строке меню macOS.";
+"settings.openAtLogin" = "Открывать при входе";
+"settings.openAtLogin.subtitle" = "Автоматически запускать NotchTerminal при входе в Mac.";
+"settings.openAtLogin.approvalRequired" = "macOS требует одобрения в элементах входа, прежде чем NotchTerminal сможет открываться автоматически.";
+"settings.openAtLogin.openSystemSettings" = "Открыть элементы входа";
+"settings.openAtLogin.error" = "NotchTerminal не удалось обновить параметр «Открывать при входе». %@";
 "settings.showExperimentalSettings" = "Показывать вкладку Экспериментальное";
 "settings.showExperimentalSettings.subtitle" = "Отображать экспериментальные настройки и нестабильные функции в Настройках.";
 "settings.quitApp" = "Выйти из приложения";

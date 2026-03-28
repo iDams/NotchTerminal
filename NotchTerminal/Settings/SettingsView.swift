@@ -234,6 +234,7 @@ struct GeneralSettingsView: View {
     @AppStorage(AppPreferences.Keys.preventCloseOnMouseLeave) var preventCloseOnMouseLeave: Bool = AppPreferences.Defaults.preventCloseOnMouseLeave
     @ObservedObject private var languageManager = LanguageManager.shared
     @ObservedObject private var persistenceHealth = PersistenceHealth.shared
+    @ObservedObject private var launchAtLoginManager = LaunchAtLoginManager.shared
     @State private var selectedLanguage: String = LanguageManager.shared.currentLanguage
     @State private var useSystemLanguage: Bool = !LanguageManager.shared.userHasSelectedLanguage
 
@@ -264,6 +265,13 @@ struct GeneralSettingsView: View {
         LanguageManager.shared.currentLanguage
     }
 
+    private var openAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { launchAtLoginManager.isEnabled },
+            set: { launchAtLoginManager.setEnabled($0) }
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
@@ -282,6 +290,12 @@ struct GeneralSettingsView: View {
             .reportSettingsContentHeight(for: .general)
         }
         .id(languageKey)
+        .onAppear {
+            launchAtLoginManager.refreshStatus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            launchAtLoginManager.refreshStatus()
+        }
     }
 
     private func persistenceWarningSection(details: String) -> some View {
@@ -384,7 +398,60 @@ struct GeneralSettingsView: View {
                 binding: $showMenuBarShortcuts
             )
 
+            NotchTerminalPreferenceToggleRow(
+                title: "settings.openAtLogin".localized,
+                subtitle: "settings.openAtLogin.subtitle".localized,
+                icon: "power.circle",
+                binding: openAtLoginBinding,
+                accessibilityID: "settings-open-at-login-row"
+            )
+
+            if launchAtLoginManager.requiresApproval {
+                launchAtLoginApprovalRow
+            }
+
+            if let errorMessage = launchAtLoginManager.errorMessage {
+                launchAtLoginErrorRow(errorMessage: errorMessage)
+            }
         }
+    }
+
+    private var launchAtLoginApprovalRow: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.shield")
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 20, height: 20)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("settings.openAtLogin.approvalRequired".localized)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            Button("settings.openAtLogin.openSystemSettings".localized) {
+                launchAtLoginManager.openSystemSettingsLoginItems()
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func launchAtLoginErrorRow(errorMessage: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 20, height: 20)
+                .foregroundStyle(.orange)
+
+            Text(String(format: "settings.openAtLogin.error".localized, errorMessage))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, 2)
     }
 
     private var notchBehaviorSection: some View {

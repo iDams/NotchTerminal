@@ -41,6 +41,11 @@
 "settings.showDockIcon.subtitle" = "구성된 AppIcon 자산을 사용하여 Dock 에 앱 아이콘을 표시합니다.";
 "settings.system.menuBar.shortcuts" = "메뉴바 아이콘 표시";
 "settings.system.menuBar.shortcuts.subtitle" = "macOS 메뉴바에 NotchTerminal 아이콘을 표시합니다.";
+"settings.openAtLogin" = "로그인 시 열기";
+"settings.openAtLogin.subtitle" = "Mac에 로그인할 때 NotchTerminal을 자동으로 실행합니다.";
+"settings.openAtLogin.approvalRequired" = "NotchTerminal이 자동으로 열리려면 로그인 항목에서 macOS 승인이 필요합니다.";
+"settings.openAtLogin.openSystemSettings" = "로그인 항목 열기";
+"settings.openAtLogin.error" = "NotchTerminal이 로그인 시 열기 설정을 업데이트하지 못했습니다. %@";
 "settings.showExperimentalSettings" = "실험 탭 표시";
 "settings.showExperimentalSettings.subtitle" = "설정 내에서 실험적 설정과 불안정한 기능을 표시합니다.";
 "settings.quitApp" = "앱 종료";

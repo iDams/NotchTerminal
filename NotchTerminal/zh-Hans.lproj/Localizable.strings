@@ -41,6 +41,11 @@
 "settings.showDockIcon.subtitle" = "使用配置的 AppIcon 资源在 Dock 中显示应用图标。";
 "settings.system.menuBar.shortcuts" = "显示菜单栏图标";
 "settings.system.menuBar.shortcuts.subtitle" = "在 macOS 菜单栏中显示 NotchTerminal 图标。";
+"settings.openAtLogin" = "登录时打开";
+"settings.openAtLogin.subtitle" = "当你登录 Mac 时自动启动 NotchTerminal。";
+"settings.openAtLogin.approvalRequired" = "在 NotchTerminal 可以自动打开之前，macOS 需要你在登录项中批准它。";
+"settings.openAtLogin.openSystemSettings" = "打开登录项";
+"settings.openAtLogin.error" = "NotchTerminal 无法更新“登录时打开”。%@";
 "settings.showExperimentalSettings" = "显示实验性标签页";
 "settings.showExperimentalSettings.subtitle" = "在设置中显示实验性设置和不稳定功能。";
 "settings.quitApp" = "退出应用";

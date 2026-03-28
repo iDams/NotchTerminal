@@ -41,6 +41,11 @@
 "settings.showDockIcon.subtitle" = "AppIconアセットを使用してDockにアプリアイコンを表示します。";
 "settings.system.menuBar.shortcuts" = "メニューバーにアイコンを表示";
 "settings.system.menuBar.shortcuts.subtitle" = "macOS のメニューバーに NotchTerminal アイコンを表示します。";
+"settings.openAtLogin" = "ログイン時に開く";
+"settings.openAtLogin.subtitle" = "Mac にサインインしたときに NotchTerminal を自動的に起動します。";
+"settings.openAtLogin.approvalRequired" = "NotchTerminal を自動起動するには、ログイン項目で macOS の承認が必要です。";
+"settings.openAtLogin.openSystemSettings" = "ログイン項目を開く";
+"settings.openAtLogin.error" = "NotchTerminal は「ログイン時に開く」を更新できませんでした。%@";
 "settings.showExperimentalSettings" = "実験タブを表示";
 "settings.showExperimentalSettings.subtitle" = "設定内で実験的な設定と不安定な機能を表示します。";
 "settings.quitApp" = "アプリを終了";

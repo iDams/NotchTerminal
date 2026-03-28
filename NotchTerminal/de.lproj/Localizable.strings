@@ -41,6 +41,11 @@
 "settings.showDockIcon.subtitle" = "Zeigt das App-Symbol im Dock mit dem konfigurierten AppIcon-Asset.";
 "settings.system.menuBar.shortcuts" = "Menüleiste-Symbol anzeigen";
 "settings.system.menuBar.shortcuts.subtitle" = "Zeigt das NotchTerminal-Symbol in der macOS-Menüleiste.";
+"settings.openAtLogin" = "Beim Anmelden öffnen";
+"settings.openAtLogin.subtitle" = "Startet NotchTerminal automatisch, wenn du dich an deinem Mac anmeldest.";
+"settings.openAtLogin.approvalRequired" = "macOS verlangt eine Freigabe in den Anmeldeobjekten, bevor NotchTerminal automatisch geöffnet werden kann.";
+"settings.openAtLogin.openSystemSettings" = "Anmeldeobjekte öffnen";
+"settings.openAtLogin.error" = "NotchTerminal konnte „Beim Anmelden öffnen“ nicht aktualisieren. %@";
 "settings.showExperimentalSettings" = "Experimentell-Tab anzeigen";
 "settings.showExperimentalSettings.subtitle" = "Zeigt experimentelle Einstellungen und instabile Funktionen in den Einstellungen.";
 "settings.quitApp" = "Anwendung beenden";
