@@ -329,3 +329,7 @@
 "settings.experimental.slapDetection.sensitivity.subtitle" = "Valores más altos requieren un golpe más suave para activarse.";
 "settings.experimental.slapDetection.requiredSlaps" = "Golpes necesarios";
 "settings.experimental.slapDetection.requiredSlaps.subtitle" = "Número de golpes necesarios para activar la acción.";
+"settings.experimental.slapDetection.action" = "Acción al golpear";
+"settings.experimental.slapDetection.action.subtitle" = "Qué sucede cuando se detectan los golpes requeridos.";
+"settings.experimental.slapDetection.action.openTerminal" = "Abrir terminal";
+"settings.experimental.slapDetection.action.expandNotch" = "Expandir notch";

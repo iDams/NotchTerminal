@@ -329,3 +329,7 @@
 "settings.experimental.slapDetection.sensitivity.subtitle" = "Des valeurs plus élevées nécessitent un choc plus léger pour se déclencher.";
 "settings.experimental.slapDetection.requiredSlaps" = "Claquements requis";
 "settings.experimental.slapDetection.requiredSlaps.subtitle" = "Nombre de claquements nécessaires pour déclencher l'action.";
+"settings.experimental.slapDetection.action" = "Action au claquement";
+"settings.experimental.slapDetection.action.subtitle" = "Ce qui se passe quand les claquements requis sont détectés.";
+"settings.experimental.slapDetection.action.openTerminal" = "Ouvrir le terminal";
+"settings.experimental.slapDetection.action.expandNotch" = "Développer l'encoche";

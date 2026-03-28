@@ -329,3 +329,7 @@
 "settings.experimental.slapDetection.sensitivity.subtitle" = "値を上げると、より軽いタップで反応するようになります。";
 "settings.experimental.slapDetection.requiredSlaps" = "必要なスラップ数";
 "settings.experimental.slapDetection.requiredSlaps.subtitle" = "アクションをトリガーするために必要なスラップの回数。";
+"settings.experimental.slapDetection.action" = "スラップアクション";
+"settings.experimental.slapDetection.action.subtitle" = "必要なスラップが検出されたときの動作。";
+"settings.experimental.slapDetection.action.openTerminal" = "ターミナルを開く";
+"settings.experimental.slapDetection.action.expandNotch" = "ノッチを展開";

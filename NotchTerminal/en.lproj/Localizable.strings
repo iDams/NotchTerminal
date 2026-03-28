@@ -332,3 +332,7 @@
 "settings.experimental.slapDetection.sensitivity.subtitle" = "Higher values require a lighter tap to trigger.";
 "settings.experimental.slapDetection.requiredSlaps" = "Required slaps";
 "settings.experimental.slapDetection.requiredSlaps.subtitle" = "Number of slaps needed to trigger the action.";
+"settings.experimental.slapDetection.action" = "Slap action";
+"settings.experimental.slapDetection.action.subtitle" = "What happens when the required slaps are detected.";
+"settings.experimental.slapDetection.action.openTerminal" = "Open Terminal";
+"settings.experimental.slapDetection.action.expandNotch" = "Expand Notch";

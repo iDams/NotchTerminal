@@ -332,3 +332,7 @@
 "settings.experimental.slapDetection.sensitivity.subtitle" = "Более высокие значения требуют более легкого удара для срабатывания.";
 "settings.experimental.slapDetection.requiredSlaps" = "Требуемые удары";
 "settings.experimental.slapDetection.requiredSlaps.subtitle" = "Количество ударов для сactivación действия.";
+"settings.experimental.slapDetection.action" = "Действие при ударе";
+"settings.experimental.slapDetection.action.subtitle" = "Что происходит при обнаружении нужного числа ударов.";
+"settings.experimental.slapDetection.action.openTerminal" = "Открыть терминал";
+"settings.experimental.slapDetection.action.expandNotch" = "Развернуть вырез";

@@ -82,7 +82,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var uiTestWindow: NSWindow?
     private var onboardingWindow: NSWindow?
     private var statusItem: NSStatusItem?
-    private var slapHelloWorldWindow: NSWindow?
     private let persistenceHealth = PersistenceHealth.shared
     private let storageCleanupService = StorageCleanupService.shared
     private let openPortsOverviewService = OpenPortsOverviewService.shared
@@ -524,8 +523,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         service.updateSensitivity(config.slapDetectionSensitivity)
         service.updateRequiredSlaps(config.slapDetectionRequiredSlaps)
         if enabled && !service.isMonitoring {
+            let action = config.slapDetectionAction
             service.onSlapDetected = { [weak self] in
-                self?.showSlapHelloWorld()
+                self?.handleSlapAction(action)
             }
             service.startMonitoring()
         } else if !enabled && service.isMonitoring {
@@ -535,37 +535,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @MainActor
-    private func showSlapHelloWorld() {
-        if let existing = slapHelloWorldWindow {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
+    private func handleSlapAction(_ action: String) {
+        guard let screen = NSScreen.main,
+              let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        else { return }
+        let displayID = CGDirectDisplayID(screenNumber.uint32Value)
 
-        let hostingController = NSHostingController(
-            rootView: SlapHelloWorldView()
-        )
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 360, height: 200),
-            styleMask: [.titled, .closable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Slap Detected!"
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
-        window.isReleasedWhenClosed = false
-        window.backgroundColor = .clear
-        window.isOpaque = false
-        window.hasShadow = true
-        window.contentViewController = hostingController
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
-        centerWindowOnActiveScreen(window)
-        window.makeKeyAndOrderFront(nil)
-        slapHelloWorldWindow = window
-        NSApp.activate(ignoringOtherApps: true)
+        switch action {
+        case "expandNotch":
+            notchController?.pinDisplayExpanded(displayID)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                self?.notchController?.unpinDisplayExpanded(displayID)
+            }
+        default:
+            notchController?.openBlackWindowForCurrentInteractionScreen()
+        }
     }
 }
 
@@ -574,8 +558,6 @@ extension AppDelegate: NSWindowDelegate {
         guard let window = notification.object as? NSWindow else { return }
         if window === onboardingWindow {
             onboardingWindow = nil
-        } else if window === slapHelloWorldWindow {
-            slapHelloWorldWindow = nil
         }
     }
 }

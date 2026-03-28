@@ -332,3 +332,7 @@
 "settings.experimental.slapDetection.sensitivity.subtitle" = "数值越高，轻拍即可触发。";
 "settings.experimental.slapDetection.requiredSlaps" = "所需拍打次数";
 "settings.experimental.slapDetection.requiredSlaps.subtitle" = "触发操作所需的拍打次数。";
+"settings.experimental.slapDetection.action" = "拍打动作";
+"settings.experimental.slapDetection.action.subtitle" = "检测到所需拍打次数时执行的操作。";
+"settings.experimental.slapDetection.action.openTerminal" = "打开终端";
+"settings.experimental.slapDetection.action.expandNotch" = "展开刘海";

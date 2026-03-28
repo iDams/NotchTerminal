@@ -999,7 +999,7 @@ final class NotchOverlayController {
         unpinDisplayExpanded(sourceDisplayID)
     }
 
-    private func pinDisplayExpanded(_ displayID: CGDirectDisplayID) {
+    func pinDisplayExpanded(_ displayID: CGDirectDisplayID) {
         pinnedExpandedDisplays.insert(displayID)
         if let model = modelsByDisplay[displayID] {
             model.isExpanded = true
@@ -1007,7 +1007,7 @@ final class NotchOverlayController {
         layoutPanels(animated: false, displays: [displayID])
     }
 
-    private func unpinDisplayExpanded(_ displayID: CGDirectDisplayID) {
+    func unpinDisplayExpanded(_ displayID: CGDirectDisplayID) {
         pinnedExpandedDisplays.remove(displayID)
         layoutPanels(animated: false, displays: [displayID])
     }

@@ -7,6 +7,7 @@ struct ExperimentalSettingsView: View {
     @AppStorage(AppPreferences.Keys.experimentalSlapDetectionEnabled) var slapDetectionEnabled: Bool = AppPreferences.Defaults.experimentalSlapDetectionEnabled
     @AppStorage(AppPreferences.Keys.experimentalSlapDetectionSensitivity) var slapDetectionSensitivity: Double = AppPreferences.Defaults.experimentalSlapDetectionSensitivity
     @AppStorage(AppPreferences.Keys.experimentalSlapDetectionRequiredSlaps) var slapDetectionRequiredSlaps: Int = AppPreferences.Defaults.experimentalSlapDetectionRequiredSlaps
+    @AppStorage(AppPreferences.Keys.experimentalSlapDetectionAction) var slapDetectionAction: String = AppPreferences.Defaults.experimentalSlapDetectionAction
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetX) var startupOrbPillOffsetX: Double = AppPreferences.Defaults.startupOrbPillOffsetX
     @AppStorage(AppPreferences.Keys.startupOrbPillOffsetY) var startupOrbPillOffsetY: Double = AppPreferences.Defaults.startupOrbPillOffsetY
     @AppStorage(AppPreferences.Keys.startupOrbNotchOffsetX) var startupOrbNotchOffsetX: Double = AppPreferences.Defaults.startupOrbNotchOffsetX
@@ -322,6 +323,34 @@ struct ExperimentalSettingsView: View {
                     step: 1,
                     valueFormatter: { $0 == 1 ? "1 slap".localized : "\($0) slaps".localized }
                 )
+
+                HStack(spacing: 10) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("settings.experimental.slapDetection.action".localized)
+                            .font(.body.weight(.medium))
+
+                        Text("settings.experimental.slapDetection.action.subtitle".localized)
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    Spacer()
+
+                    Picker("", selection: $slapDetectionAction) {
+                        ForEach(AppPreferences.SlapAction.allCases, id: \.self) { action in
+                            Text("settings.experimental.slapDetection.action.\(action.rawValue)".localized)
+                                .tag(action.rawValue)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+                .padding(.vertical, 4)
             }
         }
     }

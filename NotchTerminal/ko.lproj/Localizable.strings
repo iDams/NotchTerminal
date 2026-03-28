@@ -332,3 +332,7 @@
 "settings.experimental.slapDetection.sensitivity.subtitle" = "값이 높을수록 더 가벼운 탭으로 반응합니다.";
 "settings.experimental.slapDetection.requiredSlaps" = "필요한 슬랩 수";
 "settings.experimental.slapDetection.requiredSlaps.subtitle" = "동작을 트리거하기 위해 필요한 슬랩 횟수.";
+"settings.experimental.slapDetection.action" = "슬랩 동작";
+"settings.experimental.slapDetection.action.subtitle" = "필요한 슬랩이 감지되었을 때 수행할 동작.";
+"settings.experimental.slapDetection.action.openTerminal" = "터미널 열기";
+"settings.experimental.slapDetection.action.expandNotch" = "노치 확장";

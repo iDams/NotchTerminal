@@ -332,3 +332,7 @@
 "settings.experimental.slapDetection.sensitivity.subtitle" = "Höhere Werte erfordern einen leichteren Schlag zum Auslösen.";
 "settings.experimental.slapDetection.requiredSlaps" = "Erforderliche Schläge";
 "settings.experimental.slapDetection.requiredSlaps.subtitle" = "Anzahl der Schläge zum Auslösen der Aktion.";
+"settings.experimental.slapDetection.action" = "Schlag-Aktion";
+"settings.experimental.slapDetection.action.subtitle" = "Was passiert, wenn die erforderlichen Schläge erkannt werden.";
+"settings.experimental.slapDetection.action.openTerminal" = "Terminal öffnen";
+"settings.experimental.slapDetection.action.expandNotch" = "Notch aufklappen";

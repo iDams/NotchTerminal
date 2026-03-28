@@ -33,6 +33,12 @@ enum AppPreferences {
         let slapDetectionEnabled: Bool
         let slapDetectionSensitivity: Double
         let slapDetectionRequiredSlaps: Int
+        let slapDetectionAction: String
+    }
+
+    enum SlapAction: String, CaseIterable {
+        case openTerminal = "openTerminal"
+        case expandNotch = "expandNotch"
     }
 
     enum Keys {
@@ -78,6 +84,7 @@ enum AppPreferences {
         static let experimentalSlapDetectionEnabled = "experimentalSlapDetectionEnabled"
         static let experimentalSlapDetectionSensitivity = "experimentalSlapDetectionSensitivity"
         static let experimentalSlapDetectionRequiredSlaps = "experimentalSlapDetectionRequiredSlaps"
+        static let experimentalSlapDetectionAction = "experimentalSlapDetectionAction"
     }
 
     enum Defaults {
@@ -114,6 +121,7 @@ enum AppPreferences {
         static let experimentalSlapDetectionEnabled = false
         static let experimentalSlapDetectionSensitivity: Double = 50
         static let experimentalSlapDetectionRequiredSlaps: Int = 2
+        static let experimentalSlapDetectionAction: String = "expandNotch"
     }
 
     /// Disabled displays are stored as a stable comma-separated list so the
@@ -324,6 +332,11 @@ enum AppPreferences {
             slapDetectionRequiredSlaps: int(
                 forKey: Keys.experimentalSlapDetectionRequiredSlaps,
                 default: Defaults.experimentalSlapDetectionRequiredSlaps,
+                in: defaults
+            ),
+            slapDetectionAction: string(
+                forKey: Keys.experimentalSlapDetectionAction,
+                default: Defaults.experimentalSlapDetectionAction,
                 in: defaults
             )
         )
