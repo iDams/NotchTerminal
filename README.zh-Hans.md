@@ -118,6 +118,14 @@ cd NotchTerminal
 
 ---
 
+## 反馈与问题
+
+如果你发现了 bug、想请求新功能，或者遇到了安装问题：
+
+- 提交 issue: https://github.com/iDams/NotchTerminal/issues
+
+---
+
 ## 支持
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow.svg)](https://buymeacoffee.com/marcoastorj)

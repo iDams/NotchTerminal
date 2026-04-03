@@ -118,6 +118,14 @@ The repository does not include a personal Apple `DEVELOPMENT_TEAM`. To build lo
 
 ---
 
+## Feedback and Bugs
+
+Found a bug, want to request a feature, or hit an installation issue?
+
+- Open an issue: https://github.com/iDams/NotchTerminal/issues
+
+---
+
 ## Support
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow.svg)](https://buymeacoffee.com/marcoastorj)

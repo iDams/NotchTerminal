@@ -118,6 +118,14 @@ Le dépôt n'inclut pas de `DEVELOPMENT_TEAM` Apple personnel. Pour compiler loc
 
 ---
 
+## Retours et Bugs
+
+Si vous trouvez un bug, souhaitez demander une fonctionnalité ou rencontrez un problème d'installation :
+
+- Ouvrir une issue : https://github.com/iDams/NotchTerminal/issues
+
+---
+
 ## Support
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow.svg)](https://buymeacoffee.com/marcoastorj)
