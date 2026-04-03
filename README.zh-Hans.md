@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.2.0-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.2.1-green.svg)]()
 
 [**English**](README.md) | [**Español**](README.es.md) | [**日本語**](README.ja.md) | **简体中文** | [**Français**](README.fr.md)
 
@@ -72,14 +72,30 @@ NotchTerminal 包含一个实验性设置选项卡，提供以下功能：
 
 ## 安装
 
-> 敬请期待
+### Homebrew
+
+```bash
+brew tap idams/notchterminal
+brew install --cask notchterminal
+```
+
+### 直接下载
+
+1. 打开 GitHub 上的最新 Release。
+2. 下载 `NotchTerminal-<version>.zip`。
+3. 解压该文件。
+4. 将 `NotchTerminal.app` 移动到 `/Applications`。
+
+Releases：
+
+- https://github.com/iDams/NotchTerminal/releases
 
 ---
 
 ## 从源码构建
 
 ```bash
-git clone https://github.com/marcoastorj/NotchTerminal.git
+git clone https://github.com/iDams/NotchTerminal.git
 cd NotchTerminal
 ```
 打开 `NotchTerminal.xcodeproj` 并运行 `NotchTerminal` 方案。
@@ -109,6 +125,14 @@ cd NotchTerminal
 <p align="center">
   <img src="docs/bmc_qr.png" alt="Buy Me a Coffee QR" width="200" />
 </p>
+
+---
+
+## 品牌说明
+
+某些截图、图标和文字说明可能会提及 OpenAI、Claude、Copilot 或其他第三方工具与服务，用于展示工作流或互操作性。
+
+这些名称、标志和商标均归其各自所有者所有。它们仅用于在应用、网站、文档或展示材料中进行识别和描述性说明。除非另有明确声明，NotchTerminal 与这些公司不存在任何隶属、背书或赞助关系。
 
 ---
 

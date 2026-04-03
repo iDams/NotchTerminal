@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.2.0-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.2.1-green.svg)]()
 
 [**English**](README.md) | [**Español**](README.es.md) | **日本語** | [**简体中文**](README.zh-Hans.md) | [**Français**](README.fr.md)
 
@@ -72,14 +72,30 @@ NotchTerminalには、以下の実験的な設定タブが含まれています�
 
 ## インストール
 
-> 近日公開
+### Homebrew
+
+```bash
+brew tap idams/notchterminal
+brew install --cask notchterminal
+```
+
+### 直接ダウンロード
+
+1. GitHub の最新リリースを開きます。
+2. `NotchTerminal-<version>.zip` をダウンロードします。
+3. ファイルを解凍します。
+4. `NotchTerminal.app` を `/Applications` に移動します。
+
+Releases:
+
+- https://github.com/iDams/NotchTerminal/releases
 
 ---
 
 ## ソースからのビルド
 
 ```bash
-git clone https://github.com/marcoastorj/NotchTerminal.git
+git clone https://github.com/iDams/NotchTerminal.git
 cd NotchTerminal
 ```
 `NotchTerminal.xcodeproj` を開き、`NotchTerminal` スキームを実行します。
@@ -109,6 +125,14 @@ cd NotchTerminal
 <p align="center">
   <img src="docs/bmc_qr.png" alt="Buy Me a Coffee QR" width="200" />
 </p>
+
+---
+
+## ブランドに関する注意
+
+スクリーンショット、アイコン、説明文には、ワークフローや相互運用性を示す目的で、OpenAI、Claude、Copilot などのサードパーティ製ツールやサービス名が含まれる場合があります。
+
+これらの名称、ロゴ、商標はそれぞれの権利者に帰属します。アプリ、Web サイト、ドキュメント、または告知用ビジュアル内での識別および説明のためにのみ使用されています。明示的に記載がない限り、NotchTerminal はそれらの企業と提携、承認、またはスポンサー関係にはありません。
 
 ---
 

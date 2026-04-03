@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.2.0-green.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.2.1-green.svg)]()
 
 [**English**](README.md) | [**Español**](README.es.md) | [**日本語**](README.ja.md) | [**简体中文**](README.zh-Hans.md) | **Français**
 
@@ -72,14 +72,30 @@ NotchTerminal inclut un onglet de paramètres expérimentaux proposant :
 
 ## Installation
 
-> À venir
+### Homebrew
+
+```bash
+brew tap idams/notchterminal
+brew install --cask notchterminal
+```
+
+### Téléchargement Direct
+
+1. Ouvrez la dernière release sur GitHub.
+2. Téléchargez `NotchTerminal-<version>.zip`.
+3. Décompressez le fichier.
+4. Déplacez `NotchTerminal.app` vers `/Applications`.
+
+Releases :
+
+- https://github.com/iDams/NotchTerminal/releases
 
 ---
 
 ## Compiler depuis les sources
 
 ```bash
-git clone https://github.com/marcoastorj/NotchTerminal.git
+git clone https://github.com/iDams/NotchTerminal.git
 cd NotchTerminal
 ```
 Ouvrez `NotchTerminal.xcodeproj` et exécutez le schéma `NotchTerminal`.
@@ -109,6 +125,14 @@ Le dépôt n'inclut pas de `DEVELOPMENT_TEAM` Apple personnel. Pour compiler loc
 <p align="center">
   <img src="docs/bmc_qr.png" alt="Buy Me a Coffee QR" width="200" />
 </p>
+
+---
+
+## Avis Sur Les Marques
+
+Certaines captures d'écran, icônes et références peuvent mentionner des outils ou services tiers tels qu'OpenAI, Claude, Copilot ou d'autres produits similaires afin d'illustrer des flux de travail ou l'interopérabilité.
+
+Ces noms, logos et marques appartiennent à leurs propriétaires respectifs. Ils sont utilisés uniquement à des fins descriptives et d'identification dans l'application, le site web, la documentation ou les visuels promotionnels. NotchTerminal n'est pas affilié, approuvé ni sponsorisé par ces sociétés sauf mention explicite contraire.
 
 ---
 
