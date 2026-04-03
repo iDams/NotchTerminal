@@ -1,5 +1,10 @@
 // Copy this file to Config/Signing.local.xcconfig and customize locally.
 // Do not commit Signing.local.xcconfig.
 
+// Your personal Apple Developer Team ID.
 CODE_SIGN_STYLE = Automatic
 DEVELOPMENT_TEAM = YOURTEAMID
+
+// Optional local override if you need a different bundle identifier for
+// private testing or parallel installs. Leave commented for the public repo.
+// PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NotchTerminal

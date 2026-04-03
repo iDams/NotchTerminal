@@ -83,6 +83,12 @@ test_canvas.swift
 .cache/
 .deriveddata/
 
+# Local distribution artifacts
+*.xcarchive
+*.xcdistributionlogs
+*.pkg
+*.zip
+
 # Local signing overrides
 Config/Signing.local.xcconfig
 
