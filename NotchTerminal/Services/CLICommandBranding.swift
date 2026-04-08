@@ -23,6 +23,9 @@ enum CLICommandBrandingResolver {
         // Qwen
         "qwen",
         "qwen-cli",
+        "qwen-code",
+        "qwen-coder",
+        "qwen3",
         // Meta
         "llama",
         // Ollama
@@ -80,6 +83,10 @@ enum CLICommandBrandingResolver {
         "gemini-cli": "CLIGemini",
         "qwen": "CLIQwen",
         "qwen-cli": "CLIQwen",
+        "qwen-code": "CLIQwen",
+        "qwen-coder": "CLIQwen",
+        "qwen3": "CLIQwen",
+        "ollama": "CLIOllama",
         "copilot": "CLICopilot",
         "gh copilot": "CLICopilot",
         "github-copilot-cli": "CLICopilot",
@@ -100,6 +107,10 @@ enum CLICommandBrandingResolver {
 
         let icon = loadIcon(for: normalized)
         return CLICommandBranding(title: normalized, icon: icon)
+    }
+
+    static func isBrandedCommand(_ command: String) -> Bool {
+        brandedCLITools.contains(normalize(command))
     }
 
     private static func normalize(_ command: String) -> String {

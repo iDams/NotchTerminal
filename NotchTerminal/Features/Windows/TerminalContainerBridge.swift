@@ -35,6 +35,8 @@ struct CRTFilterModifier: ViewModifier {
 final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     var commandSubmitted: ((String) -> Void)?
     var hostOutputReceived: ((String) -> Void)?
+    var interruptSent: (() -> Void)?
+    var foregroundBrandingChanged: ((CLICommandBranding?) -> Void)?
     private var currentInputLine = ""
     private var isInLiveResize = false
     private var wheelMonitor: Any?
@@ -43,6 +45,10 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
     private var selectionAutoScrollTimer: Timer?
     private var selectionAutoScrollDelta = 0
     private var lastSelectionDragEvent: NSEvent?
+    private var foregroundRefreshWorkItem: DispatchWorkItem?
+    private var lastObservedForegroundBrandingTitle: String?
+    private var lastEmittedForegroundBrandingTitle: String?
+    private var foregroundBrandingObservationCount = 0
 
     func injectText(_ text: String, submit: Bool) {
         var bytes = Array(text.utf8)
@@ -122,10 +128,15 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
                     commandSubmitted?(finalCommand)
                 }
                 currentInputLine = ""
+                scheduleForegroundBrandingRefresh()
             case 8, 127:
                 if !currentInputLine.isEmpty {
                     currentInputLine.removeLast()
                 }
+            case 3:
+                currentInputLine = ""
+                interruptSent?()
+                scheduleForegroundBrandingRefresh()
             default:
                 if byte >= 32 && byte <= 126 {
                     currentInputLine.append(Character(UnicodeScalar(byte)))
@@ -138,6 +149,7 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
         if let text = String(bytes: slice, encoding: .utf8), !text.isEmpty {
             hostOutputReceived?(text)
         }
+        scheduleForegroundBrandingRefresh()
         super.dataReceived(slice: slice)
     }
 
@@ -182,6 +194,34 @@ final class DetectingLocalProcessTerminalView: LocalProcessTerminalView {
         terminal.updateFullScreen()
         needsDisplay = true
         layer?.setNeedsDisplay()
+    }
+
+    private func scheduleForegroundBrandingRefresh() {
+        foregroundRefreshWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            let branding = TerminalForegroundProcessInspector.branding(
+                childFileDescriptor: self.process.childfd,
+                shellPid: self.process.shellPid
+            )
+            let observedTitle = branding?.title
+            if observedTitle == self.lastObservedForegroundBrandingTitle {
+                self.foregroundBrandingObservationCount += 1
+            } else {
+                self.lastObservedForegroundBrandingTitle = observedTitle
+                self.foregroundBrandingObservationCount = 1
+            }
+
+            // Require two matching observations before mutating the UI so brief
+            // shell/CLI handoffs do not make the provider icon flicker.
+            guard self.foregroundBrandingObservationCount >= 2 else { return }
+            guard observedTitle != self.lastEmittedForegroundBrandingTitle else { return }
+
+            self.lastEmittedForegroundBrandingTitle = observedTitle
+            self.foregroundBrandingChanged?(branding)
+        }
+        foregroundRefreshWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: workItem)
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
@@ -491,6 +531,8 @@ struct SwiftTermContainerView: NSViewRepresentable {
     let currentDirectory: String
     let preferMouseReporting: Bool
     let commandSubmitted: (String) -> Void
+    let interruptSent: () -> Void
+    let foregroundBrandingChanged: (CLICommandBranding?) -> Void
     let outputReceived: (String) -> Void
     let directoryChanged: (String) -> Void
 
@@ -502,6 +544,8 @@ struct SwiftTermContainerView: NSViewRepresentable {
         let terminal = DetectingLocalProcessTerminalView(frame: .zero)
         terminal.ensureWheelForwardingMonitor()
         terminal.commandSubmitted = commandSubmitted
+        terminal.interruptSent = interruptSent
+        terminal.foregroundBrandingChanged = foregroundBrandingChanged
         terminal.hostOutputReceived = outputReceived
         terminal.registerForDraggedTypes([.fileURL])
         terminal.processDelegate = context.coordinator
@@ -527,6 +571,8 @@ struct SwiftTermContainerView: NSViewRepresentable {
         (nsView as? DetectingLocalProcessTerminalView)?.ensureWheelForwardingMonitor()
         (nsView as? DetectingLocalProcessTerminalView)?.hostOutputReceived = outputReceived
         (nsView as? DetectingLocalProcessTerminalView)?.commandSubmitted = commandSubmitted
+        (nsView as? DetectingLocalProcessTerminalView)?.interruptSent = interruptSent
+        (nsView as? DetectingLocalProcessTerminalView)?.foregroundBrandingChanged = foregroundBrandingChanged
         context.coordinator.windowNumber = windowNumber
         context.coordinator.currentDirectory = Self.validatedWorkingDirectoryPath(currentDirectory)
         context.coordinator.tryStartProcessIfNeeded(on: nsView)

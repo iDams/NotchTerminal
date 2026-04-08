@@ -14,6 +14,8 @@ struct MetalBlackWindowContent: View {
     let increaseFontSize: () -> Void
     let decreaseFontSize: () -> Void
     let commandSubmitted: (String) -> Void
+    let interruptSent: () -> Void
+    let foregroundBrandingChanged: (CLICommandBranding?) -> Void
     let outputReceived: (String) -> Void
     let directoryChanged: (String) -> Void
     let closeWindow: () -> Void
@@ -209,6 +211,8 @@ struct MetalBlackWindowContent: View {
                         currentDirectory: currentDirectory,
                         preferMouseReporting: preferMouseReporting,
                         commandSubmitted: commandSubmitted,
+                        interruptSent: interruptSent,
+                        foregroundBrandingChanged: foregroundBrandingChanged,
                         outputReceived: outputReceived,
                         directoryChanged: directoryChanged
                     )
@@ -299,6 +303,8 @@ struct MetalBlackWindowContent: View {
         increaseFontSize: {},
         decreaseFontSize: {},
         commandSubmitted: { _ in },
+        interruptSent: {},
+        foregroundBrandingChanged: { _ in },
         outputReceived: { _ in },
         directoryChanged: { _ in },
         closeWindow: {},

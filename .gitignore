@@ -94,8 +94,11 @@ Config/Signing.local.xcconfig
 
 # Private planning notes (keep local only)
 docs/internal/
+docs/distribution/
 
 *.swp
 *.swo
 
 build.log
+
+scripts/package-homebrew-release.sh

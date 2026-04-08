@@ -8,6 +8,7 @@ final class TerminalCommandLifecycleLogicTests: XCTestCase {
             command: "opencode",
             currentDisplayTitle: "NotchTerminal",
             currentDisplayIcon: nil,
+            currentPreferMouseReporting: false,
             defaultDisplayIcon: nil,
             displayID: 1,
             terminalNumber: 2
@@ -26,6 +27,7 @@ final class TerminalCommandLifecycleLogicTests: XCTestCase {
             command: "/help",
             currentDisplayTitle: "opencode",
             currentDisplayIcon: brandedIcon,
+            currentPreferMouseReporting: true,
             defaultDisplayIcon: nil,
             displayID: 1,
             terminalNumber: 2
@@ -43,6 +45,7 @@ final class TerminalCommandLifecycleLogicTests: XCTestCase {
             command: "exit",
             currentDisplayTitle: "codex",
             currentDisplayIcon: brandedIcon,
+            currentPreferMouseReporting: false,
             defaultDisplayIcon: defaultIcon,
             displayID: 1,
             terminalNumber: 2
@@ -78,5 +81,64 @@ final class TerminalCommandLifecycleLogicTests: XCTestCase {
         XCTAssertTrue(TerminalCommandLifecycleLogic.outputLooksLikeFailure("npm ERR! missing script"))
         XCTAssertTrue(TerminalCommandLifecycleLogic.outputLooksLikeFailure("Traceback (most recent call last):"))
         XCTAssertFalse(TerminalCommandLifecycleLogic.outputLooksLikeFailure("Build completed successfully"))
+    }
+
+    func testSubmittedCommandPreservesInteractiveBrandingForPromptText() {
+        let brandedIcon = NSImage(size: NSSize(width: 10, height: 10))
+        let defaultIcon = NSImage(size: NSSize(width: 20, height: 20))
+        let update = TerminalCommandLifecycleLogic.submittedCommandUpdate(
+            command: "hola",
+            currentDisplayTitle: "opencode",
+            currentDisplayIcon: brandedIcon,
+            currentPreferMouseReporting: true,
+            defaultDisplayIcon: defaultIcon,
+            displayID: 1,
+            terminalNumber: 2
+        )
+
+        XCTAssertNil(update.brandingState)
+        XCTAssertEqual(update.lastSubmittedCommand, "hola")
+        XCTAssertEqual(update.pendingOrbCommand?.event.command, "hola")
+    }
+
+    func testInterruptUpdateResetsInteractiveBrandingToDefault() {
+        let defaultIcon = NSImage(size: NSSize(width: 20, height: 20))
+        let update = TerminalCommandLifecycleLogic.interruptUpdate(
+            currentDisplayTitle: "opencode",
+            currentPreferMouseReporting: true,
+            defaultDisplayIcon: defaultIcon
+        )
+
+        XCTAssertEqual(update?.displayTitle, "NotchTerminal")
+        XCTAssertTrue(update?.displayIcon === defaultIcon)
+        XCTAssertFalse(update?.preferMouseReporting == true)
+    }
+
+    func testForegroundBrandingUpdateAppliesDetectedCLI() {
+        let branding = CLICommandBranding(title: "claude", icon: NSImage(size: NSSize(width: 10, height: 10)))
+        let update = TerminalCommandLifecycleLogic.foregroundBrandingUpdate(
+            branding: branding,
+            currentDisplayTitle: "NotchTerminal",
+            currentDisplayIcon: nil,
+            defaultDisplayIcon: nil
+        )
+
+        XCTAssertEqual(update?.displayTitle, "claude")
+        XCTAssertFalse(update?.preferMouseReporting == true)
+    }
+
+    func testForegroundBrandingUpdateResetsWhenShellReturns() {
+        let defaultIcon = NSImage(size: NSSize(width: 20, height: 20))
+        let brandedIcon = NSImage(size: NSSize(width: 10, height: 10))
+        let update = TerminalCommandLifecycleLogic.foregroundBrandingUpdate(
+            branding: nil,
+            currentDisplayTitle: "opencode",
+            currentDisplayIcon: brandedIcon,
+            defaultDisplayIcon: defaultIcon
+        )
+
+        XCTAssertEqual(update?.displayTitle, "NotchTerminal")
+        XCTAssertTrue(update?.displayIcon === defaultIcon)
+        XCTAssertFalse(update?.preferMouseReporting == true)
     }
 }

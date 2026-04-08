@@ -38,6 +38,15 @@ final class TerminalSubmittedCommandParserTests: XCTestCase {
         XCTAssertEqual(command, "swift test --filter AppPreferencesTests")
     }
 
+    func testParseExtractsBrandedCLIOnHistoryRecall() {
+        let command = TerminalSubmittedCommandParser.parse(
+            visibleLine: "marco ~/project claude --resume",
+            rawInputLine: "[A"
+        )
+
+        XCTAssertEqual(command, "claude --resume")
+    }
+
     func testParseReturnsNilWhenNoCommandCanBeResolved() {
         XCTAssertNil(TerminalSubmittedCommandParser.parse(visibleLine: "", rawInputLine: ""))
         XCTAssertNil(TerminalSubmittedCommandParser.parse(visibleLine: "custom prompt", rawInputLine: "   "))

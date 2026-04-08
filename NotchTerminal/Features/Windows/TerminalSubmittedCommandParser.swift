@@ -6,7 +6,9 @@ import Foundation
 enum TerminalSubmittedCommandParser {
     private static let knownCommands = [
         "npm", "pnpm", "yarn", "bun", "git", "cargo", "make", "vite", "next", "astro", "nuxt",
-        "python", "python3", "node", "swift", "xcodebuild", "curl", "wget"
+        "python", "python3", "node", "swift", "xcodebuild", "curl", "wget",
+        "claude", "claud", "codex", "opencode", "gemini", "qwen", "gh", "copilot",
+        "aider", "cursor", "continue", "ollama", "openai"
     ]
 
     static func parse(visibleLine: String, rawInputLine: String) -> String? {

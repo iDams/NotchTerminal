@@ -1,5 +1,5 @@
 // Centralized app versioning.
 // Update these values here instead of editing the target identity in Xcode.
 
-MARKETING_VERSION = 1.2.1
+MARKETING_VERSION = 1.2.2
 CURRENT_PROJECT_VERSION = 1

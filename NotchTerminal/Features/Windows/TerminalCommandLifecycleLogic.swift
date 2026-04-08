@@ -27,10 +27,56 @@ enum TerminalCommandLifecycleLogic {
         let emittedCompletionEvent: TerminalCommandOrbEvent?
     }
 
+    static func interruptUpdate(
+        currentDisplayTitle: String,
+        currentPreferMouseReporting: Bool,
+        defaultDisplayIcon: NSImage?
+    ) -> TerminalCommandBrandingState? {
+        guard currentPreferMouseReporting,
+              CLICommandBrandingResolver.isBrandedCommand(currentDisplayTitle) else {
+            return nil
+        }
+
+        return TerminalCommandBrandingState(
+            displayTitle: "NotchTerminal",
+            displayIcon: defaultDisplayIcon,
+            preferMouseReporting: false
+        )
+    }
+
+    static func foregroundBrandingUpdate(
+        branding: CLICommandBranding?,
+        currentDisplayTitle: String,
+        currentDisplayIcon: NSImage?,
+        defaultDisplayIcon: NSImage?
+    ) -> TerminalCommandBrandingState? {
+        if let branding, let title = branding.title {
+            if currentDisplayTitle != title || (currentDisplayIcon == nil) != (branding.icon == nil) {
+                return TerminalCommandBrandingState(
+                    displayTitle: title,
+                    displayIcon: branding.icon,
+                    preferMouseReporting: (title == "opencode")
+                )
+            }
+            return nil
+        }
+
+        if CLICommandBrandingResolver.isBrandedCommand(currentDisplayTitle) {
+            return TerminalCommandBrandingState(
+                displayTitle: "NotchTerminal",
+                displayIcon: defaultDisplayIcon,
+                preferMouseReporting: false
+            )
+        }
+
+        return nil
+    }
+
     static func submittedCommandUpdate(
         command: String,
         currentDisplayTitle: String,
         currentDisplayIcon: NSImage?,
+        currentPreferMouseReporting: Bool,
         defaultDisplayIcon: NSImage?,
         displayID: CGDirectDisplayID,
         terminalNumber: Int
@@ -46,7 +92,7 @@ enum TerminalCommandLifecycleLogic {
 
         let brandingState: TerminalCommandBrandingState?
         if let newTitle = branding.title {
-            if currentDisplayTitle != newTitle || currentDisplayIcon !== branding.icon {
+            if currentDisplayTitle != newTitle || (currentDisplayIcon == nil) != (branding.icon == nil) {
                 brandingState = TerminalCommandBrandingState(
                     displayTitle: newTitle,
                     displayIcon: branding.icon,
@@ -63,7 +109,12 @@ enum TerminalCommandLifecycleLogic {
             )
         } else if lowered.hasPrefix("/") {
             brandingState = nil
-        } else if currentDisplayIcon != nil {
+        } else if currentPreferMouseReporting,
+                  CLICommandBrandingResolver.isBrandedCommand(currentDisplayTitle) {
+            // Interactive prompt text from tools like OpenCode should not
+            // clear provider branding while the tool is still active.
+            brandingState = nil
+        } else if CLICommandBrandingResolver.isBrandedCommand(currentDisplayTitle) {
             brandingState = TerminalCommandBrandingState(
                 displayTitle: "NotchTerminal",
                 displayIcon: defaultDisplayIcon,

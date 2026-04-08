@@ -702,6 +702,12 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             commandSubmitted: { [weak self] command in
                 self?.handleCommandSubmitted(id: id, command: command)
             },
+            interruptSent: { [weak self] in
+                self?.handleInterrupt(id: id)
+            },
+            foregroundBrandingChanged: { [weak self] branding in
+                self?.handleForegroundBrandingChange(id: id, branding: branding)
+            },
             outputReceived: { [weak self] text in
                 self?.handleCommandOutput(id: id, text: text)
             },
@@ -1169,6 +1175,7 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
             command: command,
             currentDisplayTitle: instance.displayTitle,
             currentDisplayIcon: instance.displayIcon,
+            currentPreferMouseReporting: instance.preferMouseReporting,
             defaultDisplayIcon: defaultDisplayIcon(),
             displayID: instance.displayID,
             terminalNumber: instance.number
@@ -1207,6 +1214,43 @@ final class MetalBlackWindowsManager: NSObject, NSWindowDelegate {
         }
         pendingOrbCommands[id] = failed
         onCommandOrbEvent?(event)
+    }
+
+    private func handleInterrupt(id: UUID) {
+        guard var instance = windows[id],
+              let brandingState = TerminalCommandLifecycleLogic.interruptUpdate(
+                currentDisplayTitle: instance.displayTitle,
+                currentPreferMouseReporting: instance.preferMouseReporting,
+                defaultDisplayIcon: defaultDisplayIcon()
+              ) else {
+            return
+        }
+
+        instance.displayTitle = brandingState.displayTitle
+        instance.displayIcon = brandingState.displayIcon
+        instance.preferMouseReporting = brandingState.preferMouseReporting
+        windows[id] = instance
+        updateContent(for: id)
+        publishTerminalItems()
+    }
+
+    private func handleForegroundBrandingChange(id: UUID, branding: CLICommandBranding?) {
+        guard var instance = windows[id],
+              let brandingState = TerminalCommandLifecycleLogic.foregroundBrandingUpdate(
+                branding: branding,
+                currentDisplayTitle: instance.displayTitle,
+                currentDisplayIcon: instance.displayIcon,
+                defaultDisplayIcon: defaultDisplayIcon()
+              ) else {
+            return
+        }
+
+        instance.displayTitle = brandingState.displayTitle
+        instance.displayIcon = brandingState.displayIcon
+        instance.preferMouseReporting = brandingState.preferMouseReporting
+        windows[id] = instance
+        updateContent(for: id)
+        publishTerminalItems()
     }
 
     private func handleDirectoryChanged(id: UUID, directory: String) {
